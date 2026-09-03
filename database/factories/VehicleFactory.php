@@ -96,6 +96,7 @@ class VehicleFactory extends Factory
             'electric_range_km'      => null,
             'co2_g_km'               => null,
             'fuel_tank_liters'       => null,
+            'body_style'             => $this->bodyStyleFromModel($model),
             'condition'              => $condition,
             'status'                 => VehicleStatus::InStock->value,
             'availability'           => $availability,
@@ -147,6 +148,23 @@ class VehicleFactory extends Factory
     public function registered(): static
     {
         return $this->state(['registration_status' => RegistrationStatus::Registered->value]);
+    }
+
+    // ── Aide carrosserie ──────────────────────────────────────────────────
+
+    private function bodyStyleFromModel(?\App\Models\VehicleModel $model): ?string
+    {
+        $bt = strtolower($model?->body_type ?? '');
+        return match (true) {
+            $bt === 'berline'                          => 'sedan',
+            in_array($bt, ['citadine', 'compacte'])    => 'hatchback',
+            $bt === 'suv'                              => 'suv',
+            $bt === 'pick-up'                          => 'pickup',
+            in_array($bt, ['utilitaire', 'monospace']) => 'van',
+            $bt === 'break'                            => 'estate',
+            str_contains($bt, 'tout')                  => 'suv',
+            default                                    => null,
+        };
     }
 
     // ── Aide prix XOF ─────────────────────────────────────────────────────
