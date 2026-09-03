@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: autoparc-backend
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_URL
+        sync: false          # à remplir manuellement avec l'URL Render
+      - key: APP_KEY
+        sync: false          # à remplir avec la valeur de ton .env local
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: autoparc-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: autoparc-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: autoparc-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: autoparc-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: autoparc-db
+          property: password
+      - key: FIREBASE_CREDENTIALS
+        sync: false          # JSON de ta clé de service Firebase
+
+databases:
+  - name: autoparc-db
+    plan: free
+    databaseName: autoparc
+    user: autoparc
