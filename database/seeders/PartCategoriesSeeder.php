@@ -142,13 +142,20 @@ class PartCategoriesSeeder extends Seeder
     private function insertLevel(array $nodes, ?int $parentId, array &$slugToId): void
     {
         foreach ($nodes as [$name, $slug, $parentSlug, $children]) {
-            $id = DB::table('part_categories')->insertGetId([
-                'parent_id'  => $parentId,
-                'name'       => $name,
-                'slug'       => $slug,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            // Idempotent : on récupère l'id existant plutôt que d'insérer en doublon.
+            $existing = DB::table('part_categories')->where('slug', $slug)->first();
+
+            if ($existing) {
+                $id = $existing->id;
+            } else {
+                $id = DB::table('part_categories')->insertGetId([
+                    'parent_id'  => $parentId,
+                    'name'       => $name,
+                    'slug'       => $slug,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
 
             $slugToId[$slug] = $id;
 
