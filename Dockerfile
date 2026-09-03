@@ -39,9 +39,9 @@ RUN chown -R www-data:www-data storage bootstrap/cache \
 
 EXPOSE 8000
 
-# Migrations + seed idempotent + démarrage du serveur
+# Migrations automatiques + démarrage
+# Le seeding est lancé manuellement une fois via le Shell Render : php artisan db:seed --force
 CMD php artisan config:cache \
     && php artisan route:cache \
     && php artisan migrate --force \
-    && php artisan db:seed --force \
     && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
