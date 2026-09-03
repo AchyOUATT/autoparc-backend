@@ -34,27 +34,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('login', [AuthController::class, 'login']); // staff uniquement : les clients passent par Firebase Auth cote Flutter
 
-/* -------- TEMPORAIRE : endpoint de seed (à supprimer après usage) ---------- */
-Route::get('_setup/seed', function (\Illuminate\Http\Request $request) {
-    // Le secret est défini dans les env vars Render (SEED_SECRET) — jamais dans le code.
-    $expected = env('SEED_SECRET');
-    if (! $expected || $request->header('X-Seed-Secret') !== $expected) {
-        abort(403, 'Forbidden');
-    }
-    try {
-        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-        return response()->json(['status' => 'ok', 'output' => \Illuminate\Support\Facades\Artisan::output()]);
-    } catch (\Throwable $e) {
-        return response()->json([
-            'status'  => 'error',
-            'message' => $e->getMessage(),
-            'file'    => $e->getFile() . ':' . $e->getLine(),
-            'trace'   => collect($e->getTrace())->take(8)->map(fn($f) =>
-                ($f['file'] ?? '?') . ':' . ($f['line'] ?? '?') . ' → ' . ($f['function'] ?? '?')
-            )->values(),
-        ], 500);
-    }
-});
 
 /* ---------------------- Catalogue public (lecture) ---------------------- */
 Route::prefix('catalog')->group(function () {
