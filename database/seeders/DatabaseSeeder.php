@@ -20,9 +20,15 @@ class DatabaseSeeder extends Seeder
 {
     /**
      * Ordre strict : chaque seeder dépend de ceux qui le précèdent.
+     *
+     * Garde idempotente : si des marques existent déjà (re-déploiement),
+     * on ne re-seed que les tables de référence (upsert sûr) et on skip
+     * les factories qui créeraient des doublons.
      */
     public function run(): void
     {
+        $alreadySeeded = \App\Models\Brand::count() > 0;
+
         // ─── 1. Tables de référence ────────────────────────────────────
         $this->call([
             DrivetrainsSeeder::class,
@@ -38,7 +44,13 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // ─── 2. Staff ──────────────────────────────────────────────────
+        // firstOrCreate → toujours sûr à re-exécuter
         $this->seedStaff();
+
+        if ($alreadySeeded) {
+            $this->command->info('Base déjà peuplée — tables de référence mises à jour, données métier inchangées.');
+            return;
+        }
 
         // ─── 3. Parc (80 véhicules) ────────────────────────────────────
         $this->seedVehicles();
@@ -65,6 +77,8 @@ class DatabaseSeeder extends Seeder
         Rental::factory()->ongoing()->count(8)->create();
         Rental::factory()->overdue()->count(3)->create();
         Rental::factory()->count(4)->create();
+
+        $this->command->info('Base peuplée avec succès (référentiels + données métier).');
     }
 
     // ── Utilisateurs staff ──────────────────────────────────────────────────
