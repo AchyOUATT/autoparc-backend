@@ -27,7 +27,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $alreadySeeded = \App\Models\Brand::count() > 0;
+        // On utilise Vehicle (données métier) comme indicateur — pas Brand (référentiel),
+        // car les marques peuvent être seédées sans que les véhicules/pièces/clients le soient.
+        $alreadySeeded = \App\Models\Vehicle::count() > 0;
 
         // ─── 1. Tables de référence ────────────────────────────────────
         $this->call([
