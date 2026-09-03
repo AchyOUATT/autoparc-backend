@@ -45,7 +45,14 @@ Route::get('_setup/seed', function (\Illuminate\Http\Request $request) {
         \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
         return response()->json(['status' => 'ok', 'output' => \Illuminate\Support\Facades\Artisan::output()]);
     } catch (\Throwable $e) {
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        return response()->json([
+            'status'  => 'error',
+            'message' => $e->getMessage(),
+            'file'    => $e->getFile() . ':' . $e->getLine(),
+            'trace'   => collect($e->getTrace())->take(8)->map(fn($f) =>
+                ($f['file'] ?? '?') . ':' . ($f['line'] ?? '?') . ' → ' . ($f['function'] ?? '?')
+            )->values(),
+        ], 500);
     }
 });
 
