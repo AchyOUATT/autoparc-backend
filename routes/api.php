@@ -91,7 +91,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 /* --------------- Zone client : "mon garage" (auth Firebase) ------------- */
 Route::middleware('firebase')->prefix('my')->group(function () {
-    Route::apiResource('vehicles', OwnedVehicleController::class);
+    Route::apiResource('vehicles', OwnedVehicleController::class)->names('my-vehicles');
     Route::get('vehicles/{ownedVehicle}/compatible-parts', [CompatibilityController::class, 'partsForOwnedVehicle']);
 
     // Compatibilité inverse : pour une pièce donnée, quels véhicules du garage sont compatibles ?
