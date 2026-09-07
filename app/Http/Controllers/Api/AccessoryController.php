@@ -6,12 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAccessoryRequest;
 use App\Http\Resources\AccessoryResource;
 use App\Models\Accessory;
+use App\Models\AppNotification;
+use App\Models\ClientFcmToken;
+use App\Models\CustomerNeed;
+use App\Services\FcmService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AccessoryController extends Controller
 {
+    public function __construct(protected FcmService $fcm) {}
+
     /* ------------------------------------------------------------------ */
     /* Catalogue public (lecture seule, actifs en stock)                   */
     /* ------------------------------------------------------------------ */
@@ -20,7 +26,7 @@ class AccessoryController extends Controller
     public function catalog(Request $request)
     {
         $accessories = Accessory::query()
-            ->with(['manufacturer', 'location'])
+            ->with(['manufacturer', 'location', 'media'])
             ->active()
             ->where('is_available', true)
             ->search($request->string('q')->toString() ?: null)
@@ -85,9 +91,62 @@ class AccessoryController extends Controller
             return $accessory;
         });
 
-        return (new AccessoryResource($accessory->load(['manufacturer', 'fitments'])))
+        $accessory->load(['manufacturer', 'fitments']);
+
+        $this->notifyAccessoryNeedMatch($accessory);
+
+        return (new AccessoryResource($accessory))
             ->response()
             ->setStatusCode(201);
+    }
+
+    /**
+     * Notifie les clients qui ont un besoin de type 'accessory' correspondant
+     * à la catégorie et/ou au fabricant de l'accessoire nouvellement créé.
+     */
+    protected function notifyAccessoryNeedMatch(Accessory $accessory): void
+    {
+        $categoryValue = $accessory->category?->value;
+
+        $needs = CustomerNeed::query()
+            ->where('type', 'accessory')
+            ->whereIn('status', ['pending', 'contacted'])
+            ->whereNotNull('firebase_uid')
+            ->where(function ($q) use ($accessory, $categoryValue) {
+                $q->where(function ($sub) use ($accessory, $categoryValue) {
+                    if ($categoryValue) {
+                        $sub->orWhere('accessory_category', $categoryValue);
+                    }
+                    if ($accessory->manufacturer_id) {
+                        $sub->orWhere('need_manufacturer_id', $accessory->manufacturer_id);
+                    }
+                });
+            })
+            ->when($accessory->selling_price, fn ($q) =>
+                $q->where(function ($sub) use ($accessory) {
+                    $sub->whereNull('budget_max')
+                        ->orWhere('budget_max', '>=', $accessory->selling_price);
+                })
+            )
+            ->get();
+
+        if ($needs->isEmpty()) {
+            return;
+        }
+
+        $categoryLabel = $accessory->category?->label() ?? 'accessoire';
+        $title         = 'Accessoire disponible !';
+        $body          = "Un accessoire {$categoryLabel} vient d'être ajouté : {$accessory->name}";
+        $payload       = [
+            'type'         => 'accessory_match',
+            'accessory_id' => (string) $accessory->id,
+        ];
+
+        foreach ($needs as $need) {
+            AppNotification::notifyClient($need->firebase_uid, 'accessory_match', $title, $body, $payload);
+            $tokens = ClientFcmToken::tokensForUid($need->firebase_uid);
+            $this->fcm->sendToTokens($tokens, $title, $body, $payload);
+        }
     }
 
     /** GET /api/accessories/{accessory} */

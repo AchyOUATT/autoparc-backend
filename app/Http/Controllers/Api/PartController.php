@@ -5,8 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePartRequest;
 use App\Http\Resources\PartResource;
+use App\Models\AppNotification;
+use App\Models\ClientFcmToken;
+use App\Models\CustomerNeed;
 use App\Models\OemNumber;
 use App\Models\Part;
+use App\Services\FcmService;
 use App\Services\StockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,14 +18,16 @@ use Illuminate\Support\Facades\DB;
 
 class PartController extends Controller
 {
-    public function __construct(protected StockService $stock)
-    {
-    }
+    public function __construct(
+        protected StockService $stock,
+        protected FcmService   $fcm,
+    ) {}
+
 
     public function index(Request $request)
     {
         $parts = Part::query()
-            ->with(['category', 'manufacturer', 'oemNumbers', 'location'])
+            ->with(['category', 'manufacturer', 'oemNumbers', 'location', 'media'])
             ->search($request->string('q')->toString() ?: null)
             ->when($request->filled('oem'), fn ($q) => $q->matchingOem($request->string('oem')->toString()))
             ->when($request->filled('category_id'), fn ($q) => $q->where('part_category_id', $request->category_id))
@@ -57,9 +63,61 @@ class PartController extends Controller
             return $part;
         });
 
-        return (new PartResource($part->load(['category', 'manufacturer', 'oemNumbers', 'fitments'])))
+        $part->load(['category', 'manufacturer', 'oemNumbers', 'fitments']);
+
+        $this->notifyPartNeedMatch($part);
+
+        return (new PartResource($part))
             ->response()
             ->setStatusCode(201);
+    }
+
+    /**
+     * Notifie les clients qui ont un besoin de type 'part' correspondant
+     * à la catégorie et/ou au fabricant de la pièce nouvellement créée.
+     */
+    protected function notifyPartNeedMatch(Part $part): void
+    {
+        $needs = CustomerNeed::query()
+            ->where('type', 'part')
+            ->whereIn('status', ['pending', 'contacted'])
+            ->whereNotNull('firebase_uid')
+            ->where(function ($q) use ($part) {
+                // Au moins un critère correspond
+                $q->where(function ($sub) use ($part) {
+                    if ($part->part_category_id) {
+                        $sub->orWhere('part_category_id', $part->part_category_id);
+                    }
+                    if ($part->manufacturer_id) {
+                        $sub->orWhere('need_manufacturer_id', $part->manufacturer_id);
+                    }
+                });
+            })
+            ->when($part->selling_price, fn ($q) =>
+                $q->where(function ($sub) use ($part) {
+                    $sub->whereNull('budget_max')
+                        ->orWhere('budget_max', '>=', $part->selling_price);
+                })
+            )
+            ->get();
+
+        if ($needs->isEmpty()) {
+            return;
+        }
+
+        $categoryName = $part->category?->name ?? 'pièce détachée';
+        $title        = 'Pièce disponible !';
+        $body         = "Une {$categoryName} vient d'être ajoutée : {$part->name}";
+        $payload      = [
+            'type'    => 'part_match',
+            'part_id' => (string) $part->id,
+        ];
+
+        foreach ($needs as $need) {
+            AppNotification::notifyClient($need->firebase_uid, 'part_match', $title, $body, $payload);
+            $tokens = ClientFcmToken::tokensForUid($need->firebase_uid);
+            $this->fcm->sendToTokens($tokens, $title, $body, $payload);
+        }
     }
 
     public function show(Part $part): PartResource

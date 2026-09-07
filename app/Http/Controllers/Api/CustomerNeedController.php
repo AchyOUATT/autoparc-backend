@@ -24,7 +24,7 @@ class CustomerNeedController extends Controller
     public function store(StoreCustomerNeedRequest $request): JsonResponse
     {
         $data         = $request->validated();
-        $data['type'] = 'vehicle'; // formulaire client exclusivement pour les véhicules
+        $data['type'] = $data['type'] ?? 'vehicle'; // défaut véhicule si omis
         $need         = CustomerNeed::create($data);
 
         // ── Notifie tout le staff ─────────────────────────────────
@@ -63,7 +63,7 @@ class CustomerNeedController extends Controller
 
         $needs = CustomerNeed::query()
             ->where('firebase_uid', $uid)
-            ->with('brand', 'vehicleModel')
+            ->with('brand', 'vehicleModel', 'partCategory', 'needManufacturer')
             ->latest()
             ->get();
 
@@ -79,7 +79,7 @@ class CustomerNeedController extends Controller
     public function index(Request $request): JsonResponse
     {
         $needs = CustomerNeed::query()
-            ->with('brand', 'vehicleModel')
+            ->with('brand', 'vehicleModel', 'partCategory', 'needManufacturer')
             ->when($request->filled('type'),   fn ($q) => $q->where('type',   $request->type))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
             ->latest()
@@ -145,15 +145,24 @@ class CustomerNeedController extends Controller
             'description'   => $n->description,
             'budget_max'    => $n->budget_max ? (float) $n->budget_max : null,
             'currency'      => $n->currency,
-            // Critères structurés
-            'brand_id'          => $n->brand_id,
-            'brand_name'        => $n->brand?->name,
-            'vehicle_model_id'  => $n->vehicle_model_id,
+            // Critères véhicule
+            'brand_id'           => $n->brand_id,
+            'brand_name'         => $n->brand?->name,
+            'vehicle_model_id'   => $n->vehicle_model_id,
             'vehicle_model_name' => $n->vehicleModel?->name,
-            'vehicle_type'      => $n->vehicle_type,
-            'body_style'    => $n->body_style,
-            'year_min'      => $n->year_min,
-            'year_max'      => $n->year_max,
+            'vehicle_type'       => $n->vehicle_type,
+            'body_style'         => $n->body_style,
+            'year_min'           => $n->year_min,
+            'year_max'           => $n->year_max,
+            // Critères pièce détachée
+            'part_category_id'   => $n->part_category_id,
+            'part_category_name' => $n->partCategory?->name,
+            'oem_number'         => $n->oem_number,
+            // Critères accessoire
+            'accessory_category' => $n->accessory_category,
+            // Commun pièce + accessoire
+            'need_manufacturer_id'   => $n->need_manufacturer_id,
+            'need_manufacturer_name' => $n->needManufacturer?->name,
             // Contact
             'contact_name'  => $n->contact_name,
             'contact_phone' => $n->contact_phone,

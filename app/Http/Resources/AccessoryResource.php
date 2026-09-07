@@ -48,6 +48,12 @@ class AccessoryResource extends JsonResource
                 ] : null),
             ],
 
+            'media' => $this->whenLoaded('media', fn () => $this->media->map(fn ($m) => [
+                'id'       => $m->id,
+                'url'      => $m->url,
+                'is_cover' => $m->is_cover,
+                'position' => $m->position,
+            ])),
             'is_active' => $this->is_active,
 
             // Compatibilités : chargées uniquement sur le détail

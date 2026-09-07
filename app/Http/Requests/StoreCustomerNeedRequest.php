@@ -15,15 +15,14 @@ class StoreCustomerNeedRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // 'type' n'est pas accepté depuis le formulaire client :
-            // le contrôleur le force à 'vehicle' systématiquement.
             'firebase_uid'     => ['nullable', 'string', 'max:128'],
+            'type'             => ['nullable', Rule::in(['vehicle', 'part', 'accessory'])],
 
             'description'      => ['required', 'string', 'max:1000'],
             'budget_max'       => ['nullable', 'numeric', 'min:0'],
             'currency'         => ['nullable', 'string', 'size:3'],
 
-            // Critères structurés véhicule (tous optionnels).
+            // ── Critères véhicule (tous optionnels) ───────────────────
             'brand_id'         => ['nullable', 'exists:brands,id'],
             'vehicle_model_id' => ['nullable', 'exists:vehicle_models,id'],
             'vehicle_type'     => ['nullable', Rule::in(['passenger', 'utility', 'heavy'])],
@@ -33,6 +32,18 @@ class StoreCustomerNeedRequest extends FormRequest
             ])],
             'year_min'         => ['nullable', 'integer', 'min:1950', 'max:'.now()->year],
             'year_max'         => ['nullable', 'integer', 'min:1950', 'max:'.now()->year, 'gte:year_min'],
+
+            // ── Critères pièce détachée (tous optionnels) ─────────────
+            'part_category_id'    => ['nullable', 'exists:part_categories,id'],
+            'oem_number'          => ['nullable', 'string', 'max:100'],
+
+            // ── Critères accessoire (tous optionnels) ─────────────────
+            'accessory_category'  => ['nullable', Rule::in([
+                'esthetique', 'confort', 'securite', 'multimedia', 'utilitaire',
+            ])],
+
+            // ── Commun pièce + accessoire ─────────────────────────────
+            'need_manufacturer_id' => ['nullable', 'exists:manufacturers,id'],
         ];
     }
 }

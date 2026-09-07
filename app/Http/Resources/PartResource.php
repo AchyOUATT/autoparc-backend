@@ -49,6 +49,12 @@ class PartResource extends JsonResource
                 'location_id'     => $this->location_id,
             ],
 
+            'media' => $this->whenLoaded('media', fn () => $this->media->map(fn ($m) => [
+                'id'       => $m->id,
+                'url'      => $m->url,
+                'is_cover' => $m->is_cover,
+                'position' => $m->position,
+            ])),
             'warranty_months' => $this->warranty_months,
             'weight_kg'       => $this->weight_kg,
             'dimensions'      => $this->dimensions,
