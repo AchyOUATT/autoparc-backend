@@ -63,6 +63,9 @@ class VehicleFactory extends Factory
             ])
             : Transmission::Automatic->value;
 
+        $bodyStyle   = $this->bodyStyleFromModel($model);
+        $consumption = $this->consumptionFor($engineType->code, $bodyStyle);
+
         return [
             'reference'              => 'VH-' . strtoupper(Str::random(8)),
             'vin'                    => null,
@@ -88,15 +91,8 @@ class VehicleFactory extends Factory
             'seats'                  => $this->faker->randomElement([5, 5, 5, 7, 7, 2]),
             'doors'                  => $this->faker->randomElement([4, 4, 5, 2]),
             'engine_code'            => null,
-            'consumption_urban'      => null,
-            'consumption_extra_urban'=> null,
-            'consumption_combined'   => null,
-            'electric_consumption_kwh'=> null,
-            'battery_capacity_kwh'   => null,
-            'electric_range_km'      => null,
-            'co2_g_km'               => null,
-            'fuel_tank_liters'       => null,
-            'body_style'             => $this->bodyStyleFromModel($model),
+            ...$consumption,
+            'body_style'             => $bodyStyle,
             'condition'              => $condition,
             'status'                 => VehicleStatus::InStock->value,
             'availability'           => $availability,
@@ -148,6 +144,71 @@ class VehicleFactory extends Factory
     public function registered(): static
     {
         return $this->state(['registration_status' => RegistrationStatus::Registered->value]);
+    }
+
+    // ── Consommation ──────────────────────────────────────────────────────
+
+    /**
+     * Consommations plausibles, derivees du carburant et du gabarit.
+     *
+     * Ces valeurs sont des ordres de grandeur du marche, pas des chiffres
+     * d'homologation : un SUV essence boit plus qu'une citadine, un diesel
+     * environ 15 % de moins qu'un essence de gabarit equivalent, un hybride
+     * environ 30 % de moins. Objectif : des donnees de demonstration
+     * credibles, coherentes entre elles.
+     */
+    private function consumptionFor(string $engineCode, ?string $bodyStyle): array
+    {
+        if ($engineCode === 'electric') {
+            return [
+                'consumption_urban'        => null,
+                'consumption_extra_urban'  => null,
+                'consumption_combined'     => null,
+                'electric_consumption_kwh' => $this->faker->randomFloat(1, 14.5, 22.0),
+                'battery_capacity_kwh'     => $this->faker->randomElement([40, 50, 58, 64, 77]),
+                'electric_range_km'        => $this->faker->numberBetween(240, 450),
+                'co2_g_km'                 => 0,
+                'fuel_tank_liters'         => null,
+            ];
+        }
+
+        // Base essence, en L/100 km, selon le gabarit.
+        [$min, $max] = match ($bodyStyle) {
+            'hatchback' => [5.5, 7.2],
+            'sedan'     => [6.2, 8.6],
+            'suv'       => [8.0, 11.5],
+            'pickup'    => [9.0, 13.0],
+            default     => [7.0, 10.0],
+        };
+
+        $combined = $this->faker->randomFloat(1, $min, $max) * match ($engineCode) {
+            'diesel' => 0.85,
+            'hybrid' => 0.70,
+            default  => 1.0,
+        };
+        $combined = round($combined, 1);
+
+        // Grammes de CO2 par litre brule, ramenes aux 100 km.
+        $co2PerLitre = $engineCode === 'diesel' ? 26.5 : 23.2;
+
+        return [
+            'consumption_urban'        => round($combined * 1.25, 1),
+            'consumption_extra_urban'  => round($combined * 0.82, 1),
+            'consumption_combined'     => $combined,
+            // Un hybride non rechargeable n'a pas de consommation kWh/100 km
+            // homologuee : la laisser nulle plutot qu'inventer un chiffre.
+            'electric_consumption_kwh' => null,
+            'battery_capacity_kwh'     => null,
+            'electric_range_km'        => null,
+            'co2_g_km'                 => (int) round($combined * $co2PerLitre),
+            'fuel_tank_liters'         => match ($bodyStyle) {
+                'hatchback' => 45,
+                'sedan'     => $this->faker->randomElement([55, 60]),
+                'suv'       => $this->faker->randomElement([65, 70, 80]),
+                'pickup'    => $this->faker->randomElement([75, 80, 90]),
+                default     => 60,
+            },
+        ];
     }
 
     // ── Aide carrosserie ──────────────────────────────────────────────────
