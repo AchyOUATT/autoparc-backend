@@ -62,6 +62,10 @@ class VehicleController extends Controller
             ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
             ->when($request->filled('city'), fn ($q) => $q->whereHas('location', fn ($l) => $l->where('city', $request->city)))
             ->when($request->boolean('available_for_rent'), fn ($q) => $q->forRent()->inStock())
+            // Mises en avant : `deal=1` renvoie toutes les promotions,
+            // `deal_type=flash_sale` un type precis.
+            ->when($request->boolean('deal'), fn ($q) => $q->whereNotNull('deal_type'))
+            ->when($request->filled('deal_type'), fn ($q) => $q->where('deal_type', $request->deal_type))
             ->orderBy(
                 $request->input('sort_by', 'created_at'),
                 $request->input('sort_dir', 'desc')

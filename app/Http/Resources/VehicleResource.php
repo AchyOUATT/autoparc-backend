@@ -24,12 +24,23 @@ class VehicleResource extends JsonResource
 
             'identity' => [
                 'brand'       => $this->whenLoaded('brand', fn () => $this->brand->name),
+                // Le slug identifie le fichier de logo cote application
+                // (assets/brands/<slug>.svg). Le nom seul ne suffit pas :
+                // « Mercedes-Benz » ou « Citroen » ne donnent pas un nom de
+                // fichier fiable une fois accentues ou espaces.
+                'brand_slug'      => $this->whenLoaded('brand', fn () => $this->brand->slug),
+                'brand_logo_path' => $this->whenLoaded('brand', fn () => $this->brand->logo_path),
                 'model'       => $this->whenLoaded('vehicleModel', fn () => $this->vehicleModel->name),
                 'generation'  => $this->whenLoaded('vehicleModel', fn () => $this->vehicleModel->generation),
                 'trim'        => $this->whenLoaded('trim', fn () => $this->trim?->name),
                 'engine_type' => $this->whenLoaded('engineType', fn () => $this->engineType->label),
                 'drivetrain'  => $this->whenLoaded('drivetrain', fn () => $this->drivetrain?->code),
                 'color'       => $this->whenLoaded('color', fn () => $this->color?->name),
+                // Code hexadecimal et finition : permettent d'afficher une
+                // pastille de la teinte reelle a cote du nom. « Bordeaux » ou
+                // « Gris titanium » ne se devinent pas.
+                'color_hex'    => $this->whenLoaded('color', fn () => $this->color?->hex_code),
+                'color_finish' => $this->whenLoaded('color', fn () => $this->color?->finish),
                 'year'        => $this->manufacturing_year,
             ],
 
@@ -70,6 +81,11 @@ class VehicleResource extends JsonResource
                 'rental_deposit'     => $this->rental_deposit,
                 'currency'           => $this->currency,
                 'price_negotiable'   => $this->price_negotiable,
+                // Mise en avant commerciale. Null = pas de promotion. Le
+                // libelle accompagne la valeur pour que l'application n'ait
+                // pas a dupliquer la traduction des trois types.
+                'deal_type'          => $this->deal_type?->value,
+                'deal_label'         => $this->deal_type?->label(),
                 'site'               => $this->site,
                 'location'           => $this->whenLoaded('location', fn () => $this->location ? [
                     'id'      => $this->location->id,

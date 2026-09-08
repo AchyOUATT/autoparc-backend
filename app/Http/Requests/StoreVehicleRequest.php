@@ -6,6 +6,7 @@ use App\Enums\RegistrationStatus;
 use App\Enums\Transmission;
 use App\Enums\VehicleAvailability;
 use App\Enums\VehicleCondition;
+use App\Enums\VehicleDealType;
 use App\Enums\VehicleStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -73,6 +74,8 @@ class StoreVehicleRequest extends FormRequest
             'rental_mileage_limit_per_day' => ['nullable', 'integer', 'min:0'],
             'currency'           => ['nullable', 'string', 'size:3'],
             'price_negotiable'   => ['boolean'],
+            // Mise en avant commerciale ; null = pas de promotion.
+            'deal_type'          => ['nullable', Rule::in(VehicleDealType::values())],
             'site'               => ['nullable', 'string', 'max:120'],
             'description'        => ['nullable', 'string'],
             'features'           => ['array'],

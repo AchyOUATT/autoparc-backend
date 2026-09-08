@@ -6,6 +6,7 @@ use App\Enums\RegistrationStatus;
 use App\Enums\Transmission;
 use App\Enums\VehicleAvailability;
 use App\Enums\VehicleCondition;
+use App\Enums\VehicleDealType;
 use App\Enums\VehicleStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,7 +29,7 @@ class Vehicle extends Model
         'condition', 'status', 'availability',
         'purchase_price', 'sale_price', 'rental_daily_rate', 'rental_weekly_rate',
         'rental_monthly_rate', 'rental_deposit', 'rental_mileage_limit_per_day',
-        'currency', 'price_negotiable', 'site', 'location_id', 'description',
+        'currency', 'price_negotiable', 'deal_type', 'site', 'location_id', 'description',
         'created_by', 'published_at', 'partner_id',
     ];
 
@@ -53,6 +54,7 @@ class Vehicle extends Model
             'rental_monthly_rate'      => 'decimal:2',
             'rental_deposit'           => 'decimal:2',
             'price_negotiable'         => 'boolean',
+            'deal_type'                => VehicleDealType::class,
             'published_at'             => 'datetime',
         ];
     }
