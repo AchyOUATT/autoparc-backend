@@ -57,6 +57,11 @@ class DatabaseSeeder extends Seeder
         // ─── 3. Parc (80 véhicules) ────────────────────────────────────
         $this->seedVehicles();
 
+        // Équipements des véhicules : dépend de FeaturesSeeder (étape 1) et du
+        // parc ci-dessus. C'est cette dépendance qui interdisait de le faire
+        // depuis une migration, celles-ci s'exécutant avant tout seeder.
+        $this->call(VehicleFeaturesSeeder::class);
+
         // ─── 4. Clients (50) ───────────────────────────────────────────
         Customer::factory()->count(45)->create();
         Customer::factory()->individual()->count(3)->create();
