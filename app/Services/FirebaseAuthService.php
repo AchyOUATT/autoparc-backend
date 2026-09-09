@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Auth as FirebaseAuth;
 use Kreait\Firebase\Exception\Auth\FailedToVerifyToken;
 use Kreait\Firebase\Factory;
@@ -31,6 +32,14 @@ class FirebaseAuthService
         try {
             $verified = $this->auth->verifyIdToken($idToken);
         } catch (FailedToVerifyToken $e) {
+            // La raison etait perdue : le middleware repondait « invalide ou
+            // expire » quel que soit le motif reel — signature, audience,
+            // horloge, jeton revoque. Sans elle, le diagnostic prend des
+            // heures. Le jeton lui-meme n'est jamais journalise.
+            Log::warning('[Firebase] Verification du jeton refusee', [
+                'reason' => $e->getMessage(),
+            ]);
+
             return null;
         }
 
