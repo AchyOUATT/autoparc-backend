@@ -8,6 +8,7 @@ use App\Http\Resources\PartResource;
 use App\Models\AppNotification;
 use App\Models\ClientFcmToken;
 use App\Models\CustomerNeed;
+use App\Models\PartCategory;
 use App\Models\OemNumber;
 use App\Models\Part;
 use App\Services\FcmService;
@@ -30,7 +31,14 @@ class PartController extends Controller
             ->with(['category', 'manufacturer', 'oemNumbers', 'location', 'media'])
             ->search($request->string('q')->toString() ?: null)
             ->when($request->filled('oem'), fn ($q) => $q->matchingOem($request->string('oem')->toString()))
-            ->when($request->filled('category_id'), fn ($q) => $q->where('part_category_id', $request->category_id))
+            // Filtrer sur une categorie inclut ses descendantes. L'arbre compte
+            // trois niveaux et aucune piece n'est rattachee a une racine :
+            // une comparaison stricte sur « Freinage » ne renverrait donc
+            // jamais rien, alors que c'est le niveau que l'utilisateur voit.
+            ->when($request->filled('category_id'), fn ($q) => $q->whereIn(
+                'part_category_id',
+                PartCategory::descendantIds((int) $request->category_id)
+            ))
             ->when($request->filled('manufacturer_id'), fn ($q) => $q->where('manufacturer_id', $request->manufacturer_id))
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->type))
             ->when($request->filled('condition'), fn ($q) => $q->where('condition', $request->condition))

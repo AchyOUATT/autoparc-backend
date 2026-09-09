@@ -63,7 +63,10 @@ Route::prefix('catalog')->group(function () {
     Route::get('countries', fn () => \App\Models\Country::orderBy('name')->get(['id', 'name', 'iso2']));
 
     // Catégories de pièces détachées (pour les formulaires staff)
-    Route::get('part-categories', fn () => \App\Models\PartCategory::orderBy('name')->get(['id', 'name']));
+    // `parent_id` permet a l'application de ne proposer que les 9 categories
+    // racines : les 89 lignes de l'arbre complet feraient une barre de filtres
+    // interminable.
+    Route::get('part-categories', fn () => \App\Models\PartCategory::orderBy('name')->get(['id', 'parent_id', 'name']));
 
     // Fabricants / équipementiers (pour les formulaires staff)
     Route::get('manufacturers', fn () => \App\Models\Manufacturer::orderBy('name')->get(['id', 'name']));
