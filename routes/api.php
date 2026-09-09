@@ -92,7 +92,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
 /* --------------- Zone client : "mon garage" (auth Firebase) ------------- */
 Route::middleware('firebase')->prefix('my')->group(function () {
-    Route::apiResource('vehicles', OwnedVehicleController::class)->names('my-vehicles');
+    // `parameters` est indispensable : apiResource nommerait le parametre
+    // {vehicle}, alors que le controleur attend $ownedVehicle. Sans
+    // correspondance, Laravel n'injecte aucun modele — il en construit un vide,
+    // dont user_id vaut null, et la policy refuse tout : show, update et
+    // destroy repondaient 403 quel que soit le proprietaire.
+    Route::apiResource('vehicles', OwnedVehicleController::class)
+        ->parameters(['vehicles' => 'ownedVehicle'])
+        ->names('my-vehicles');
     Route::get('vehicles/{ownedVehicle}/compatible-parts', [CompatibilityController::class, 'partsForOwnedVehicle']);
 
     // Compatibilité inverse : pour une pièce donnée, quels véhicules du garage sont compatibles ?
