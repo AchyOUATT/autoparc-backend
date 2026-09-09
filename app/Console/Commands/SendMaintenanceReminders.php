@@ -131,7 +131,14 @@ class SendMaintenanceReminders extends Command
 
         $body = $this->body($name, $deadline);
 
+        // `type` est la convention du projet : c'est sur lui que l'application
+        // aiguille le tap, aussi bien depuis la liste que depuis le push.
+        //
+        // `owned_vehicle_id` reste un entier : c'est la valeur que relit
+        // alreadyReminded() via whereJsonContains, et un passage en chaine
+        // ferait echouer la comparaison, donc le dedoublonnage.
         $payload = [
+            'type'             => "maintenance_{$deadline['kind']}",
             'owned_vehicle_id' => $vehicle->id,
             'kind'             => $deadline['kind'],
             'due_on'           => $deadline['due_on'],
