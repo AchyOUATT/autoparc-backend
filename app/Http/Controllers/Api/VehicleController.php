@@ -223,8 +223,16 @@ class VehicleController extends Controller
         return new VehicleResource($this->loadRelations($vehicle->refresh()));
     }
 
-    public function destroy(Vehicle $vehicle): JsonResponse
+    public function destroy(Request $request, Vehicle $vehicle): JsonResponse
     {
+        // Plus restreint que la modification : la suppression ne se rattrape
+        // pas depuis l'application.
+        abort_unless(
+            $request->user()?->role?->canDeleteCatalog() ?? false,
+            403,
+            "Suppression reservee a l'administration."
+        );
+
         $vehicle->delete();
 
         return response()->json(['message' => 'Vehicule archive.']);

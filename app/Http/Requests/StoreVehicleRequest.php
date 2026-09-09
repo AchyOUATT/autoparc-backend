@@ -13,9 +13,14 @@ use Illuminate\Validation\Rule;
 
 class StoreVehicleRequest extends FormRequest
 {
+    /**
+     * Seuls les roles qui tiennent le catalogue peuvent creer ou modifier une
+     * fiche. Cette methode renvoyait `true` sans condition : un compte
+     * « viewer » disposait des memes droits qu'un administrateur.
+     */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->role?->canManageCatalog() ?? false;
     }
 
     public function rules(): array

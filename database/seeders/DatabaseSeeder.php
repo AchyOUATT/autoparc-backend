@@ -92,6 +92,23 @@ class DatabaseSeeder extends Seeder
 
     private function seedStaff(): void
     {
+        // Le mot de passe etait code en dur — le meme, trivial, pour les sept
+        // comptes. Acceptable en local, exploitable en ligne. En production on
+        // exige donc une valeur explicite plutot que d'en inventer une.
+        $password = env('SEED_STAFF_PASSWORD');
+
+        if ($password === null) {
+            if (app()->environment('production')) {
+                $this->command?->warn(
+                    'Comptes staff ignores : definir SEED_STAFF_PASSWORD pour les creer en production.'
+                );
+
+                return;
+            }
+
+            $password = 'password';
+        }
+
         $staff = [
             ['name' => 'Admin Système',    'email' => 'admin@autoparc.bf',      'role' => UserRole::Admin->value],
             ['name' => 'Marie Konaté',     'email' => 'manager@autoparc.bf',    'role' => UserRole::Manager->value],
@@ -107,7 +124,7 @@ class DatabaseSeeder extends Seeder
                 ['email' => $data['email']],
                 [
                     'name'      => $data['name'],
-                    'password'  => Hash::make('password'),
+                    'password'  => Hash::make($password),
                     'role'      => $data['role'],
                     'is_active' => true,
                 ]
