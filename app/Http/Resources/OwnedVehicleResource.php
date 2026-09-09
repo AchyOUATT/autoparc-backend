@@ -21,6 +21,16 @@ class OwnedVehicleResource extends JsonResource
             'mileage_km'  => $this->mileage_km,
             'year'        => $this->manufacturing_year,
 
+            // Echeances d'entretien. Les champs bruts servent au formulaire,
+            // `deadlines` a l'affichage : c'est la meme liste, calculee au meme
+            // endroit que celle utilisee par la tache de rappel.
+            'technical_inspection_expiry' => $this->technical_inspection_expiry?->toDateString(),
+            'insurance_expiry'            => $this->insurance_expiry?->toDateString(),
+            'last_service_date'           => $this->last_service_date?->toDateString(),
+            'last_service_mileage_km'     => $this->last_service_mileage_km,
+            'service_interval_km'         => $this->service_interval_km,
+            'deadlines'                   => $this->deadlines(),
+
             'identity' => [
                 'brand'      => $this->whenLoaded('brand', fn () => $this->brand->name),
                 'model'      => $this->whenLoaded('vehicleModel', fn () => $this->vehicleModel->name),

@@ -15,14 +15,78 @@ class OwnedVehicle extends Model
         'user_id', 'brand_id', 'vehicle_model_id', 'trim_id',
         'engine_type_id', 'drivetrain_id', 'color_id',
         'manufacturing_year', 'vin', 'engine_code', 'plate_number', 'nickname', 'mileage_km',
+        'technical_inspection_expiry', 'insurance_expiry',
+        'last_service_date', 'last_service_mileage_km', 'service_interval_km',
     ];
 
     protected function casts(): array
     {
         return [
-            'manufacturing_year' => 'integer',
-            'mileage_km'         => 'integer',
+            'manufacturing_year'          => 'integer',
+            'mileage_km'                  => 'integer',
+            'technical_inspection_expiry' => 'date',
+            'insurance_expiry'            => 'date',
+            'last_service_date'           => 'date',
+            'last_service_mileage_km'     => 'integer',
+            'service_interval_km'         => 'integer',
         ];
+    }
+
+    /**
+     * Echeances d'entretien du vehicule, de la plus urgente a la moins urgente.
+     *
+     * Une seule source de verite : la tache de rappel et l'API affichent la
+     * meme liste, calculee ici. Chaque entree porte son type, son libelle, sa
+     * date d'echeance quand elle en a une, et le nombre de jours restants,
+     * negatif si l'echeance est depassee.
+     *
+     * @return array<int, array{kind:string,label:string,due_on:?string,days_left:?int,overdue:bool,detail:?string}>
+     */
+    public function deadlines(): array
+    {
+        $today = \Carbon\CarbonImmutable::today();
+        $items = [];
+
+        foreach ([
+            'technical_inspection' => ['Visite technique', $this->technical_inspection_expiry],
+            'insurance'            => ['Assurance',        $this->insurance_expiry],
+        ] as $kind => [$label, $date]) {
+            if ($date === null) {
+                continue;
+            }
+
+            $daysLeft = (int) $today->diffInDays(\Carbon\CarbonImmutable::parse($date), false);
+
+            $items[] = [
+                'kind'      => $kind,
+                'label'     => $label,
+                'due_on'    => $date->toDateString(),
+                'days_left' => $daysLeft,
+                'overdue'   => $daysLeft < 0,
+                'detail'    => null,
+            ];
+        }
+
+        // Vidange : suivi kilometrique, donc tributaire d'un kilometrage tenu
+        // a jour par le proprietaire. Sans les trois valeurs, pas de rappel.
+        if ($this->service_interval_km && $this->last_service_mileage_km !== null && $this->mileage_km !== null) {
+            $remaining = $this->service_interval_km - ($this->mileage_km - $this->last_service_mileage_km);
+
+            $items[] = [
+                'kind'      => 'service',
+                'label'     => 'Vidange',
+                'due_on'    => null,
+                'days_left' => null,
+                'overdue'   => $remaining <= 0,
+                'detail'    => $remaining > 0
+                    ? "Dans {$remaining} km"
+                    : 'Depassee de ' . abs($remaining) . ' km',
+            ];
+        }
+
+        usort($items, fn ($a, $b) => ($a['days_left'] ?? PHP_INT_MAX) <=> ($b['days_left'] ?? PHP_INT_MAX));
+
+        return $items;
     }
 
     public function user()

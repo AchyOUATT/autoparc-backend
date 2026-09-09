@@ -31,6 +31,15 @@ class StoreOwnedVehicleRequest extends FormRequest
             'plate_number'       => ['nullable', 'string', 'max:30'],
             'nickname'           => ['nullable', 'string', 'max:80'],
             'mileage_km'         => ['nullable', 'integer', 'min:0'],
+
+            // Echeances d'entretien. Les deux dates d'expiration peuvent etre
+            // passees : un proprietaire qui saisit une visite technique deja
+            // expiree doit justement etre prevenu, pas bloque par le formulaire.
+            'technical_inspection_expiry' => ['nullable', 'date'],
+            'insurance_expiry'            => ['nullable', 'date'],
+            'last_service_date'           => ['nullable', 'date', 'before_or_equal:today'],
+            'last_service_mileage_km'     => ['nullable', 'integer', 'min:0'],
+            'service_interval_km'         => ['nullable', 'integer', 'min:1000', 'max:50000'],
         ];
     }
 
