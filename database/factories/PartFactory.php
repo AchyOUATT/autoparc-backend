@@ -7,6 +7,7 @@ use App\Enums\PartType;
 use App\Models\Manufacturer;
 use App\Models\Part;
 use App\Models\PartCategory;
+use App\Support\PartTaxonomy;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -70,15 +71,18 @@ class PartFactory extends Factory
 
     public function definition(): array
     {
-        $category     = PartCategory::whereNotNull('parent_id')->inRandomOrder()->first()
-            ?? PartCategory::inRandomOrder()->first();
+        // Le nom decide de la categorie. Les deux etaient tires
+        // independamment : « Alternateur » se retrouvait range dans
+        // « Flexibles de frein », et filtrer par famille ne renvoyait rien de
+        // coherent — le defaut sautait aux yeux des la premiere capture.
+        $name         = $this->faker->randomElement($this->partNames);
+        $category     = $this->categoryFor($name);
         $manufacturer = Manufacturer::inRandomOrder()->first();
         $type         = $this->faker->randomElement(['aftermarket', 'aftermarket', 'oes', 'oem', 'salvage']);
         $condition    = $type === 'salvage'
             ? PartCondition::Used->value
             : $this->faker->randomElement(['new', 'new', 'new', 'refurbished']);
 
-        $name         = $this->faker->randomElement($this->partNames);
         $stock        = $this->faker->numberBetween(0, 50);
         $costPrice    = $this->faker->randomElement([2_000, 3_500, 5_000, 7_500, 10_000, 15_000, 25_000, 40_000, 60_000, 100_000]);
         $sellingPrice = (int) ($costPrice * $this->faker->randomFloat(2, 1.25, 2.0));
@@ -109,6 +113,25 @@ class PartFactory extends Factory
             'storage_location'      => $this->faker->optional(0.7)->regexify('[A-E][1-9]-[0-9]{2}'),
             'is_active'             => true,
         ];
+    }
+
+    /**
+     * Categorie attendue pour ce nom, avec repli aleatoire.
+     *
+     * Le repli ne devrait jamais servir : il couvre le cas ou un nom serait
+     * ajoute a $partNames sans etre declare dans PartTaxonomy.
+     */
+    private function categoryFor(string $name): PartCategory
+    {
+        $slug = PartTaxonomy::slugFor($name);
+
+        $category = $slug !== null
+            ? PartCategory::where('slug', $slug)->first()
+            : null;
+
+        return $category
+            ?? PartCategory::whereNotNull('parent_id')->inRandomOrder()->first()
+            ?? PartCategory::inRandomOrder()->firstOrFail();
     }
 
     public function inStock(): static

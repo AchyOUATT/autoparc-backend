@@ -10,13 +10,17 @@ use App\Models\Part;
 use App\Models\PartCategory;
 use App\Models\PartFitment;
 use App\Models\VehicleModel;
+use App\Support\PartTaxonomy;
 use Illuminate\Database\Seeder;
 
 class PartSeeder extends Seeder
 {
     public function run(): void
     {
-        $categories = PartCategory::whereNotNull('parent_id')->get(); // sous-catégories concrètes
+        // Le nom decide de la categorie : un tirage independant rangeait
+        // « Alternateur » dans « Flexibles de frein ». Voir PartTaxonomy.
+        $slugToId = PartTaxonomy::slugToId();
+        $fallback = PartCategory::whereNotNull('parent_id')->get();
         $manufacturers = Manufacturer::all();
         $models = VehicleModel::all();
 
@@ -32,7 +36,7 @@ class PartSeeder extends Seeder
                 'sku' => 'PRT-'.str_pad((string) ($i + 1), 5, '0', STR_PAD_LEFT),
                 'name' => $name,
                 'description' => "{$name} - pièce de rechange standard.",
-                'part_category_id' => $categories->random()->id,
+                'part_category_id' => $slugToId[PartTaxonomy::slugFor($name)] ?? $fallback->random()->id,
                 'manufacturer_id' => $manufacturers->random()->id,
                 'manufacturer_reference' => strtoupper(substr(md5($name), 0, 10)),
                 'type' => collect(PartType::cases())->random()->value,

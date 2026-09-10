@@ -52,4 +52,60 @@ enum UserRole: string
     {
         return in_array($this, [self::Admin, self::Manager, self::Mechanic], true);
     }
+
+    /** Entrees, sorties et disponibilite du stock. */
+    public function canManageStock(): bool
+    {
+        return in_array($this, [self::Admin, self::Manager, self::Warehouse], true);
+    }
+
+    /** Ventes, locations et commandes. */
+    public function canManageOrders(): bool
+    {
+        return in_array($this, [self::Admin, self::Manager, self::Sales], true);
+    }
+
+    /** Fiches clients et suivi de leurs besoins. */
+    public function canManageCustomers(): bool
+    {
+        return in_array($this, [self::Admin, self::Manager, self::Sales], true);
+    }
+
+    /** Annuaire des partenaires et rattachement aux produits. */
+    public function canManagePartners(): bool
+    {
+        return in_array($this, [self::Admin, self::Manager], true);
+    }
+
+    /**
+     * Envoyer une notification a tous les clients.
+     *
+     * Le message part vers l'exterieur et ne se rattrape pas : la capacite
+     * reste au niveau de la direction, meme si le contenu parait anodin.
+     */
+    public function canBroadcast(): bool
+    {
+        return in_array($this, [self::Admin, self::Manager], true);
+    }
+
+    /**
+     * Resolution par nom, pour le middleware `capability:`.
+     *
+     * Une capacite inconnue — une faute de frappe dans une route, par
+     * exemple — refuse l'acces plutot que de l'ouvrir.
+     */
+    public function can(string $capability): bool
+    {
+        return match ($capability) {
+            'manage-catalog'   => $this->canManageCatalog(),
+            'delete-catalog'   => $this->canDeleteCatalog(),
+            'manage-faults'    => $this->canManageFaults(),
+            'manage-stock'     => $this->canManageStock(),
+            'manage-orders'    => $this->canManageOrders(),
+            'manage-customers' => $this->canManageCustomers(),
+            'manage-partners'  => $this->canManagePartners(),
+            'broadcast'        => $this->canBroadcast(),
+            default            => false,
+        };
+    }
 }

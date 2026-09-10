@@ -16,8 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
     
 ->withMiddleware(function (Middleware $middleware) {
     $middleware->alias([
-        'staff'    => \App\Http\Middleware\EnsureStaff::class,
-        'firebase' => \App\Http\Middleware\VerifyFirebaseToken::class,
+        'staff'      => \App\Http\Middleware\EnsureStaff::class,
+        'capability' => \App\Http\Middleware\EnsureCapability::class,
+        'firebase'   => \App\Http\Middleware\VerifyFirebaseToken::class,
     ]);
 })
     ->withExceptions(function (Exceptions $exceptions): void {

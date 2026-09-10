@@ -116,102 +116,161 @@ Route::middleware('firebase')->prefix('my')->group(function () {
 });
 
 /* ------------------- Zone back-office (staff uniquement) ---------------- */
+//
+// `staff` ne distingue que le personnel des clients : sans ce qui suit, un
+// compte « viewer » creait et supprimait des vehicules, un magasinier
+// enregistrait des ventes, et n'importe quel employe pouvait notifier tous
+// les clients de l'application.
+//
+// Les capacites (App\Enums\UserRole::can) se posent ici, route par route,
+// plutot que dans chaque controleur : la matrice des droits se lit d'un seul
+// tenant, et une route ajoutee sans capacite se remarque a la lecture.
+//
+// La consultation reste ouverte a tout le personnel ; seules les ecritures
+// sont filtrees.
 Route::middleware(['auth:sanctum', 'staff'])->group(function () {
 
     Route::get('dashboard', [DashboardController::class, 'index']);
 
     // --- Referentiels
-    Route::apiResource('brands', BrandController::class)->except(['destroy']);
-    Route::post('brands/{brand}/models', [BrandController::class, 'storeModel']);
-    Route::post('vehicle-models/{vehicleModel}/trims', [BrandController::class, 'storeTrim']);
+    Route::apiResource('brands', BrandController::class)
+        ->except(['destroy'])
+        ->middlewareFor(['store', 'update'], 'capability:manage-catalog');
+    Route::post('brands/{brand}/models', [BrandController::class, 'storeModel'])
+        ->middleware('capability:manage-catalog');
+    Route::post('vehicle-models/{vehicleModel}/trims', [BrandController::class, 'storeTrim'])
+        ->middleware('capability:manage-catalog');
 
     // --- Vehicules
-    Route::apiResource('vehicles', VehicleController::class);
-    Route::put('vehicles/{vehicle}/features', [VehicleController::class, 'syncFeatures']);
-    Route::post('vehicles/{vehicle}/publish',   [VehicleController::class, 'publish']);
-    Route::post('vehicles/{vehicle}/unpublish', [VehicleController::class, 'unpublish']);
-    Route::post('vehicles/{vehicle}/register',  [VehicleController::class, 'register']);
+    Route::apiResource('vehicles', VehicleController::class)
+        ->middlewareFor(['store', 'update'], 'capability:manage-catalog')
+        ->middlewareFor('destroy', 'capability:delete-catalog');
+    Route::put('vehicles/{vehicle}/features', [VehicleController::class, 'syncFeatures'])
+        ->middleware('capability:manage-catalog');
+    Route::post('vehicles/{vehicle}/publish',   [VehicleController::class, 'publish'])
+        ->middleware('capability:manage-catalog');
+    Route::post('vehicles/{vehicle}/unpublish', [VehicleController::class, 'unpublish'])
+        ->middleware('capability:manage-catalog');
+    Route::post('vehicles/{vehicle}/register',  [VehicleController::class, 'register'])
+        ->middleware('capability:manage-catalog');
     Route::get('vehicles/{vehicle}/compatible-parts', [CompatibilityController::class, 'partsForVehicle']);
     Route::get('vehicles/{vehicle}/rental-availability', [RentalController::class, 'availability']);
 
-    // --- Pannes declarees
+    // --- Pannes declarees (le mecanicien y a acces, pas le commercial)
     Route::get('vehicles/{vehicle}/faults', [VehicleFaultController::class, 'index']);
-    Route::post('vehicles/{vehicle}/faults', [VehicleFaultController::class, 'store']);
-    Route::put('vehicles/{vehicle}/faults/{fault}', [VehicleFaultController::class, 'update']);
-    Route::post('vehicles/{vehicle}/faults/{fault}/resolve', [VehicleFaultController::class, 'resolve']);
-    Route::delete('vehicles/{vehicle}/faults/{fault}', [VehicleFaultController::class, 'destroy']);
+    Route::middleware('capability:manage-faults')->group(function () {
+        Route::post('vehicles/{vehicle}/faults', [VehicleFaultController::class, 'store']);
+        Route::put('vehicles/{vehicle}/faults/{fault}', [VehicleFaultController::class, 'update']);
+        Route::post('vehicles/{vehicle}/faults/{fault}/resolve', [VehicleFaultController::class, 'resolve']);
+        Route::delete('vehicles/{vehicle}/faults/{fault}', [VehicleFaultController::class, 'destroy']);
+    });
 
     // --- Partenaires (annuaire)
-    Route::apiResource('partners', PartnerController::class);
+    Route::apiResource('partners', PartnerController::class)
+        ->middlewareFor(['store', 'update', 'destroy'], 'capability:manage-partners');
 
     // --- Pieces detachees
-    Route::apiResource('parts', PartController::class);
-    Route::post('parts/{part}/stock',               [PartController::class, 'adjustStock']);
-    Route::patch('parts/{part}/availability',        [PartController::class, 'toggleAvailability']);
+    Route::apiResource('parts', PartController::class)
+        ->middlewareFor(['store', 'update'], 'capability:manage-catalog')
+        ->middlewareFor('destroy', 'capability:delete-catalog');
+    Route::post('parts/{part}/stock',               [PartController::class, 'adjustStock'])
+        ->middleware('capability:manage-stock');
+    Route::patch('parts/{part}/availability',        [PartController::class, 'toggleAvailability'])
+        ->middleware('capability:manage-stock');
     Route::get('parts/{part}/partners',              [PartnerController::class, 'indexForPart']);
-    Route::post('parts/{part}/partners',             [PartnerController::class, 'attachToPart']);
-    Route::delete('parts/{part}/partners/{partner}', [PartnerController::class, 'detachFromPart']);
+    Route::post('parts/{part}/partners',             [PartnerController::class, 'attachToPart'])
+        ->middleware('capability:manage-partners');
+    Route::delete('parts/{part}/partners/{partner}', [PartnerController::class, 'detachFromPart'])
+        ->middleware('capability:manage-partners');
 
     // --- Accessoires
-    Route::apiResource('accessories', AccessoryController::class);
-    Route::post('accessories/{accessory}/stock',             [AccessoryController::class, 'adjustStock']);
-    Route::patch('accessories/{accessory}/availability',      [AccessoryController::class, 'toggleAvailability']);
+    Route::apiResource('accessories', AccessoryController::class)
+        ->middlewareFor(['store', 'update'], 'capability:manage-catalog')
+        ->middlewareFor('destroy', 'capability:delete-catalog');
+    Route::post('accessories/{accessory}/stock',             [AccessoryController::class, 'adjustStock'])
+        ->middleware('capability:manage-stock');
+    Route::patch('accessories/{accessory}/availability',      [AccessoryController::class, 'toggleAvailability'])
+        ->middleware('capability:manage-stock');
     Route::get('accessories/{accessory}/partners',            [PartnerController::class, 'indexForAccessory']);
-    Route::post('accessories/{accessory}/partners',           [PartnerController::class, 'attachToAccessory']);
-    Route::delete('accessories/{accessory}/partners/{partner}', [PartnerController::class, 'detachFromAccessory']);
+    Route::post('accessories/{accessory}/partners',           [PartnerController::class, 'attachToAccessory'])
+        ->middleware('capability:manage-partners');
+    Route::delete('accessories/{accessory}/partners/{partner}', [PartnerController::class, 'detachFromAccessory'])
+        ->middleware('capability:manage-partners');
 
     // --- Commandes d'accessoires
-    Route::apiResource('accessory-orders', AccessoryOrderController::class)->only(['index', 'store', 'show']);
-    Route::post('accessory-orders/{accessoryOrder}/confirm', [AccessoryOrderController::class, 'confirm']);
-    Route::post('accessory-orders/{accessoryOrder}/cancel', [AccessoryOrderController::class, 'cancel']);
+    Route::apiResource('accessory-orders', AccessoryOrderController::class)
+        ->only(['index', 'store', 'show'])
+        ->middlewareFor('store', 'capability:manage-orders');
+    Route::post('accessory-orders/{accessoryOrder}/confirm', [AccessoryOrderController::class, 'confirm'])
+        ->middleware('capability:manage-orders');
+    Route::post('accessory-orders/{accessoryOrder}/cancel', [AccessoryOrderController::class, 'cancel'])
+        ->middleware('capability:manage-orders');
 
     // --- Numeros OEM
-    Route::apiResource('oem-numbers', OemNumberController::class)->only(['index', 'store', 'show']);
+    Route::apiResource('oem-numbers', OemNumberController::class)
+        ->only(['index', 'store', 'show'])
+        ->middlewareFor('store', 'capability:manage-catalog');
     Route::get('oem-numbers/{oemNumber}/parts', [OemNumberController::class, 'parts']);
-    Route::post('oem-numbers/{oemNumber}/supersede', [OemNumberController::class, 'supersede']);
+    Route::post('oem-numbers/{oemNumber}/supersede', [OemNumberController::class, 'supersede'])
+        ->middleware('capability:manage-catalog');
 
     // --- Clients
-    Route::apiResource('customers', CustomerController::class);
+    Route::apiResource('customers', CustomerController::class)
+        ->middlewareFor(['store', 'update', 'destroy'], 'capability:manage-customers');
 
-    // --- Token FCM staff
+    // --- Token FCM staff (chacun enregistre son propre appareil)
     Route::post('fcm-token', [FcmTokenController::class, 'storeStaff']);
 
-    // --- Notifications staff
+    // --- Notifications staff (chacun gere les siennes)
     Route::get('notifications',              [NotificationController::class, 'indexStaff']);
     Route::get('notifications/unread-count', [NotificationController::class, 'unreadCountStaff']);
     Route::post('notifications/read-all',    [NotificationController::class, 'markAllReadStaff']);
     Route::post('notifications/{notification}/read', [NotificationController::class, 'markReadStaff']);
 
     // --- Broadcast tip (conseil) vers tous les clients
-    Route::post('broadcast-tip', [NotificationController::class, 'broadcastTip']);
+    Route::post('broadcast-tip', [NotificationController::class, 'broadcastTip'])
+        ->middleware('capability:broadcast');
 
     // --- Besoins clients (lecture + mise à jour statut)
     Route::get('needs',          [CustomerNeedController::class, 'index']);
-    Route::put('needs/{need}',   [CustomerNeedController::class, 'update']);
+    Route::put('needs/{need}',   [CustomerNeedController::class, 'update'])
+        ->middleware('capability:manage-customers');
 
     // --- Médias (photos véhicules / pièces / accessoires)
     Route::get('vehicles/{vehicle}/media',             [MediaController::class, 'indexForVehicle']);
-    Route::post('vehicles/{vehicle}/media',            [MediaController::class, 'storeForVehicle']);
-    Route::patch('vehicles/{vehicle}/media/reorder',   [MediaController::class, 'reorderForVehicle']);
     Route::get('parts/{part}/media',                   [MediaController::class, 'indexForPart']);
-    Route::post('parts/{part}/media',                  [MediaController::class, 'storeForPart']);
-    Route::patch('parts/{part}/media/reorder',         [MediaController::class, 'reorderForPart']);
     Route::get('accessories/{accessory}/media',        [MediaController::class, 'indexForAccessory']);
-    Route::post('accessories/{accessory}/media',       [MediaController::class, 'storeForAccessory']);
-    Route::patch('accessories/{accessory}/media/reorder', [MediaController::class, 'reorderForAccessory']);
-    Route::delete('media/{media}',                     [MediaController::class, 'destroy']);
-    Route::patch('media/{media}/cover',                [MediaController::class, 'setCover']);
+    Route::middleware('capability:manage-catalog')->group(function () {
+        Route::post('vehicles/{vehicle}/media',            [MediaController::class, 'storeForVehicle']);
+        Route::patch('vehicles/{vehicle}/media/reorder',   [MediaController::class, 'reorderForVehicle']);
+        Route::post('parts/{part}/media',                  [MediaController::class, 'storeForPart']);
+        Route::patch('parts/{part}/media/reorder',         [MediaController::class, 'reorderForPart']);
+        Route::post('accessories/{accessory}/media',       [MediaController::class, 'storeForAccessory']);
+        Route::patch('accessories/{accessory}/media/reorder', [MediaController::class, 'reorderForAccessory']);
+        Route::delete('media/{media}',                     [MediaController::class, 'destroy']);
+        Route::patch('media/{media}/cover',                [MediaController::class, 'setCover']);
+    });
 
     // --- Ventes
-    Route::apiResource('sales', SaleController::class)->only(['index', 'store', 'show']);
+    Route::apiResource('sales', SaleController::class)
+        ->only(['index', 'store', 'show'])
+        ->middlewareFor('store', 'capability:manage-orders');
 
     // --- Locations
-    Route::apiResource('rentals', RentalController::class)->only(['index', 'store', 'show']);
-    Route::post('rentals/{rental}/checkout', [RentalController::class, 'checkout']);
-    Route::post('rentals/{rental}/checkin', [RentalController::class, 'checkin']);
+    Route::apiResource('rentals', RentalController::class)
+        ->only(['index', 'store', 'show'])
+        ->middlewareFor('store', 'capability:manage-orders');
+    Route::post('rentals/{rental}/checkout', [RentalController::class, 'checkout'])
+        ->middleware('capability:manage-orders');
+    Route::post('rentals/{rental}/checkin', [RentalController::class, 'checkin'])
+        ->middleware('capability:manage-orders');
 
     // --- Commandes de pieces
-    Route::apiResource('part-orders', PartOrderController::class)->only(['index', 'store', 'show']);
-    Route::post('part-orders/{partOrder}/confirm', [PartOrderController::class, 'confirm']);
-    Route::post('part-orders/{partOrder}/cancel', [PartOrderController::class, 'cancel']);
+    Route::apiResource('part-orders', PartOrderController::class)
+        ->only(['index', 'store', 'show'])
+        ->middlewareFor('store', 'capability:manage-orders');
+    Route::post('part-orders/{partOrder}/confirm', [PartOrderController::class, 'confirm'])
+        ->middleware('capability:manage-orders');
+    Route::post('part-orders/{partOrder}/cancel', [PartOrderController::class, 'cancel'])
+        ->middleware('capability:manage-orders');
 });
