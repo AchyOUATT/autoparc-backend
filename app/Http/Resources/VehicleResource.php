@@ -149,6 +149,12 @@ class VehicleResource extends JsonResource
                 'name'     => $f->name,
                 'category' => $f->category,
             ])->values()),
+
+            // Derives des equipements : absents de la liste du catalogue, qui ne
+            // les charge pas — et n'en a pas besoin, le badge vit sur la fiche.
+            'optional_feature_count' => $this->whenLoaded('features', fn () => $this->optional_feature_count),
+            'is_full_option'         => $this->whenLoaded('features', fn () => $this->is_full_option),
+
             'media'    => $this->whenLoaded('media', fn () => $this->media->map(fn ($m) => [
                 'id'         => $m->id,
                 'url'        => $m->url,

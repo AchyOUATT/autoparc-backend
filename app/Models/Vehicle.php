@@ -262,6 +262,60 @@ class Vehicle extends Model
         return $q->whereHas('faults', fn ($f) => $f->where('category', $category));
     }
 
+    // ── « Full option » ──────────────────────────────────────────────────────
+    //
+    // Terme du marche de l'import, pas une finition : aucun constructeur ne
+    // fabrique une version « full option ». C'est une appreciation du vendeur,
+    // souvent genereuse. On la calcule donc a partir des equipements reellement
+    // rattaches au vehicule, pour que le badge soit verifiable par l'acheteur
+    // juste en dessous, dans la liste des equipements.
+
+    /** La dotation standard (cric, gilet, triangle) equipe tout le parc et ne departage rien. */
+    private const OPTION_CATEGORIES = ['confort', 'securite', 'multimedia', 'aide_conduite', 'autre'];
+
+    /**
+     * Seuil d'equipements hors dotation.
+     *
+     * Le parc en compte de 7 a 25 : a 20, le badge distingue reellement (environ
+     * un vehicule sur dix) au lieu de recompenser la moyenne. Un badge qui
+     * promet « tout » et se pose sur la moitie du parc ne vaut rien pour
+     * l'acheteur — quitte a l'abaisser plus tard, mieux vaut commencer strict.
+     */
+    private const FULL_OPTION_MIN = 20;
+
+    /** Familles dont au moins un equipement est exige, pour eviter un total gonfle par un seul rayon. */
+    private const FULL_OPTION_REQUIRED = ['confort', 'multimedia', 'aide_conduite'];
+
+    /**
+     * Nombre d'equipements hors dotation standard.
+     *
+     * Suppose la relation `features` chargee : les accesseurs ne sont exposes
+     * que dans ce cas, la liste du catalogue ne chargeant pas les equipements.
+     */
+    public function getOptionalFeatureCountAttribute(): int
+    {
+        return $this->features
+            ->whereIn('category', self::OPTION_CATEGORIES)
+            ->count();
+    }
+
+    public function getIsFullOptionAttribute(): bool
+    {
+        $options = $this->features->whereIn('category', self::OPTION_CATEGORIES);
+
+        if ($options->count() < self::FULL_OPTION_MIN) {
+            return false;
+        }
+
+        foreach (self::FULL_OPTION_REQUIRED as $category) {
+            if ($options->where('category', $category)->isEmpty()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public function scopeSearch(Builder $q, ?string $term): Builder
     {
         if (blank($term)) {
