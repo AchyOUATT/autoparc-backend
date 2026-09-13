@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
+use App\Exceptions\FirebaseUnavailableException;
 use Illuminate\Support\Facades\Log;
-use Kreait\Firebase\Auth as FirebaseAuth;
+use Kreait\Firebase\Contract\Auth as FirebaseAuth;
 use Kreait\Firebase\Exception\Auth\FailedToVerifyToken;
 use Kreait\Firebase\Factory;
 use Lcobucci\JWT\Token\Parser;
@@ -16,9 +17,16 @@ class FirebaseAuthService
 {
     protected FirebaseAuth $auth;
 
-    public function __construct()
+    /**
+     * @param FirebaseAuth|null $auth Injecte par les tests. En production le
+     *     service se construit seul : c'est le conteneur qui l'instancie, sans
+     *     argument. Le parametre existe pour pouvoir eprouver le tri entre
+     *     « jeton refuse » et « verification impossible » — la distinction qui
+     *     manquait — sans dependre du reseau ni d'un compte de service.
+     */
+    public function __construct(?FirebaseAuth $auth = null)
     {
-        $this->auth = (new Factory)
+        $this->auth = $auth ?? (new Factory)
             ->withServiceAccount(config('services.firebase.credentials'))
             ->createAuth();
     }
@@ -32,15 +40,30 @@ class FirebaseAuthService
         try {
             $verified = $this->auth->verifyIdToken($idToken);
         } catch (FailedToVerifyToken $e) {
-            // La raison etait perdue : le middleware repondait « invalide ou
-            // expire » quel que soit le motif reel — signature, audience,
-            // horloge, jeton revoque. Sans elle, le diagnostic prend des
-            // heures. Le jeton lui-meme n'est jamais journalise.
+            // Jeton reellement refuse : signature, audience, horloge, revocation.
+            // La raison etait perdue — le middleware repondait « invalide ou
+            // expire » quel que soit le motif. Sans elle, le diagnostic prend
+            // des heures. Le jeton lui-meme n'est jamais journalise.
             Log::warning('[Firebase] Verification du jeton refusee', [
                 'reason' => $e->getMessage(),
             ]);
 
             return null;
+        } catch (\Throwable $e) {
+            // Tout le reste : reseau coupe, certificats absents, compte de
+            // service illisible, Google injoignable. Le client n'y est pour
+            // rien, et lui repondre 401 l'envoie se reconnecter en boucle.
+            //
+            // C'est exactement ce qui s'est produit : cURL error 60, faute de
+            // bundle de certificats cote PHP. Cette exception-la n'etait meme
+            // pas attrapee — elle ressortait en 500 « Server Error », sans
+            // cause, en production.
+            Log::error('[Firebase] Verification impossible', [
+                'reason'    => $e->getMessage(),
+                'exception' => $e::class,
+            ]);
+
+            throw new FirebaseUnavailableException($e);
         }
 
         $claims = $verified->claims();
