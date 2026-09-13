@@ -1,0 +1,32 @@
+[
+    {
+        "id": 4,
+        "name": "Allemagne",
+        "iso2": "DE"
+    },
+    {
+        "id": 1,
+        "name": "Burkina Faso",
+        "iso2": "BF"
+    },
+    {
+        "id": 6,
+        "name": "Corée du Sud",
+        "iso2": "KR"
+    },
+    {
+        "id": 3,
+        "name": "France",
+        "iso2": "FR"
+    },
+    {
+        "id": 2,
+        "name": "Japon",
+        "iso2": "JP"
+    },
+    {
+        "id": 5,
+        "name": "Émirats Arabes Unis",
+        "iso2": "AE"
+    }
+]

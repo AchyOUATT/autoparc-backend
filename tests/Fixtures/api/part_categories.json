@@ -1,0 +1,52 @@
+[
+    {
+        "id": 9,
+        "parent_id": null,
+        "name": "Carrosserie"
+    },
+    {
+        "id": 6,
+        "parent_id": 4,
+        "name": "Courroies"
+    },
+    {
+        "id": 3,
+        "parent_id": 1,
+        "name": "Disques"
+    },
+    {
+        "id": 5,
+        "parent_id": 4,
+        "name": "Filtres"
+    },
+    {
+        "id": 10,
+        "parent_id": null,
+        "name": "Filtres"
+    },
+    {
+        "id": 1,
+        "parent_id": null,
+        "name": "Freinage"
+    },
+    {
+        "id": 4,
+        "parent_id": null,
+        "name": "Moteur"
+    },
+    {
+        "id": 2,
+        "parent_id": 1,
+        "name": "Plaquettes"
+    },
+    {
+        "id": 7,
+        "parent_id": null,
+        "name": "Suspension"
+    },
+    {
+        "id": 8,
+        "parent_id": null,
+        "name": "Électrique"
+    }
+]

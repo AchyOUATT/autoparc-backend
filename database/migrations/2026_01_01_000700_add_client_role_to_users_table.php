@@ -12,6 +12,12 @@ return new class extends Migration
     {
         match (DB::getDriverName()) {
             'mysql', 'mariadb' => $this->mysqlModify(self::ALL_ROLES),
+            // Rien a faire : la migration 000500 lit UserRole::values(), donc la
+            // contrainte creee sur une base neuve contient deja « client ».
+            // Cette migration-ci ne sert qu'aux bases deja deployees — et
+            // SQLite, qui ne sait pas modifier une contrainte en place, n'en
+            // heberge aucune : c'est la base des tests, recreee a chaque fois.
+            'sqlite'           => null,
             default            => $this->pgsqlModify(self::ALL_ROLES),
         };
     }
@@ -23,6 +29,7 @@ return new class extends Migration
 
         match (DB::getDriverName()) {
             'mysql', 'mariadb' => $this->mysqlModify(self::NO_CLIENT),
+            'sqlite'           => null,
             default            => $this->pgsqlModify(self::NO_CLIENT),
         };
     }

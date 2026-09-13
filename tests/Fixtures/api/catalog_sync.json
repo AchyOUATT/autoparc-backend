@@ -1,0 +1,788 @@
+{
+    "server_time": "2026-09-13T21:52:33+00:00",
+    "brands": [
+        {
+            "id": 1,
+            "name": "Toyota",
+            "slug": "toyota",
+            "country_id": 2,
+            "logo_path": null,
+            "is_active": true,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 2,
+            "name": "Hyundai",
+            "slug": "hyundai",
+            "country_id": 6,
+            "logo_path": null,
+            "is_active": true,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 3,
+            "name": "Kia",
+            "slug": "kia",
+            "country_id": 6,
+            "logo_path": null,
+            "is_active": true,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 4,
+            "name": "Nissan",
+            "slug": "nissan",
+            "country_id": 2,
+            "logo_path": null,
+            "is_active": true,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 5,
+            "name": "Peugeot",
+            "slug": "peugeot",
+            "country_id": 3,
+            "logo_path": null,
+            "is_active": true,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 6,
+            "name": "Volkswagen",
+            "slug": "volkswagen",
+            "country_id": 4,
+            "logo_path": null,
+            "is_active": true,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        }
+    ],
+    "vehicle_models": [
+        {
+            "id": 1,
+            "brand_id": 1,
+            "name": "Corolla",
+            "slug": "toyota-corolla",
+            "generation": null,
+            "body_type": "SUV",
+            "segment": "B",
+            "is_active": true,
+            "default_vehicle_type": null,
+            "default_seats": null,
+            "default_doors": null,
+            "default_transmission": null,
+            "default_power_hp": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 2,
+            "brand_id": 1,
+            "name": "Hilux",
+            "slug": "toyota-hilux",
+            "generation": null,
+            "body_type": "pick-up",
+            "segment": "C",
+            "is_active": true,
+            "default_vehicle_type": null,
+            "default_seats": null,
+            "default_doors": null,
+            "default_transmission": null,
+            "default_power_hp": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 3,
+            "brand_id": 1,
+            "name": "RAV4",
+            "slug": "toyota-rav4",
+            "generation": null,
+            "body_type": "berline",
+            "segment": "D",
+            "is_active": true,
+            "default_vehicle_type": null,
+            "default_seats": null,
+            "default_doors": null,
+            "default_transmission": null,
+            "default_power_hp": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 4,
+            "brand_id": 2,
+            "name": "Tucson",
+            "slug": "hyundai-tucson",
+            "generation": null,
+            "body_type": "berline",
+            "segment": "C",
+            "is_active": true,
+            "default_vehicle_type": null,
+            "default_seats": null,
+            "default_doors": null,
+            "default_transmission": null,
+            "default_power_hp": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 5,
+            "brand_id": 2,
+            "name": "i10",
+            "slug": "hyundai-i10",
+            "generation": null,
+            "body_type": "break",
+            "segment": "D",
+            "is_active": true,
+            "default_vehicle_type": null,
+            "default_seats": null,
+            "default_doors": null,
+            "default_transmission": null,
+            "default_power_hp": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 6,
+            "brand_id": 2,
+            "name": "Elantra",
+            "slug": "hyundai-elantra",
+            "generation": null,
+            "body_type": "SUV",
+            "segment": "C",
+            "is_active": true,
+            "default_vehicle_type": null,
+            "default_seats": null,
+            "default_doors": null,
+            "default_transmission": null,
+            "default_power_hp": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 7,
+            "brand_id": 3,
+            "name": "Sportage",
+            "slug": "kia-sportage",
+            "generation": null,
+            "body_type": "pick-up",
+            "segment": "C",
+            "is_active": true,
+            "default_vehicle_type": null,
+            "default_seats": null,
+            "default_doors": null,
+            "default_transmission": null,
+            "default_power_hp": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 8,
+            "brand_id": 3,
+            "name": "Picanto",
+            "slug": "kia-picanto",
+            "generation": null,
+            "body_type": "break",
+            "segment": "B",
+            "is_active": true,
+            "default_vehicle_type": null,
+            "default_seats": null,
+            "default_doors": null,
+            "default_transmission": null,
+            "default_power_hp": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 9,
+            "brand_id": 4,
+            "name": "Navara",
+            "slug": "nissan-navara",
+            "generation": null,
+            "body_type": "pick-up",
+            "segment": "D",
+            "is_active": true,
+            "default_vehicle_type": null,
+            "default_seats": null,
+            "default_doors": null,
+            "default_transmission": null,
+            "default_power_hp": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 10,
+            "brand_id": 4,
+            "name": "Qashqai",
+            "slug": "nissan-qashqai",
+            "generation": null,
+            "body_type": "pick-up",
+            "segment": "C",
+            "is_active": true,
+            "default_vehicle_type": null,
+            "default_seats": null,
+            "default_doors": null,
+            "default_transmission": null,
+            "default_power_hp": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 11,
+            "brand_id": 5,
+            "name": "208",
+            "slug": "peugeot-208",
+            "generation": null,
+            "body_type": "pick-up",
+            "segment": "D",
+            "is_active": true,
+            "default_vehicle_type": null,
+            "default_seats": null,
+            "default_doors": null,
+            "default_transmission": null,
+            "default_power_hp": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 12,
+            "brand_id": 5,
+            "name": "3008",
+            "slug": "peugeot-3008",
+            "generation": null,
+            "body_type": "pick-up",
+            "segment": "C",
+            "is_active": true,
+            "default_vehicle_type": null,
+            "default_seats": null,
+            "default_doors": null,
+            "default_transmission": null,
+            "default_power_hp": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 13,
+            "brand_id": 6,
+            "name": "Golf",
+            "slug": "volkswagen-golf",
+            "generation": null,
+            "body_type": "pick-up",
+            "segment": "C",
+            "is_active": true,
+            "default_vehicle_type": null,
+            "default_seats": null,
+            "default_doors": null,
+            "default_transmission": null,
+            "default_power_hp": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 14,
+            "brand_id": 6,
+            "name": "Tiguan",
+            "slug": "volkswagen-tiguan",
+            "generation": null,
+            "body_type": "break",
+            "segment": "C",
+            "is_active": true,
+            "default_vehicle_type": null,
+            "default_seats": null,
+            "default_doors": null,
+            "default_transmission": null,
+            "default_power_hp": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        }
+    ],
+    "trims": [
+        {
+            "id": 1,
+            "vehicle_model_id": 1,
+            "name": "Base",
+            "code": "VHQ",
+            "rank": 0,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 2,
+            "vehicle_model_id": 1,
+            "name": "LE",
+            "code": "NRM",
+            "rank": 1,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 3,
+            "vehicle_model_id": 2,
+            "name": "Base",
+            "code": "EWW",
+            "rank": 0,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 4,
+            "vehicle_model_id": 2,
+            "name": "LE",
+            "code": "JAO",
+            "rank": 1,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 5,
+            "vehicle_model_id": 3,
+            "name": "Base",
+            "code": "OSJ",
+            "rank": 0,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 6,
+            "vehicle_model_id": 3,
+            "name": "LE",
+            "code": "OQY",
+            "rank": 1,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 7,
+            "vehicle_model_id": 4,
+            "name": "Base",
+            "code": "DAI",
+            "rank": 0,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 8,
+            "vehicle_model_id": 4,
+            "name": "LE",
+            "code": "TNQ",
+            "rank": 1,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 9,
+            "vehicle_model_id": 5,
+            "name": "Base",
+            "code": "E9Z",
+            "rank": 0,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 10,
+            "vehicle_model_id": 5,
+            "name": "LE",
+            "code": "GHM",
+            "rank": 1,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 11,
+            "vehicle_model_id": 6,
+            "name": "Base",
+            "code": "OKK",
+            "rank": 0,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 12,
+            "vehicle_model_id": 6,
+            "name": "LE",
+            "code": "DKN",
+            "rank": 1,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 13,
+            "vehicle_model_id": 7,
+            "name": "Base",
+            "code": "SPH",
+            "rank": 0,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 14,
+            "vehicle_model_id": 7,
+            "name": "LE",
+            "code": "DIV",
+            "rank": 1,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 15,
+            "vehicle_model_id": 8,
+            "name": "Base",
+            "code": "ITF",
+            "rank": 0,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 16,
+            "vehicle_model_id": 8,
+            "name": "LE",
+            "code": "ONV",
+            "rank": 1,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 17,
+            "vehicle_model_id": 9,
+            "name": "Base",
+            "code": "0M7",
+            "rank": 0,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 18,
+            "vehicle_model_id": 9,
+            "name": "LE",
+            "code": "0QQ",
+            "rank": 1,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 19,
+            "vehicle_model_id": 10,
+            "name": "Base",
+            "code": "PCX",
+            "rank": 0,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 20,
+            "vehicle_model_id": 10,
+            "name": "LE",
+            "code": "FEQ",
+            "rank": 1,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 21,
+            "vehicle_model_id": 11,
+            "name": "Base",
+            "code": "DVM",
+            "rank": 0,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 22,
+            "vehicle_model_id": 11,
+            "name": "LE",
+            "code": "YBU",
+            "rank": 1,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 23,
+            "vehicle_model_id": 12,
+            "name": "Base",
+            "code": "TSW",
+            "rank": 0,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 24,
+            "vehicle_model_id": 12,
+            "name": "LE",
+            "code": "TWF",
+            "rank": 1,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 25,
+            "vehicle_model_id": 13,
+            "name": "Base",
+            "code": "SIW",
+            "rank": 0,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 26,
+            "vehicle_model_id": 13,
+            "name": "LE",
+            "code": "LK6",
+            "rank": 1,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 27,
+            "vehicle_model_id": 14,
+            "name": "Base",
+            "code": "FJ0",
+            "rank": 0,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 28,
+            "vehicle_model_id": 14,
+            "name": "LE",
+            "code": "IAJ",
+            "rank": 1,
+            "default_engine_type_id": null,
+            "default_drivetrain_id": null,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        }
+    ],
+    "engine_types": [
+        {
+            "id": 1,
+            "code": "petrol",
+            "label": "Essence",
+            "uses_fuel": true,
+            "uses_battery": false,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 2,
+            "code": "diesel",
+            "label": "Diesel",
+            "uses_fuel": true,
+            "uses_battery": false,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 3,
+            "code": "hybrid",
+            "label": "Hybride",
+            "uses_fuel": true,
+            "uses_battery": true,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 4,
+            "code": "electric",
+            "label": "Électrique",
+            "uses_fuel": false,
+            "uses_battery": true,
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        }
+    ],
+    "drivetrains": [
+        {
+            "id": 1,
+            "code": "FWD",
+            "label": "Traction avant",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 2,
+            "code": "RWD",
+            "label": "Propulsion",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 3,
+            "code": "AWD",
+            "label": "Intégrale permanente",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 4,
+            "code": "4WD",
+            "label": "4x4 enclenchable",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        }
+    ],
+    "colors": [
+        {
+            "id": 1,
+            "name": "Blanc",
+            "hex_code": "#FFFFFF",
+            "finish": "opaque",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 2,
+            "name": "Noir",
+            "hex_code": "#000000",
+            "finish": "metallise",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 3,
+            "name": "Gris",
+            "hex_code": "#808080",
+            "finish": "metallise",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 4,
+            "name": "Rouge",
+            "hex_code": "#C0392B",
+            "finish": "opaque",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 5,
+            "name": "Bleu",
+            "hex_code": "#2980B9",
+            "finish": "metallise",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 6,
+            "name": "Argent",
+            "hex_code": "#C0C0C0",
+            "finish": "metallise",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        }
+    ],
+    "features": [
+        {
+            "id": 1,
+            "name": "Climatisation",
+            "category": "confort",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 2,
+            "name": "Caméra de recul",
+            "category": "securite",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 3,
+            "name": "Bluetooth",
+            "category": "multimedia",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 4,
+            "name": "Sièges cuir",
+            "category": "confort",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 5,
+            "name": "Toit ouvrant",
+            "category": "confort",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 6,
+            "name": "Régulateur de vitesse",
+            "category": "securite",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 7,
+            "name": "Navigation GPS",
+            "category": "multimedia",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        }
+    ],
+    "part_categories": [
+        {
+            "id": 1,
+            "parent_id": null,
+            "name": "Freinage",
+            "slug": "freinage",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 2,
+            "parent_id": 1,
+            "name": "Plaquettes",
+            "slug": "plaquettes",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 3,
+            "parent_id": 1,
+            "name": "Disques",
+            "slug": "disques",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 4,
+            "parent_id": null,
+            "name": "Moteur",
+            "slug": "moteur",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 5,
+            "parent_id": 4,
+            "name": "Filtres",
+            "slug": "filtres",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 6,
+            "parent_id": 4,
+            "name": "Courroies",
+            "slug": "courroies",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 7,
+            "parent_id": null,
+            "name": "Suspension",
+            "slug": "suspension",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 8,
+            "parent_id": null,
+            "name": "Électrique",
+            "slug": "electrique",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 9,
+            "parent_id": null,
+            "name": "Carrosserie",
+            "slug": "carrosserie",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        },
+        {
+            "id": 10,
+            "parent_id": null,
+            "name": "Filtres",
+            "slug": "filtres-fixture",
+            "updated_at": "2026-09-13T21:52:33.000000Z"
+        }
+    ],
+    "locations": []
+}

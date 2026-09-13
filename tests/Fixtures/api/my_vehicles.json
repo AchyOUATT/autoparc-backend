@@ -1,0 +1,92 @@
+{
+    "data": [
+        {
+            "id": 1,
+            "designation": "Toyota Corolla  2018",
+            "nickname": "La Corolla",
+            "brand_id": 1,
+            "vehicle_model_id": 1,
+            "vin": null,
+            "engine_code": null,
+            "plate_number": null,
+            "mileage_km": 96000,
+            "year": 2018,
+            "technical_inspection_expiry": "2027-03-01",
+            "insurance_expiry": "2027-01-15",
+            "last_service_date": null,
+            "last_service_mileage_km": 90000,
+            "service_interval_km": 10000,
+            "deadlines": [
+                {
+                    "kind": "insurance",
+                    "label": "Assurance",
+                    "due_on": "2027-01-15",
+                    "days_left": 124,
+                    "overdue": false,
+                    "detail": null
+                },
+                {
+                    "kind": "technical_inspection",
+                    "label": "Visite technique",
+                    "due_on": "2027-03-01",
+                    "days_left": 169,
+                    "overdue": false,
+                    "detail": null
+                },
+                {
+                    "kind": "service",
+                    "label": "Vidange",
+                    "due_on": null,
+                    "days_left": null,
+                    "overdue": false,
+                    "detail": "Dans 4000 km"
+                }
+            ],
+            "identity": {
+                "brand": "Toyota",
+                "model": "Corolla",
+                "trim": null,
+                "engine_type": null,
+                "drivetrain": null,
+                "color": null
+            },
+            "compatibility_ready": false,
+            "created_at": "2026-09-13T21:52:33+00:00"
+        }
+    ],
+    "links": {
+        "first": "http://localhost:8000/api/my/vehicles?page=1",
+        "last": "http://localhost:8000/api/my/vehicles?page=1",
+        "prev": null,
+        "next": null
+    },
+    "meta": {
+        "current_page": 1,
+        "from": 1,
+        "last_page": 1,
+        "links": [
+            {
+                "url": null,
+                "label": "&laquo; Previous",
+                "page": null,
+                "active": false
+            },
+            {
+                "url": "http://localhost:8000/api/my/vehicles?page=1",
+                "label": "1",
+                "page": 1,
+                "active": true
+            },
+            {
+                "url": null,
+                "label": "Next &raquo;",
+                "page": null,
+                "active": false
+            }
+        ],
+        "path": "http://localhost:8000/api/my/vehicles",
+        "per_page": 20,
+        "to": 1,
+        "total": 1
+    }
+}

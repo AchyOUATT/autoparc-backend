@@ -1,0 +1,103 @@
+{
+    "data": {
+        "id": 1,
+        "reference": "VH-CNK92W0B",
+        "vin": null,
+        "designation": "Nissan Navara Base 2023",
+        "vehicle_type": "passenger",
+        "body_style": "pickup",
+        "registration_status": {
+            "value": "unregistered",
+            "label": "Non immatricule"
+        },
+        "identity": {
+            "brand": "Nissan",
+            "brand_slug": "nissan",
+            "brand_logo_path": null,
+            "model": "Navara",
+            "generation": null,
+            "trim": "Base",
+            "engine_type": "Hybride",
+            "drivetrain": "AWD",
+            "color": "Rouge",
+            "color_hex": "#C0392B",
+            "color_finish": "opaque",
+            "year": 2023
+        },
+        "technical": {
+            "transmission": "automatic",
+            "gear_count": null,
+            "engine_displacement_cc": null,
+            "engine_code": null,
+            "power_hp": null,
+            "power_kw": null,
+            "torque_nm": null,
+            "cylinders": null,
+            "seats": 5,
+            "doors": 2,
+            "mileage_km": null
+        },
+        "consumption": {
+            "urban_l_100km": "11.10",
+            "extra_urban_l_100km": "7.30",
+            "combined_l_100km": "9.40",
+            "electric_kwh_100km": null,
+            "battery_kwh": null,
+            "electric_range_km": null,
+            "co2_g_km": 206,
+            "fuel_tank_liters": 75
+        },
+        "commercial": {
+            "condition": "new",
+            "status": "in_stock",
+            "status_label": "En stock",
+            "availability": "sale",
+            "sale_price": "2450000.00",
+            "rental_daily_rate": null,
+            "rental_weekly_rate": null,
+            "rental_monthly_rate": null,
+            "rental_deposit": null,
+            "currency": "XOF",
+            "price_negotiable": true,
+            "deal_type": "good_deal",
+            "deal_label": "Bonne affaire",
+            "site": null,
+            "location": null,
+            "location_id": null,
+            "partner": null,
+            "partner_id": null
+        },
+        "import": null,
+        "registration": null,
+        "faults": [],
+        "fault_score": 0,
+        "features": [
+            {
+                "id": 6,
+                "name": "Régulateur de vitesse",
+                "category": "securite"
+            },
+            {
+                "id": 2,
+                "name": "Caméra de recul",
+                "category": "securite"
+            },
+            {
+                "id": 5,
+                "name": "Toit ouvrant",
+                "category": "confort"
+            },
+            {
+                "id": 4,
+                "name": "Sièges cuir",
+                "category": "confort"
+            }
+        ],
+        "optional_feature_count": 4,
+        "is_full_option": false,
+        "media": [],
+        "description": null,
+        "published_at": "2026-08-08T21:52:33+00:00",
+        "created_at": "2026-09-13T21:52:33+00:00"
+    }
+}

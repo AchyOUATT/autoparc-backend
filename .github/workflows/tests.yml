@@ -1,0 +1,43 @@
+name: Tests
+
+# Sur chaque poussée et chaque pull request : c'est ce qui distingue une suite
+# de tests d'un filet de sécurité. Tant qu'ils ne tournent que quand quelqu'un
+# tape la commande, une régression attend la prochaine vérification à la main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  phpunit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          # pdo_sqlite : la suite tourne sur SQLite en mémoire (phpunit.xml).
+          extensions: pdo_sqlite, sqlite3, mbstring, bcmath
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Installer les dépendances
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Préparer l'environnement
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Lancer les tests
+        run: php artisan test
