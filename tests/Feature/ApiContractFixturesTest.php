@@ -30,7 +30,7 @@ use Tests\TestCase;
  * le probleme.
  *
  * Regenerer apres toute modification d'une ressource :
- *   php artisan test --filter=ApiContractFixturesTest
+ *   UPDATE_FIXTURES=1 php artisan test --filter=ApiContractFixturesTest
  *   cp tests/Fixtures/api/*.json ../autoparc-mobile/test/fixtures/
  */
 class ApiContractFixturesTest extends TestCase
@@ -51,14 +51,23 @@ class ApiContractFixturesTest extends TestCase
         }
     }
 
+    /**
+     * N'ecrit que sur demande explicite.
+     *
+     * Les factories tirent des valeurs au hasard : ecrire a chaque execution
+     * salissait l'arbre de travail apres le moindre `php artisan test`. Les
+     * assertions, elles, tournent toujours — c'est la partie qui protege.
+     */
     private function capture(string $nom, TestResponse $response): array
     {
         $response->assertOk();
 
-        file_put_contents(
-            base_path(self::DOSSIER."/{$nom}.json"),
-            json_encode($response->json(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n",
-        );
+        if (env('UPDATE_FIXTURES')) {
+            file_put_contents(
+                base_path(self::DOSSIER."/{$nom}.json"),
+                json_encode($response->json(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n",
+            );
+        }
 
         return $response->json();
     }
