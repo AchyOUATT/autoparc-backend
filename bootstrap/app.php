@@ -17,9 +17,27 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     
 ->withMiddleware(function (Middleware $middleware) {
+    // Sans cela, `$request->ip()` renvoie l'adresse du repartiteur de charge
+    // de Render — la meme pour tout le monde. Les limites posees par adresse
+    // deviendraient alors globales : vingt tentatives de connexion par minute
+    // pour l'ensemble de la plateforme, et le premier visiteur a atteindre le
+    // plafond bloquerait tous les autres.
+    //
+    // Faire confiance a tous les mandataires est la configuration usuelle
+    // derriere un service gere : les adresses du repartiteur ne sont ni fixes
+    // ni publiees. Cela suppose que l'application ne soit joignable qu'a
+    // travers lui, ce qui est le cas sur Render.
+    $middleware->trustProxies(at: '*');
+
     // Toute requete d'API porte une reference, y compris celles qui echouent
     // avant d'atteindre un controleur.
     $middleware->prependToGroup('api', \App\Http\Middleware\AssignRequestId::class);
+
+    // Plafond general. Laravel 11 a retire le throttle pose d'office sur le
+    // groupe api : sans cette ligne, l'API n'a aucune limite de debit.
+    // Les limites plus serrees (connexion, ecritures publiques) se posent
+    // route par route dans routes/api.php.
+    $middleware->appendToGroup('api', 'throttle:api');
 
     $middleware->alias([
         'staff'      => \App\Http\Middleware\EnsureStaff::class,

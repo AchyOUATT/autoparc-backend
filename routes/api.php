@@ -32,7 +32,11 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::post('login', [AuthController::class, 'login']); // staff uniquement : les clients passent par Firebase Auth cote Flutter
+// Le mot de passe se devine a la cadence du reseau sans plafond : c'est la
+// route la plus exposee de l'API, et le compte administrateur possede toutes
+// les capacites.
+Route::post('login', [AuthController::class, 'login'])
+    ->middleware('throttle:login'); // staff uniquement : les clients passent par Firebase Auth cote Flutter
 
 
 /* ---------------------- Catalogue public (lecture) ---------------------- */
@@ -80,12 +84,15 @@ Route::prefix('oem')->group(function () {
 });
 
 /* ------------------- Besoins clients (public) --------------------------- */
-Route::post('needs',     [CustomerNeedController::class, 'store']);
+// Ouverte a tous, et chaque soumission notifie l'ensemble du personnel.
+Route::post('needs',     [CustomerNeedController::class, 'store'])
+    ->middleware('throttle:public-write');
 Route::get('needs/mine', [CustomerNeedController::class, 'mine']);  // besoins du client connecté
 
 /* --------- Token FCM client (Firebase auth ou visiteur identifié) -------- */
 // Pas besoin d'auth — le firebase_uid est fourni dans le body
-Route::post('fcm-token/client', [FcmTokenController::class, 'storeClient']);
+Route::post('fcm-token/client', [FcmTokenController::class, 'storeClient'])
+    ->middleware('throttle:public-write');
 
 /* ------------------- Commun a tout utilisateur connecte ----------------- */
 Route::middleware('auth:sanctum')->group(function () {
