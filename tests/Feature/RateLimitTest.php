@@ -33,12 +33,12 @@ class RateLimitTest extends TestCase
     {
         User::factory()->create(['email' => 'admin@autoparc.bf', 'role' => 'admin']);
 
-        // Cinq essais passent (et echouent sur le mot de passe : 422).
-        for ($i = 1; $i <= 5; $i++) {
+        // Dix essais passent (et echouent sur le mot de passe : 422).
+        for ($i = 1; $i <= 10; $i++) {
             $this->assertSame(422, $this->tenterConnexion('admin@autoparc.bf'), "essai {$i}");
         }
 
-        // Le sixieme est refuse avant meme d'etre examine.
+        // Le onzieme est refuse avant meme d'etre examine.
         $this->assertSame(429, $this->tenterConnexion('admin@autoparc.bf'));
     }
 
@@ -46,7 +46,7 @@ class RateLimitTest extends TestCase
     {
         User::factory()->create(['email' => 'admin@autoparc.bf', 'role' => 'admin']);
 
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 10; $i++) {
             $this->tenterConnexion('admin@autoparc.bf');
         }
 
@@ -69,7 +69,7 @@ class RateLimitTest extends TestCase
         User::factory()->create(['email' => 'admin@autoparc.bf', 'role' => 'admin']);
         User::factory()->create(['email' => 'manager@autoparc.bf', 'role' => 'manager']);
 
-        for ($i = 1; $i <= 6; $i++) {
+        for ($i = 1; $i <= 11; $i++) {
             $this->tenterConnexion('admin@autoparc.bf');
         }
 
@@ -137,8 +137,8 @@ class RateLimitTest extends TestCase
     {
         User::factory()->create(['email' => 'admin@autoparc.bf', 'role' => 'admin']);
 
-        // Cinq echecs depuis une premiere adresse.
-        for ($i = 1; $i <= 6; $i++) {
+        // Onze echecs depuis une premiere adresse : au-dela du plafond.
+        for ($i = 1; $i <= 11; $i++) {
             $this->withServerVariables(['HTTP_X_FORWARDED_FOR' => '41.202.10.5'])
                 ->tenterConnexion('admin@autoparc.bf');
         }
