@@ -42,6 +42,14 @@ class CatalogSyncController extends Controller
             'vehicle_models' => $this->delta(VehicleModel::query(), $since)
                 ->get([
                     'id', 'brand_id', 'name', 'slug', 'generation', 'body_type', 'segment', 'is_active',
+                    // Un « modele » est ici une generation, pas un nom commercial :
+                    // trois Corolla coexistent, E210, E180 et E140. Sans ces deux
+                    // colonnes, l'application affiche des codes constructeur nus et
+                    // laisse choisir une generation qui n'existait pas l'annee du
+                    // vehicule — c'est ainsi qu'une Corolla de 2016 s'est retrouvee
+                    // sur une E210 produite a partir de 2019, et donc sans aucune
+                    // piece compatible qui lui corresponde vraiment.
+                    'production_start', 'production_end',
                     'default_vehicle_type', 'default_seats', 'default_doors',
                     'default_transmission', 'default_power_hp',
                     'updated_at',

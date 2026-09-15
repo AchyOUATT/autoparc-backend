@@ -201,6 +201,11 @@ class VehicleModelsSeeder extends Seeder
             // ─── MAZDA ─────────────────────────────────────────────────
             ['mazda', 'Mazda2',     'DJ',   'citadine',  'B', 2014, null],
             ['mazda', 'Mazda3',     'BP',   'compacte',  'C', 2018, null],
+            // Seule la BP existait : un Mazda3 de 2014 n'avait donc aucune fiche
+            // correcte a choisir, et le decodage VIN le rattachait a la generation
+            // suivante faute de mieux — alors que le VIN porte « BM » en clair.
+            ['mazda', 'Mazda3',     'BM',   'compacte',  'C', 2013, 2018],
+            ['mazda', 'Mazda3',     'BL',   'compacte',  'C', 2008, 2013],
             ['mazda', 'CX-5',       'KF',   'suv',       'C', 2017, null],
             ['mazda', 'CX-3',       null,   'suv',       'B', 2015, null],
             ['mazda', 'BT-50',      null,   'pick-up',   'D', 2011, null],
