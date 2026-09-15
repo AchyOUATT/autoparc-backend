@@ -46,6 +46,15 @@ class VerifyFirebaseToken
         // Nécessaire pour que Auth::user() et Gate (authorize()) trouvent l'utilisateur.
         \Auth::setUser($user);
 
+        // Les notifications client sont adressees au firebase_uid, pas a l'id
+        // local : NotificationController le lit ici. L'attribut n'etait jamais
+        // pose — la moitie manquante d'un contrat que personne ne verifiait.
+        // Consequence : unread-count repondait 500 (scopeForClient refuse null)
+        // et marquer une notification lue repondait 403, la comparaison se
+        // faisant contre null. La cloche n'a donc jamais fonctionne cote
+        // client, sans que rien ne le signale ailleurs que dans les logs.
+        $request->attributes->set('firebase_uid', $claims['uid']);
+
         return $next($request);
     }
 
