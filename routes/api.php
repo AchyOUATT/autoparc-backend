@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AccessoryController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\AccessoryOrderController;
@@ -120,6 +121,11 @@ Route::middleware('firebase')->prefix('my')->group(function () {
     Route::get('notifications/unread-count', [NotificationController::class, 'unreadCountClient']);
     Route::post('notifications/read-all',    [NotificationController::class, 'markAllReadClient']);
     Route::post('notifications/{notification}/read', [NotificationController::class, 'markReadClient']);
+
+    // Suppression du compte. Google Play l'exige de toute application qui
+    // permet d'en creer un : la demande doit partir de l'application, pas
+    // seulement d'un courriel.
+    Route::delete('account', [AccountController::class, 'destroy']);
 });
 
 /* ------------------- Zone back-office (staff uniquement) ---------------- */

@@ -29,4 +29,17 @@ class FakeFirebaseAuthService extends FirebaseAuthService
     {
         return $this->claims;
     }
+
+    /** Uid dont la suppression a ete demandee, null si elle ne l'a pas ete. */
+    public ?string $uidSupprime = null;
+
+    /**
+     * Le vrai service appellerait Google. Sans cette redefinition, il lirait la
+     * propriete `$auth` jamais initialisee : la suppression de compte semblait
+     * passer, mais n'exercait que la branche d'echec.
+     */
+    public function deleteUser(string $uid): void
+    {
+        $this->uidSupprime = $uid;
+    }
 }

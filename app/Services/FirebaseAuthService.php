@@ -32,6 +32,21 @@ class FirebaseAuthService
     }
 
     /**
+     * Supprime definitivement un compte Firebase.
+     *
+     * Appele par la suppression de compte : effacer nos donnees sans effacer
+     * l'identite laisserait un compte capable de se reconnecter, ce qui n'est
+     * pas ce qu'on a demande.
+     *
+     * Laisse remonter l'exception : l'appelant decide quoi en faire, et il a
+     * deja supprime les donnees locales quand il arrive ici.
+     */
+    public function deleteUser(string $uid): void
+    {
+        $this->auth->deleteUser($uid);
+    }
+
+    /**
      * Verifie un ID token et retourne ses informations (uid, email, name...).
      * Retourne null si le token est invalide, expire, ou mal signe.
      */
