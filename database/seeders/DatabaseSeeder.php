@@ -76,6 +76,14 @@ class DatabaseSeeder extends Seeder
         Accessory::factory()->inStock()->count(70)->create();
         Accessory::factory()->count(10)->create();
 
+        // ─── 6 bis. Compatibilites ─────────────────────────────────────
+        // Sans cette etape, le catalogue n'est rattache a aucun modele et
+        // toute recherche de pieces compatibles rend un ensemble vide. Ni
+        // PartFactory ni AccessoryFactory ne creent de fitment, et les deux
+        // seeders qui savaient le faire n'etaient appeles nulle part : le
+        // defaut n'a donc jamais produit d'erreur, seulement des ecrans vides.
+        $this->call(FitmentsSeeder::class);
+
         // ─── 7. Transactions ───────────────────────────────────────────
         Sale::factory()->paid()->count(30)->create();
         Sale::factory()->count(10)->create();
