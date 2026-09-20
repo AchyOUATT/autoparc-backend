@@ -18,10 +18,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class VerifyFirebaseToken
 {
-    public function __construct(protected FirebaseAuthService $firebase)
-    {
-    }
-
     public function handle(Request $request, Closure $next): Response
     {
         $token = $request->bearerToken();
@@ -30,7 +26,16 @@ class VerifyFirebaseToken
             abort(401, 'Token Firebase manquant.');
         }
 
-        $claims = $this->firebase->verify($token);
+        // Le service n'est resolu qu'ici, une fois le jeton trouve. Injecte
+        // dans le constructeur, il etait construit a chaque passage du
+        // middleware — et son constructeur lit le fichier de compte de
+        // service. Une requete sans jeton dependait donc d'un fichier dont
+        // elle n'avait aucun besoin : en integration continue, ou ce fichier
+        // n'existe pas, les trois tests « une requete sans jeton est refusee »
+        // mouraient sur « Failed to open stream » au lieu de recevoir leur
+        // 401. En production, un fichier absent ou illisible aurait transforme
+        // chaque refus d'authentification en erreur 500.
+        $claims = app(FirebaseAuthService::class)->verify($token);
 
         if (! $claims || ! $claims['uid']) {
             abort(401, 'Token Firebase invalide ou expire.');

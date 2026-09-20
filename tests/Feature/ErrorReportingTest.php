@@ -126,6 +126,29 @@ class ErrorReportingTest extends TestCase
     }
 
     /**
+     * Un refus d'authentification ne depend pas du compte de service Firebase.
+     *
+     * Le middleware recevait le service par son constructeur : le conteneur le
+     * construisait donc a chaque passage, y compris pour une requete sans
+     * jeton, et ce constructeur lit `storage/app/firebase/service-account.json`.
+     * En integration continue, ou ce fichier n'existe pas, trois tests
+     * mouraient sur « Failed to open stream » au lieu de recevoir leur 401 —
+     * la suite backend etait rouge depuis le 13 septembre sans que personne
+     * s'en apercoive. En production, un fichier absent ou illisible aurait
+     * transforme chaque refus en erreur 500.
+     */
+    public function test_une_requete_sans_jeton_est_refusee_meme_sans_identifiants(): void
+    {
+        $this->app->bind(FirebaseAuthService::class, function () {
+            throw new \RuntimeException('Compte de service Firebase illisible.');
+        });
+
+        $this->getJson('/api/my/vehicles')
+            ->assertStatus(401)
+            ->assertJsonPath('message', 'Token Firebase manquant.');
+    }
+
+    /**
      * Le conteneur instancie ce service sans argument a chaque requete /my/*.
      *
      * Le parametre de constructeur ajoute pour les tests doit donc rester
