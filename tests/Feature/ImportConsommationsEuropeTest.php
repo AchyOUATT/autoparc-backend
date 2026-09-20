@@ -150,6 +150,53 @@ class ImportConsommationsEuropeTest extends TestCase
             ->assertSuccessful();
     }
 
+    public function test_une_gamme_bmw_est_cherchee_sous_son_nom_europeen(): void
+    {
+        $serie3 = $this->catalogue('BMW', 'Série 3');
+
+        $requetes = [];
+        Http::fake(function ($request) use (&$requetes) {
+            $requetes[] = urldecode($request->url());
+
+            return Http::response($this->reponse([
+                $this->immatriculation('BMW', '320D XDRIVE', 5.4, ['cc' => 1995, 'kw' => 140]),
+            ]));
+        });
+
+        $this->artisan('catalog:import-consommations', ['--source' => 'eea'])->assertSuccessful();
+
+        // Le registre ne connait pas « Serie 3 » : il enregistre « 320D ».
+        $this->assertStringContainsString("Cn LIKE '3%'", $requetes[0]);
+
+        $cote = Motorisation::where('source', 'eea')->first();
+        $this->assertSame('320D XDRIVE', $cote->model_raw);
+        $this->assertSame($serie3->id, $cote->vehicle_model_id,
+            'La cote importee sous un alias doit retrouver son modele.');
+    }
+
+    public function test_la_classe_c_ne_ramasse_pas_les_cla(): void
+    {
+        $classeC = $this->catalogue('Mercedes-Benz', 'Classe C');
+
+        Http::fake([
+            'discodata.eea.europa.eu/*' => Http::response($this->reponse([
+                $this->immatriculation('MERCEDES-BENZ', 'C 220 D', 5.6, ['cc' => 1993, 'kw' => 147]),
+                $this->immatriculation('MERCEDES-BENZ', 'CLA 200 D', 4.9, ['cc' => 1950, 'kw' => 110]),
+            ])),
+        ]);
+
+        $this->artisan('catalog:import-consommations', ['--source' => 'eea'])->assertSuccessful();
+
+        $this->assertSame(
+            $classeC->id,
+            Motorisation::where('model_raw', 'C 220 D')->value('vehicle_model_id'),
+        );
+        $this->assertNull(
+            Motorisation::where('model_raw', 'CLA 200 D')->value('vehicle_model_id'),
+            'Le prefixe « C » est suivi d\'une espace : une CLA n\'est pas une Classe C.',
+        );
+    }
+
     public function test_un_service_en_panne_ne_fait_pas_echouer_la_commande(): void
     {
         $this->catalogue('Isuzu', 'D-Max');

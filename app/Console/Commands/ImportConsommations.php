@@ -237,6 +237,34 @@ class ImportConsommations extends Command
      * Tables annuelles disponibles : co2cars_<annee>Pv<n>, ou n suit l'annee
      * de deux en deux. Seules les annees recentes sont publiees.
      */
+    /**
+     * Modeles que l'Europe n'immatricule pas sous leur nom de gamme.
+     *
+     * Le registre ne connait ni « Serie 3 » ni « Classe C » : il enregistre
+     * « 320D XDRIVE » et « C 220 D ». Chaque entree donne les debuts de nom
+     * qui designent la gamme, et sert dans les deux sens — pour interroger le
+     * service, puis pour rattacher la cote au bon modele du catalogue.
+     *
+     * « C » est suivi d'une espace a dessein : sans elle, la Classe C
+     * ramasserait les CLA et les CLS.
+     */
+    private const ALIAS_EEA = [
+        'bmw|serie-1'            => ['1'],
+        'bmw|serie-2'            => ['2'],
+        'bmw|serie-3'            => ['3'],
+        'bmw|serie-4'            => ['4'],
+        'bmw|serie-5'            => ['5'],
+        'bmw|serie-6'            => ['6'],
+        'bmw|serie-7'            => ['7'],
+        'mercedes-benz|classe-a' => ['A '],
+        'mercedes-benz|classe-b' => ['B '],
+        'mercedes-benz|classe-c' => ['C '],
+        'mercedes-benz|classe-e' => ['E '],
+        'mercedes-benz|classe-s' => ['S '],
+        'mercedes-benz|classe-v' => ['V-KLASSE', 'CLASSE V'],
+        'mercedes-benz|ml-gle'   => ['GLE', 'ML '],
+    ];
+
     private const ANNEES_EEA = [
         2021 => 'co2cars_2021Pv23',
         2022 => 'co2cars_2022Pv25',
@@ -344,9 +372,17 @@ class ImportConsommations extends Command
      *
      * @return array<int, array<string, mixed>>
      */
+    /** Les debuts de nom qui designent cette gamme dans le registre europeen. */
+    private static function aliasEea(string $marque, string $modele): array
+    {
+        return self::ALIAS_EEA[Str::slug($marque).'|'.Str::slug($modele)] ?? [];
+    }
+
     private function chercherEnEurope(string $marque, string $modele): array
     {
-        foreach ($this->motifs($modele) as $motif) {
+        $motifs = self::aliasEea($marque, $modele) ?: $this->motifs($modele);
+
+        foreach ($motifs as $motif) {
             foreach (array_reverse(self::ANNEES_EEA, true) as $annee => $table) {
                 $lignes = $this->interrogerEea($table, $marque, $motif, $annee);
 
@@ -660,7 +696,8 @@ class ImportConsommations extends Command
                 $modeleId = $this->modeleLePlusProche(
                     $cote->model_raw,
                     $cote->model_year,
-                    $modelesParMarque->get($marque->id) ?? collect()
+                    $modelesParMarque->get($marque->id) ?? collect(),
+                    $marque->name,
                 );
 
                 $cote->forceFill([
@@ -713,9 +750,10 @@ class ImportConsommations extends Command
      *
      * @param  \Illuminate\Support\Collection<int, VehicleModel>  $modeles
      */
-    private function modeleLePlusProche(string $libelle, int $annee, $modeles): ?int
+    private function modeleLePlusProche(string $libelle, int $annee, $modeles, string $marque = ''): ?int
     {
         $cible      = Str::slug($libelle);
+        $brut       = mb_strtoupper(trim($libelle));
         $candidats  = [];
         $longueur   = 0;
 
@@ -724,7 +762,20 @@ class ImportConsommations extends Command
             if ($nom === '' || strlen($nom) < $longueur) {
                 continue;
             }
-            if ($cible !== $nom && ! str_starts_with($cible, $nom.'-')) {
+
+            // « 320D XDRIVE » ne ressemble en rien a « Serie 3 » : seule la
+            // table de correspondance fait le lien. On la consulte dans le
+            // meme sens qu'a la recherche, pour que la cote importee sous un
+            // alias retrouve son modele.
+            $parAlias = false;
+            foreach (self::aliasEea($marque, $modele->name) as $prefixe) {
+                if (str_starts_with($brut, mb_strtoupper($prefixe))) {
+                    $parAlias = true;
+                    break;
+                }
+            }
+
+            if (! $parAlias && $cible !== $nom && ! str_starts_with($cible, $nom.'-')) {
                 continue;
             }
 
