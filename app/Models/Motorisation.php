@@ -54,7 +54,10 @@ class Motorisation extends Model
         $parties = [];
 
         if ($this->engine_l !== null) {
-            $parties[] = str_replace('.', ',', (string) (float) $this->engine_l).' l';
+            // « 2,0 l » et non « 2 l » : une cylindree s'ecrit avec sa
+            // decimale, c'est ainsi qu'elle figure sur les papiers du
+            // vehicule.
+            $parties[] = number_format((float) $this->engine_l, 1, ',', ' ').' l';
         }
         if ($this->cylinders !== null) {
             $parties[] = $this->cylinders.' cyl.';
@@ -64,6 +67,40 @@ class Motorisation extends Model
         }
 
         return implode(' ', array_filter($parties));
+    }
+
+    /**
+     * D'ou vient cette cote, en clair.
+     *
+     * Affiche a cote du chiffre : une consommation sans provenance ne se
+     * discute pas. Un proprietaire qui trouve 8,2 l/100 pour sa voiture doit
+     * pouvoir savoir qui l'a mesuree, et sur quel parcours.
+     */
+    public function getLibelleSourceAttribute(): string
+    {
+        return match ($this->source) {
+            'nrcan' => 'Ressources naturelles Canada',
+            'eea'   => 'Agence europeenne pour l\'environnement',
+            default => $this->source,
+        };
+    }
+
+    /**
+     * Le protocole d'essai, en clair.
+     *
+     * Deux cotes issues de cycles differents ne se comparent pas : une meme
+     * voiture se lit 8,2 en cinq cycles et 6,4 en WLTP. Le dire evite qu'on
+     * croie a une difference entre deux vehicules.
+     */
+    public function getLibelleCycleAttribute(): string
+    {
+        return match ($this->cycle) {
+            '5-cycle' => 'essai canadien, cinq cycles',
+            '2-cycle' => 'essai canadien, deux cycles',
+            'wltp'    => 'norme WLTP',
+            'nedc'    => 'ancienne norme NEDC',
+            default   => $this->cycle,
+        };
     }
 
     /**
@@ -79,12 +116,14 @@ class Motorisation extends Model
             return $code;
         }
 
+        // Ces libelles sont lus par l'utilisateur, pas par le code : ils
+        // portent leurs accents, contrairement au reste du fichier.
         $famille = match ($m[1]) {
-            'AV' => 'boite a variation continue',
-            'AS' => 'boite auto.',
-            'AM' => 'boite robotisee',
-            'A'  => 'boite auto.',
-            'M'  => 'boite manuelle',
+            'AV' => 'boîte à variation continue',
+            'AS' => 'boîte auto.',
+            'AM' => 'boîte robotisée',
+            'A'  => 'boîte auto.',
+            'M'  => 'boîte manuelle',
         };
 
         return isset($m[2]) ? $famille.' '.$m[2] : $famille;

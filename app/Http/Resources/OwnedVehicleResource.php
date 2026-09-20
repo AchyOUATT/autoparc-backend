@@ -44,6 +44,26 @@ class OwnedVehicleResource extends JsonResource
             // (saisie ou deduite de la finition) pour etre precis.
             'compatibility_ready' => $this->hasPreciseEngineData(),
 
+            // La cote officielle du moteur choisi, quand il l'a ete. Nulle
+            // sinon : l'application propose alors de le choisir, plutot que
+            // d'afficher une estimation que rien n'etaye.
+            'motorisation_id' => $this->motorisation_id,
+            'consumption'     => $this->whenLoaded('motorisation', function () {
+                if (! $this->motorisation) {
+                    return null;
+                }
+
+                return [
+                    'label'            => $this->motorisation->libelle,
+                    'fuel'             => \App\Models\Motorisation::libelleCarburant($this->motorisation->fuel_code),
+                    'city_l_100km'     => $this->motorisation->consumption_city === null ? null : (float) $this->motorisation->consumption_city,
+                    'highway_l_100km'  => $this->motorisation->consumption_highway === null ? null : (float) $this->motorisation->consumption_highway,
+                    'combined_l_100km' => $this->motorisation->consumption_combined === null ? null : (float) $this->motorisation->consumption_combined,
+                    'source'           => $this->motorisation->libelle_source,
+                    'cycle'            => $this->motorisation->libelle_cycle,
+                ];
+            }),
+
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

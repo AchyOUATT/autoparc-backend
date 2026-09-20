@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Motorisation;
 use App\Models\Trim;
 use App\Models\VehicleModel;
 use Illuminate\Foundation\Http\FormRequest;
@@ -20,6 +21,7 @@ class StoreOwnedVehicleRequest extends FormRequest
             'vehicle_model_id'   => ['required', 'exists:vehicle_models,id'],
             'trim_id'            => ['nullable', 'exists:trims,id'],
             'engine_type_id'     => ['nullable', 'exists:engine_types,id'],
+            'motorisation_id'    => ['nullable', 'exists:motorisations,id'],
             'drivetrain_id'      => ['nullable', 'exists:drivetrains,id'],
             'color_id'           => ['nullable', 'exists:colors,id'],
 
@@ -43,6 +45,18 @@ class StoreOwnedVehicleRequest extends FormRequest
         ];
     }
 
+    /** Le modele concerne : celui envoye, sinon celui du vehicule modifie. */
+    protected function modeleCible(): ?int
+    {
+        if ($this->filled('vehicle_model_id')) {
+            return (int) $this->input('vehicle_model_id');
+        }
+
+        $vehicule = $this->route('ownedVehicle');
+
+        return $vehicule?->vehicle_model_id;
+    }
+
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
@@ -53,6 +67,27 @@ class StoreOwnedVehicleRequest extends FormRequest
 
                 if (! $belongs) {
                     $validator->errors()->add('vehicle_model_id', "Ce modele n'appartient pas a la marque selectionnee.");
+                }
+            }
+
+            // Une cote de consommation appartient a un modele precis : celle
+            // d'une Hilux ne dit rien d'une Corolla. Sans ce controle, une
+            // erreur de saisie afficherait une consommation credible et
+            // fausse, sans que rien ne la signale.
+            //
+            // Le modele vient de la requete a la creation, du vehicule
+            // existant a la mise a jour : une modification partielle n'envoie
+            // que le champ modifie, et le controle ne se declenchait pas.
+            if ($this->filled('motorisation_id') && $this->modeleCible() !== null) {
+                $appartient = Motorisation::where('id', $this->input('motorisation_id'))
+                    ->where('vehicle_model_id', $this->modeleCible())
+                    ->exists();
+
+                if (! $appartient) {
+                    $validator->errors()->add(
+                        'motorisation_id',
+                        "Cette motorisation ne correspond pas au modele selectionne."
+                    );
                 }
             }
 

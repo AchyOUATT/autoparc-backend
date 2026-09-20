@@ -233,7 +233,7 @@ class ImportConsommationsTest extends TestCase
 
         $camry = Motorisation::where('model_raw', 'Camry')->where('engine_l', 2.5)->first();
 
-        $this->assertSame('2,5 l 4 cyl. boite auto. 6', $camry->libelle);
+        $this->assertSame('2,5 l 4 cyl. boîte auto. 6', $camry->libelle);
         $this->assertSame('Essence ordinaire', Motorisation::libelleCarburant($camry->fuel_code));
     }
 }

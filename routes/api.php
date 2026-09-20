@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AccessoryController;
 use App\Http\Controllers\Api\MediaController;
+use App\Http\Controllers\Api\MotorisationController;
 use App\Http\Controllers\Api\AccessoryOrderController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BrandController;
@@ -53,6 +54,11 @@ Route::prefix('catalog')->group(function () {
     Route::get('brands', [BrandController::class, 'index']);
     Route::get('brands/{brand}/models', [BrandController::class, 'models']);
     Route::get('references', [ReferenceController::class, 'index']);
+
+    // Motorisations d'un modele, avec leur cote de consommation officielle.
+    // Publique comme le reste du catalogue : le choix se fait avant d'avoir
+    // un compte, a la saisie d'un vehicule.
+    Route::get('motorisations', [MotorisationController::class, 'index']);
 
     // Accessoires (actifs et en stock uniquement)
     Route::get('accessories', [AccessoryController::class, 'catalog']);

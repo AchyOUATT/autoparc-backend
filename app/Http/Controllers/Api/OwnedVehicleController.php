@@ -16,7 +16,7 @@ class OwnedVehicleController extends Controller
 {
     use AuthorizesRequests;
 
-    protected array $relations = ['brand', 'vehicleModel', 'trim', 'engineType', 'drivetrain', 'color'];
+    protected array $relations = ['brand', 'vehicleModel', 'trim', 'engineType', 'motorisation', 'drivetrain', 'color'];
 
     public function index(Request $request)
     {

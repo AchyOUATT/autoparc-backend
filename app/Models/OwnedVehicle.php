@@ -13,7 +13,7 @@ class OwnedVehicle extends Model
 
     protected $fillable = [
         'user_id', 'brand_id', 'vehicle_model_id', 'trim_id',
-        'engine_type_id', 'drivetrain_id', 'color_id',
+        'engine_type_id', 'motorisation_id', 'drivetrain_id', 'color_id',
         'manufacturing_year', 'vin', 'engine_code', 'plate_number', 'nickname', 'mileage_km',
         'technical_inspection_expiry', 'insurance_expiry',
         'last_service_date', 'last_service_mileage_km', 'service_interval_km',
@@ -107,6 +107,17 @@ class OwnedVehicle extends Model
     public function trim()
     {
         return $this->belongsTo(Trim::class);
+    }
+
+    /**
+     * La motorisation choisie par le proprietaire, et sa cote officielle.
+     *
+     * Nulle tant qu'il ne l'a pas choisie : le catalogue connait le modele,
+     * mais rien ne dit lequel des moteurs disponibles se trouve sous le capot.
+     */
+    public function motorisation()
+    {
+        return $this->belongsTo(Motorisation::class);
     }
 
     public function engineType()
