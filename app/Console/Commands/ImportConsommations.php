@@ -42,6 +42,45 @@ class ImportConsommations extends Command
     private const CATALOGUE_CKAN = 'https://open.canada.ca/data/api/3/action/package_show?id=98f1a129-f628-4ce4-b24d-6f16bf24dd64';
 
     /**
+     * Noms de marque des sources qui ne sont pas ceux du catalogue.
+     *
+     * Le registre europeen ecrit tantot « VOLKSWAGEN », tantot « VW » — deux
+     * cotes de Polo et trois de T-Roc sont restees orphelines pour cette seule
+     * raison, alors que le modele existait au catalogue.
+     */
+    private const ALIAS_MARQUE = [
+        'vw'                          => 'volkswagen',
+        'volkswagen-nutzfahrzeuge'    => 'volkswagen',
+        'mercedes-amg'                => 'mercedes-benz',
+        'mercedes'                    => 'mercedes-benz',
+        'bmw-i'                       => 'bmw',
+    ];
+
+    /**
+     * Les noms sous lesquels cette marque peut figurer au catalogue.
+     *
+     * Le registre europeen empile parfois les appellations dans un seul champ
+     * — « VOLKSWAGEN, VW » — et le catalogue n'en connait qu'une. On rend donc
+     * chaque variante, a charge a l'appelant de retenir celle qu'il reconnait.
+     *
+     * @return array<int, string>
+     */
+    private static function slugsMarque(string $marque): array
+    {
+        $slugs = [];
+
+        foreach (preg_split('/[,\/]+/', $marque) as $partie) {
+            $slug = Str::slug(trim($partie));
+            if ($slug === '') {
+                continue;
+            }
+            $slugs[] = self::ALIAS_MARQUE[$slug] ?? $slug;
+        }
+
+        return array_values(array_unique($slugs));
+    }
+
+    /**
      * Empreinte d'une ligne de source, insensible aux valeurs nulles.
      *
      * L'unicite ne peut pas reposer sur les colonnes elles-memes : MySQL comme
@@ -263,6 +302,9 @@ class ImportConsommations extends Command
         'mercedes-benz|classe-s' => ['S '],
         'mercedes-benz|classe-v' => ['V-KLASSE', 'CLASSE V'],
         'mercedes-benz|ml-gle'   => ['GLE', 'ML '],
+        'mercedes-benz|gle'      => ['GLE'],
+        'mercedes-benz|glc'      => ['GLC'],
+        'mercedes-benz|gla'      => ['GLA'],
     ];
 
     private const ANNEES_EEA = [
@@ -687,7 +729,12 @@ class ImportConsommations extends Command
             $marques, $modelesParMarque, &$rattachees, &$marquesVues
         ) {
             foreach ($lot as $cote) {
-                $marque = $marques->get(Str::slug($cote->make_raw));
+                $marque = null;
+                foreach (self::slugsMarque($cote->make_raw) as $slug) {
+                    if ($marque = $marques->get($slug)) {
+                        break;
+                    }
+                }
                 if (! $marque) {
                     continue;
                 }
@@ -759,31 +806,38 @@ class ImportConsommations extends Command
 
         foreach ($modeles as $modele) {
             $nom = Str::slug($modele->name);
-            if ($nom === '' || strlen($nom) < $longueur) {
+            if ($nom === '') {
                 continue;
             }
 
-            // « 320D XDRIVE » ne ressemble en rien a « Serie 3 » : seule la
-            // table de correspondance fait le lien. On la consulte dans le
-            // meme sens qu'a la recherche, pour que la cote importee sous un
-            // alias retrouve son modele.
-            $parAlias = false;
+            // Deux facons de reconnaitre un modele, et elles ne se mesurent
+            // pas pareil. Par le nom : « RAV4 AWD » commence par « RAV4 ».
+            // Par la table de correspondance : « 320D XDRIVE » ne ressemble
+            // en rien a « Serie 3 », seul l'alias fait le lien.
+            $score = null;
+
+            if ($cible === $nom || str_starts_with($cible, $nom.'-')) {
+                $score = strlen($nom);
+            }
+
             foreach (self::aliasEea($marque, $modele->name) as $prefixe) {
                 if (str_starts_with($brut, mb_strtoupper($prefixe))) {
-                    $parAlias = true;
-                    break;
+                    // La longueur du prefixe reconnu, pas celle du nom du
+                    // modele : sinon « ML / GLE » l'emportait sur « GLE » par
+                    // la seule longueur de son nom, et les cotes recentes
+                    // allaient a la generation arretee.
+                    $score = max($score ?? 0, strlen($prefixe));
                 }
             }
 
-            if (! $parAlias && $cible !== $nom && ! str_starts_with($cible, $nom.'-')) {
+            if ($score === null || $score < $longueur) {
                 continue;
             }
 
-            // Un nom plus long est plus precis : « RAV4 Prime » l'emporte sur
-            // « RAV4 ». On repart alors de zero.
-            if (strlen($nom) > $longueur) {
+            // Une reconnaissance plus precise l'emporte : on repart de zero.
+            if ($score > $longueur) {
                 $candidats = [];
-                $longueur  = strlen($nom);
+                $longueur  = $score;
             }
             $candidats[] = $modele;
         }
@@ -791,27 +845,32 @@ class ImportConsommations extends Command
         if ($candidats === []) {
             return null;
         }
-        if (count($candidats) === 1) {
-            return $candidats[0]->id;
-        }
 
-        // Plusieurs generations portent ce nom : celle qui etait produite
-        // cette annee-la. Aucune ne convient ? On prefere ne rien affirmer.
+        // La generation produite cette annee-la, et elle seule.
+        //
+        // Ce controle ne s'appliquait qu'a partir de deux candidats : un
+        // modele unique etait accepte sans regarder ses annees. Neuf cotes
+        // europeennes de 2023 se sont ainsi posees sur un « ML / GLE » arrete
+        // en 2018, pendant que le « GLE » de 2018 a aujourd'hui restait vide.
+        $sansBornes = null;
+
         foreach ($candidats as $modele) {
             $debut = $modele->production_start;
             $fin   = $modele->production_end;
 
-            if ($debut !== null && $annee < $debut) {
+            if ($debut === null && $fin === null) {
+                $sansBornes ??= $modele;
+
                 continue;
             }
-            if ($fin !== null && $annee > $fin) {
-                continue;
-            }
-            if ($debut !== null || $fin !== null) {
+            if (($debut === null || $annee >= $debut) && ($fin === null || $annee <= $fin)) {
                 return $modele->id;
             }
         }
 
-        return null;
+        // Un modele dont on ignore les annees reste un repli acceptable : le
+        // catalogue n'en renseigne pas partout. Une generation dont les annees
+        // sont connues et ne conviennent pas, non.
+        return $sansBornes?->id;
     }
 }

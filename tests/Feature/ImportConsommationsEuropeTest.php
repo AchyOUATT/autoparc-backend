@@ -197,6 +197,50 @@ class ImportConsommationsEuropeTest extends TestCase
         );
     }
 
+    public function test_une_cote_recente_ne_se_pose_pas_sur_une_generation_arretee(): void
+    {
+        $mercedes = Brand::create(['name' => 'Mercedes-Benz']);
+        $ancienne = VehicleModel::create([
+            'brand_id' => $mercedes->id, 'name' => 'ML / GLE', 'generation' => 'W166',
+            'production_start' => 2011, 'production_end' => 2018,
+        ]);
+        $actuelle = VehicleModel::create([
+            'brand_id' => $mercedes->id, 'name' => 'GLE', 'generation' => 'W167',
+            'production_start' => 2018, 'production_end' => null,
+        ]);
+
+        Http::fake([
+            'discodata.eea.europa.eu/*' => Http::response($this->reponse([
+                $this->immatriculation('MERCEDES-BENZ', 'GLE 300 D 4MATIC', 8.1, ['cc' => 1993, 'kw' => 200]),
+            ])),
+        ]);
+
+        $this->artisan('catalog:import-consommations', ['--source' => 'eea'])->assertSuccessful();
+
+        // Le controle des annees ne s'appliquait qu'a partir de deux
+        // candidats : un modele unique passait sans verification, et neuf
+        // cotes de 2023 se sont posees sur une generation arretee en 2018.
+        $cote = Motorisation::where('source', 'eea')->first();
+        $this->assertSame($actuelle->id, $cote->vehicle_model_id);
+        $this->assertSame(0, Motorisation::where('vehicle_model_id', $ancienne->id)->count());
+    }
+
+    public function test_une_marque_abregee_par_la_source_est_reconnue(): void
+    {
+        $modele = $this->catalogue('Volkswagen', 'Polo');
+
+        Http::fake([
+            'discodata.eea.europa.eu/*' => Http::response($this->reponse([
+                // Le registre europeen empile les appellations dans un seul champ.
+                $this->immatriculation('VOLKSWAGEN, VW', 'POLO', 5.4, ['cc' => 999, 'kw' => 70, 'Ft' => 'petrol']),
+            ])),
+        ]);
+
+        $this->artisan('catalog:import-consommations', ['--source' => 'eea'])->assertSuccessful();
+
+        $this->assertSame($modele->id, Motorisation::where('model_raw', 'POLO')->value('vehicle_model_id'));
+    }
+
     public function test_un_service_en_panne_ne_fait_pas_echouer_la_commande(): void
     {
         $this->catalogue('Isuzu', 'D-Max');
