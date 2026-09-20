@@ -1,0 +1,9 @@
+Model year,Make,Model,Vehicle class,Engine size (L),Cylinders,Transmission,Fuel type,City (L/100 km),Highway (L/100 km),Combined (L/100 km),Combined (mpg),CO2 emissions (g/km),CO2 rating,Smog rating
+2013,Toyota,Camry,Mid-size,2.5,4,AS6,X,9.5,6.6,8.2,34,190,n/a,n/a
+2013,Toyota,Camry,Mid-size,3.5,6,AS6,X,11.0,7.5,9.4,30,218,n/a,n/a
+2013,Toyota,Camry Hybrid LE,Mid-size,2.5,4,AV,X,5.5,5.9,5.7,50,132,n/a,n/a
+2013,Toyota,RAV4 AWD,Sport utility vehicle: Small,2.5,4,AS6,X,10.4,7.8,9.2,31,213,n/a,n/a
+2013,Toyota,Corolla,Compact,1.8,4,M5,X,8.4,6.3,7.5,38,174,n/a,n/a
+2013,Honda,Civic,Compact,1.8,4,AV,X,7.8,5.8,6.9,41,160,n/a,n/a
+2013,Mitsubishi,Pajero,Sport utility vehicle: Standard,3.8,6,A5,Z,,,,,,n/a,n/a
+Notes: les cotes sont fournies a titre indicatif.
