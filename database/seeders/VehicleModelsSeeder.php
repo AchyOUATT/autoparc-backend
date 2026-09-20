@@ -219,6 +219,81 @@ class VehicleModelsSeeder extends Seeder
             // ─── DAIHATSU ──────────────────────────────────────────────
             ['daihatsu', 'Terios',  'J210', 'suv',       'B', 2006, null],
             ['daihatsu', 'Sirion',  null,   'citadine',  'A', 2005, null],
+
+            // ─── LEXUS ─────────────────────────────────────────────────
+            //
+            // Cinq marques figuraient dans la liste sans le moindre modele :
+            // Lexus, SsangYong, Citroen, Opel et Fiat. Un proprietaire de
+            // Lexus arrivait donc sur une liste vide, sans pouvoir ajouter son
+            // vehicule — alors que 584 cotes de consommation Lexus attendaient
+            // en base, rattachees a rien.
+            //
+            // Les millesimes delimitent les generations, et c'est sur eux que
+            // repose le rattachement des cotes : une cote de 2013 ne doit pas
+            // rejoindre une generation arretee en 2011.
+            ['lexus', 'RX',  'AL30',  'suv',      'E', 2022, null],
+            ['lexus', 'RX',  'AL20',  'suv',      'E', 2015, 2022],
+            ['lexus', 'RX',  'AL10',  'suv',      'E', 2009, 2015],
+            ['lexus', 'RX',  'XU30',  'suv',      'E', 2003, 2009],
+            ['lexus', 'ES',  'XV70',  'berline',  'E', 2018, null],
+            ['lexus', 'ES',  'XV60',  'berline',  'E', 2012, 2018],
+            ['lexus', 'ES',  'XV40',  'berline',  'E', 2006, 2012],
+            ['lexus', 'IS',  'XE30',  'berline',  'D', 2013, null],
+            ['lexus', 'IS',  'XE20',  'berline',  'D', 2005, 2013],
+            ['lexus', 'GS',  'L10',   'berline',  'E', 2012, 2020],
+            ['lexus', 'GS',  'S190',  'berline',  'E', 2005, 2012],
+            ['lexus', 'LS',  'XF50',  'berline',  'F', 2017, null],
+            ['lexus', 'LS',  'XF40',  'berline',  'F', 2006, 2017],
+            ['lexus', 'LX',  'J310',  'suv',      'F', 2021, null],
+            ['lexus', 'LX',  'J200',  'suv',      'F', 2007, 2021],
+            ['lexus', 'GX',  'J250',  'suv',      'E', 2023, null],
+            ['lexus', 'GX',  'J150',  'suv',      'E', 2009, 2023],
+            ['lexus', 'GX',  'J120',  'suv',      'E', 2002, 2009],
+            ['lexus', 'NX',  'AZ20',  'suv',      'C', 2021, null],
+            ['lexus', 'NX',  'AZ10',  'suv',      'C', 2014, 2021],
+            ['lexus', 'UX',  null,    'suv',      'B', 2018, null],
+            ['lexus', 'CT',  null,    'compacte', 'C', 2010, 2022],
+            ['lexus', 'RC',  null,    'coupe',    'D', 2014, null],
+
+            // ─── CITROËN ───────────────────────────────────────────────
+            ['citroen', 'C3',          'III', 'citadine',  'B', 2016, 2024],
+            ['citroen', 'C3',          'II',  'citadine',  'B', 2009, 2016],
+            ['citroen', 'C4',          'III', 'compacte',  'C', 2020, null],
+            ['citroen', 'C4',          'II',  'compacte',  'C', 2010, 2018],
+            ['citroen', 'C4',          'I',   'compacte',  'C', 2004, 2010],
+            ['citroen', 'C-Elysée',    null,  'berline',   'C', 2012, 2023],
+            ['citroen', 'Berlingo',    'K9',  'monospace', 'C', 2018, null],
+            ['citroen', 'Berlingo',    'B9',  'monospace', 'C', 2008, 2018],
+            ['citroen', 'C5 Aircross', null,  'suv',       'D', 2018, null],
+            ['citroen', 'Jumper',      null,  'utilitaire','—', 2006, null],
+
+            // ─── OPEL ──────────────────────────────────────────────────
+            ['opel', 'Corsa',  'F',   'citadine', 'B', 2019, null],
+            ['opel', 'Corsa',  'E',   'citadine', 'B', 2014, 2019],
+            ['opel', 'Corsa',  'D',   'citadine', 'B', 2006, 2014],
+            ['opel', 'Astra',  'K',   'compacte', 'C', 2015, 2021],
+            ['opel', 'Astra',  'J',   'compacte', 'C', 2009, 2015],
+            ['opel', 'Mokka',  'B',   'suv',      'B', 2020, null],
+            ['opel', 'Mokka',  'A',   'suv',      'B', 2012, 2019],
+            ['opel', 'Zafira', 'C',   'monospace','C', 2011, 2019],
+            ['opel', 'Zafira', 'B',   'monospace','C', 2005, 2011],
+
+            // ─── FIAT ──────────────────────────────────────────────────
+            ['fiat', '500',    null,  'citadine',  'A', 2007, null],
+            ['fiat', '500X',   null,  'suv',       'B', 2014, null],
+            ['fiat', 'Panda',  'III', 'citadine',  'A', 2011, null],
+            ['fiat', 'Punto',  null,  'citadine',  'B', 2005, 2018],
+            ['fiat', 'Tipo',   null,  'compacte',  'C', 2015, null],
+            ['fiat', 'Doblo',  'II',  'monospace', 'C', 2010, 2022],
+            ['fiat', 'Ducato', null,  'utilitaire','—', 2006, null],
+
+            // ─── SSANGYONG ─────────────────────────────────────────────
+            ['ssangyong', 'Korando', 'C300', 'suv',     'C', 2019, null],
+            ['ssangyong', 'Korando', 'C200', 'suv',     'C', 2010, 2019],
+            ['ssangyong', 'Rexton',  'Y400', 'suv',     'E', 2017, null],
+            ['ssangyong', 'Rexton',  'Y200', 'suv',     'E', 2001, 2017],
+            ['ssangyong', 'Musso',   null,   'pick-up', 'D', 2018, null],
+            ['ssangyong', 'Actyon',  null,   'pick-up', 'D', 2006, 2012],
         ];
 
         foreach ($models as [$brandSlug, $name, $generation, $bodyType, $segment, $yearStart, $yearEnd]) {
