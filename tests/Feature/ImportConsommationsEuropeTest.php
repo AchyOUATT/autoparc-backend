@@ -241,6 +241,27 @@ class ImportConsommationsEuropeTest extends TestCase
         $this->assertSame($modele->id, Motorisation::where('model_raw', 'POLO')->value('vehicle_model_id'));
     }
 
+    public function test_une_marque_accentuee_est_cherchee_sans_ses_accents(): void
+    {
+        $modele = $this->catalogue('Citroën', 'C3');
+
+        $requetes = [];
+        Http::fake(function ($request) use (&$requetes) {
+            $requetes[] = urldecode($request->url());
+
+            return Http::response($this->reponse([
+                $this->immatriculation('CITROEN', 'C3', 5.5, ['cc' => 1199, 'kw' => 61, 'Ft' => 'petrol']),
+            ]));
+        });
+
+        $this->artisan('catalog:import-consommations', ['--source' => 'eea'])->assertSuccessful();
+
+        // Le registre enregistre « CITROEN ». Pour ce seul trema, six modeles
+        // Citroen sont restes sans cote alors que la donnee etait la.
+        $this->assertStringContainsString("Mk LIKE 'CITROEN%'", $requetes[0]);
+        $this->assertSame($modele->id, Motorisation::where('model_raw', 'C3')->value('vehicle_model_id'));
+    }
+
     public function test_un_service_en_panne_ne_fait_pas_echouer_la_commande(): void
     {
         $this->catalogue('Isuzu', 'D-Max');

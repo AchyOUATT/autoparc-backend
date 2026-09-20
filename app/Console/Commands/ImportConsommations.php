@@ -458,7 +458,13 @@ class ImportConsommations extends Command
 
         for ($n = count($mots); $n >= $minimum; $n--) {
             $candidat = implode(' ', array_slice($mots, 0, $n));
-            if (mb_strlen($candidat) >= 3) {
+
+            // Deux caracteres suffisent : « C3 », « i20 », « RX », « X1 » sont
+            // des noms de modeles entiers. Le seuil etait a trois, et ces
+            // modeles n'etaient jamais interroges — la commande n'envoyait
+            // aucune requete pour eux, sans rien dire. La requete filtre de
+            // toute facon sur la marque, ce qui rend un motif court sur.
+            if (mb_strlen($candidat) >= 2) {
                 $motifs[] = $candidat;
             }
         }
@@ -473,7 +479,13 @@ class ImportConsommations extends Command
 
         // La marque du registre est ecrite de mille facons — « MERCEDES-BENZ »,
         // « MERCEDES-BENZ AG » — d'ou la comparaison sur le premier mot seul.
-        $marqueSql = str_replace("'", "''", mb_strtoupper(preg_split('/[\s-]+/', trim($marque))[0] ?? ''));
+        //
+        // Et sans ses accents : le registre enregistre « CITROEN », pas
+        // « CITROËN ». Pour ce seul trema, la marque entiere ne remontait
+        // rien — six modeles Citroen sont restes sans cote alors que la
+        // donnee etait la.
+        $premierMot = preg_split('/[\s-]+/', trim($marque))[0] ?? '';
+        $marqueSql  = str_replace("'", "''", mb_strtoupper(Str::ascii($premierMot)));
 
         $requete = "SELECT TOP 400 Mk, Cn, Ct, Ft, [Ec (cm3)] AS cc, [Ep (KW)] AS kw, Fc "
             ."FROM [CO2Emission].[latest].[$table] "
