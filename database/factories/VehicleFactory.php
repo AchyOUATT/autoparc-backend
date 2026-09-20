@@ -63,8 +63,7 @@ class VehicleFactory extends Factory
             ])
             : Transmission::Automatic->value;
 
-        $bodyStyle   = $this->bodyStyleFromModel($model);
-        $consumption = $this->consumptionFor($engineType->code, $bodyStyle);
+        $bodyStyle = $this->bodyStyleFromModel($model);
 
         return [
             'reference'              => 'VH-' . strtoupper(Str::random(8)),
@@ -91,7 +90,8 @@ class VehicleFactory extends Factory
             'seats'                  => $this->faker->randomElement([5, 5, 5, 7, 7, 2]),
             'doors'                  => $this->faker->randomElement([4, 4, 5, 2]),
             'engine_code'            => null,
-            ...$consumption,
+            // Aucune consommation par defaut : voir avecConsommationEstimee().
+            ...$this->sansConsommation(),
             'body_style'             => $bodyStyle,
             'condition'              => $condition,
             'status'                 => VehicleStatus::InStock->value,
@@ -149,13 +149,54 @@ class VehicleFactory extends Factory
     // ── Consommation ──────────────────────────────────────────────────────
 
     /**
+     * Aucune consommation : c'est le defaut depuis l'import des cotes
+     * officielles.
+     *
+     * La factory fabriquait des consommations « plausibles » a partir du
+     * gabarit. Elles ne l'etaient que trop : les 80 fiches du catalogue en
+     * portaient une, aucune n'avait de cylindree pour la justifier, et rien
+     * dans l'application ne les distinguait d'une cote d'homologation. A cote
+     * des 29 000 cotes canadiennes, ces chiffres inventes seraient devenus des
+     * contre-verites affichees.
+     */
+    private function sansConsommation(): array
+    {
+        return [
+            'consumption_urban'        => null,
+            'consumption_extra_urban'  => null,
+            'consumption_combined'     => null,
+            'electric_consumption_kwh' => null,
+            'battery_capacity_kwh'     => null,
+            'electric_range_km'        => null,
+            'co2_g_km'                 => null,
+            'fuel_tank_liters'         => null,
+        ];
+    }
+
+    /**
+     * Retablit des consommations estimees, pour les tests qui en ont besoin.
+     *
+     * Le filtre « consommation maximale » de la recherche, par exemple, ne se
+     * teste pas sur un catalogue ou la colonne est vide. L'etat est explicite :
+     * on sait alors qu'on manipule une estimation, pas une cote.
+     */
+    public function avecConsommationEstimee(): static
+    {
+        return $this->state(function (array $attributs) {
+            $code = EngineType::find($attributs['engine_type_id'] ?? null)?->code ?? 'petrol';
+
+            return $this->consumptionFor($code, $attributs['body_style'] ?? null);
+        });
+    }
+
+    /**
      * Consommations plausibles, derivees du carburant et du gabarit.
      *
      * Ces valeurs sont des ordres de grandeur du marche, pas des chiffres
      * d'homologation : un SUV essence boit plus qu'une citadine, un diesel
      * environ 15 % de moins qu'un essence de gabarit equivalent, un hybride
-     * environ 30 % de moins. Objectif : des donnees de demonstration
-     * credibles, coherentes entre elles.
+     * environ 30 % de moins. Elles ne servent qu'a la demonstration et aux
+     * tests, jamais au catalogue reel.
      */
     private function consumptionFor(string $engineCode, ?string $bodyStyle): array
     {
