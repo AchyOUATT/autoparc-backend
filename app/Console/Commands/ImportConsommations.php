@@ -30,19 +30,46 @@ use Illuminate\Support\Str;
 class ImportConsommations extends Command
 {
     protected $signature = 'catalog:import-consommations
+                            {--source=nrcan : nrcan (Canada) ou eea (Europe)}
                             {--fichier=* : Fichier CSV local, au lieu du telechargement}
+                            {--modele=* : Limiter la source europeenne a ces modeles}
                             {--dry-run : Analyser sans rien ecrire}
                             {--relier-seulement : Ne pas importer, seulement rattacher au catalogue}';
 
-    protected $description = 'Importe les cotes de consommation officielles (Ressources naturelles Canada)';
+    protected $description = 'Importe les cotes de consommation officielles (Canada, Europe)';
 
     /** Jeu de donnees « Cotes de consommation de carburant » sur open.canada.ca. */
     private const CATALOGUE_CKAN = 'https://open.canada.ca/data/api/3/action/package_show?id=98f1a129-f628-4ce4-b24d-6f16bf24dd64';
+
+    /**
+     * Empreinte d'une ligne de source, insensible aux valeurs nulles.
+     *
+     * L'unicite ne peut pas reposer sur les colonnes elles-memes : MySQL comme
+     * PostgreSQL considerent deux NULL comme distincts, et une cylindree
+     * inconnue aurait suffi a faire passer deux fois la meme ligne.
+     */
+    public static function empreinte(array $ligne): string
+    {
+        return md5(implode('|', [
+            $ligne['source'],
+            $ligne['model_year'],
+            mb_strtolower(trim((string) $ligne['make_raw'])),
+            mb_strtolower(trim((string) $ligne['model_raw'])),
+            $ligne['engine_l'] ?? '',
+            $ligne['cylinders'] ?? '',
+            $ligne['transmission_code'] ?? '',
+            $ligne['fuel_code'] ?? '',
+        ]));
+    }
 
     public function handle(): int
     {
         if ($this->option('relier-seulement')) {
             return $this->relier();
+        }
+
+        if ($this->option('source') === 'eea') {
+            return $this->importerEurope();
         }
 
         $sources = $this->option('fichier')
@@ -67,14 +94,7 @@ class ImportConsommations extends Command
                 continue;
             }
 
-            foreach (array_chunk($lignes, 500) as $paquet) {
-                Motorisation::upsert(
-                    $paquet,
-                    ['source', 'model_year', 'make_raw', 'model_raw', 'engine_l', 'cylinders', 'transmission_code', 'fuel_code'],
-                    ['vehicle_class', 'consumption_city', 'consumption_highway', 'consumption_combined', 'co2_g_km', 'cycle'],
-                );
-            }
-            $this->line(sprintf('  %d lignes enregistrees', count($lignes)));
+            $this->line(sprintf('  %d lignes enregistrees', $this->enregistrer($lignes)));
         }
 
         $this->newLine();
@@ -88,6 +108,36 @@ class ImportConsommations extends Command
         }
 
         return $this->relier();
+    }
+
+    /**
+     * Ecrit les lignes, en les reconnaissant a leur empreinte.
+     *
+     * @param  array<int, array<string, mixed>>  $lignes
+     */
+    private function enregistrer(array $lignes): int
+    {
+        // Une meme ligne peut figurer deux fois dans un fichier : 40 doublons
+        // dans les editions canadiennes. On tranche ici plutot que de laisser
+        // la base arbitrer, pour que le nombre annonce soit celui ecrit.
+        $uniques = [];
+        foreach ($lignes as $ligne) {
+            $uniques[$ligne['cle_source']] = $ligne;
+        }
+        $lignes = array_values($uniques);
+
+        foreach (array_chunk($lignes, 500) as $paquet) {
+            Motorisation::upsert(
+                $paquet,
+                ['cle_source'],
+                [
+                    'vehicle_class', 'consumption_city', 'consumption_highway',
+                    'consumption_combined', 'co2_g_km', 'cycle',
+                ],
+            );
+        }
+
+        return count($lignes);
     }
 
     // ── Sources ──────────────────────────────────────────────────────
@@ -167,6 +217,286 @@ class ImportConsommations extends Command
         return $sources;
     }
 
+    // ── Source europeenne ────────────────────────────────────────────
+
+    /**
+     * Service SQL de l'Agence europeenne pour l'environnement.
+     *
+     * Le registre CO2 europeen couvre ce que le Canada ignore : les
+     * utilitaires legers de categorie N1, c'est-a-dire les pick-up. Hilux,
+     * Ranger, D-Max, Navara, L200, Land Cruiser — l'ossature du parc
+     * burkinabe, absente du marche nord-americain.
+     *
+     * La piste australienne, qui vend exactement ces vehicules, a ete
+     * abandonnee : le Green Vehicle Guide ne publie aucun fichier libre et
+     * renvoie vers un service tiers sur demande.
+     */
+    private const SQL_EEA = 'https://discodata.eea.europa.eu/sql';
+
+    /**
+     * Tables annuelles disponibles : co2cars_<annee>Pv<n>, ou n suit l'annee
+     * de deux en deux. Seules les annees recentes sont publiees.
+     */
+    private const ANNEES_EEA = [
+        2021 => 'co2cars_2021Pv23',
+        2022 => 'co2cars_2022Pv25',
+        2023 => 'co2cars_2023Pv27',
+        2024 => 'co2cars_2024Pv29',
+        2025 => 'co2cars_2025Pv31',
+    ];
+
+    private function importerEurope(): int
+    {
+        $modeles = $this->modelesSansCote();
+
+        // L'option ne pose pas une requete libre : elle filtre la liste des
+        // modeles du catalogue, pour que la marque accompagne toujours le nom.
+        if ($filtres = $this->option('modele')) {
+            $modeles = array_values(array_filter($modeles, function ($m) use ($filtres) {
+                foreach ($filtres as $filtre) {
+                    if (str_contains(Str::slug($m['modele']), Str::slug($filtre))) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }));
+        }
+
+        if ($modeles === []) {
+            $this->info('Aucun modele a chercher : le catalogue est deja couvert.');
+
+            return self::SUCCESS;
+        }
+
+        $this->line(sprintf('%d modeles a chercher en Europe.', count($modeles)));
+
+        $trouves = 0;
+        $ecrites = 0;
+
+        foreach ($modeles as $modele) {
+            $lignes = $this->chercherEnEurope($modele['marque'], $modele['modele']);
+            $etiquette = $modele['marque'].' '.$modele['modele'];
+
+            if ($lignes === []) {
+                $this->line(sprintf('  %-28s —', $etiquette));
+
+                continue;
+            }
+
+            $trouves++;
+            $consos = array_column($lignes, 'consumption_combined');
+            $this->line(sprintf(
+                '  %-28s %d motorisations, %.1f a %.1f l/100',
+                $etiquette, count($lignes), min($consos), max($consos)
+            ));
+
+            if (! $this->option('dry-run')) {
+                $ecrites += $this->enregistrer($lignes);
+            }
+        }
+
+        $this->newLine();
+        $this->line(sprintf(
+            '%d modeles sur %d trouves en Europe, %d motorisations enregistrees.',
+            $trouves, count($modeles), $ecrites
+        ));
+
+        if ($this->option('dry-run')) {
+            return self::SUCCESS;
+        }
+
+        return $this->relier();
+    }
+
+    /**
+     * Les modeles du catalogue qu'aucune cote ne couvre encore, avec leur
+     * marque — sans elle, « Ranger » ramenerait aussi bien un Ford qu'un Range
+     * Rover.
+     *
+     * @return array<int, array{marque: string, modele: string}>
+     */
+    private function modelesSansCote(): array
+    {
+        $couverts = VehicleModel::query()
+            ->whereIn('id', Motorisation::query()->whereNotNull('vehicle_model_id')->distinct()->pluck('vehicle_model_id'))
+            ->pluck('name')
+            ->map(fn ($n) => Str::slug($n))
+            ->unique();
+
+        return VehicleModel::query()
+            ->with('brand')
+            ->get(['id', 'brand_id', 'name'])
+            ->reject(fn (VehicleModel $m) => $couverts->contains(Str::slug($m->name)))
+            ->map(fn (VehicleModel $m) => ['marque' => $m->brand?->name ?? '', 'modele' => $m->name])
+            ->unique(fn (array $m) => Str::slug($m['marque'].'-'.$m['modele']))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Interroge le registre europeen pour un modele.
+     *
+     * Le service limite ce qu'il accepte — pas d'agregat, pas de table
+     * systeme — donc on ramene les lignes brutes et on regroupe ici. Une
+     * immatriculation par vehicule vendu : des milliers de lignes pour une
+     * poignee de motorisations reelles.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function chercherEnEurope(string $marque, string $modele): array
+    {
+        foreach ($this->motifs($modele) as $motif) {
+            foreach (array_reverse(self::ANNEES_EEA, true) as $annee => $table) {
+                $lignes = $this->interrogerEea($table, $marque, $motif, $annee);
+
+                if ($lignes !== []) {
+                    return $lignes;
+                }
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Motifs de recherche, du plus precis au plus large.
+     *
+     * « Land Cruiser Prado » ne se vend pas sous ce nom en Europe, ou il n'est
+     * que « Land Cruiser » : on retente donc en retirant le dernier mot.
+     *
+     * Mais jamais jusqu'au mot unique quand le nom en compte plusieurs.
+     * « Classe C » raccourci en « Classe » ramenait les Classe A, B et E, et
+     * un essai sur « Toyota Hilux » reduit a « Toyota » a rendu une fourchette
+     * de 3,8 a 5,0 l/100 : des hybrides, prises pour un pick-up diesel. Une
+     * recherche trop large ne rend pas moins de resultats, elle en rend de
+     * faux.
+     */
+    private function motifs(string $modele): array
+    {
+        $mots    = preg_split('/\s+/', trim($modele));
+        $minimum = count($mots) > 1 ? 2 : 1;
+        $motifs  = [];
+
+        for ($n = count($mots); $n >= $minimum; $n--) {
+            $candidat = implode(' ', array_slice($mots, 0, $n));
+            if (mb_strlen($candidat) >= 3) {
+                $motifs[] = $candidat;
+            }
+        }
+
+        return $motifs;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function interrogerEea(string $table, string $marque, string $motif, int $annee): array
+    {
+        $motifSql = str_replace("'", "''", mb_strtoupper($motif));
+
+        // La marque du registre est ecrite de mille facons — « MERCEDES-BENZ »,
+        // « MERCEDES-BENZ AG » — d'ou la comparaison sur le premier mot seul.
+        $marqueSql = str_replace("'", "''", mb_strtoupper(preg_split('/[\s-]+/', trim($marque))[0] ?? ''));
+
+        $requete = "SELECT TOP 400 Mk, Cn, Ct, Ft, [Ec (cm3)] AS cc, [Ep (KW)] AS kw, Fc "
+            ."FROM [CO2Emission].[latest].[$table] "
+            ."WHERE Mk LIKE '$marqueSql%' AND Cn LIKE '$motifSql%' AND Fc IS NOT NULL AND Fc > 0";
+
+        // Soixante-trois modeles, soixante-trois requetes : un service
+        // injoignable ne doit pas emporter l'import entier. On signale et on
+        // passe au suivant.
+        try {
+            // Un import complet lance plusieurs centaines de requetes : la
+            // resolution DNS lache par moments, et un echec isole laissait un
+            // modele sans cote alors que la donnee existait. Trois essais
+            // espaces, et une pause entre chaque appel pour ne pas marteler
+            // un service public.
+            $reponse = Http::timeout(120)
+                ->retry(3, 800, throw: false)
+                ->get(self::SQL_EEA, ['query' => $requete]);
+
+            usleep(150_000);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            $this->warn('  service europeen injoignable : '.Str::limit($e->getMessage(), 90));
+
+            return [];
+        }
+
+        if (! $reponse->successful() || $reponse->json('errors') !== null) {
+            return [];
+        }
+
+        $groupes  = [];
+        $exemples = [];
+        foreach ($reponse->json('results') ?? [] as $r) {
+            // Une motorisation, c'est une marque, un nom, un carburant, une
+            // cylindree et une puissance. Le reste — pays, version, poids —
+            // ne change pas la consommation homologuee.
+            $cle = implode('|', [$r['Mk'] ?? '', $r['Cn'] ?? '', $r['Ft'] ?? '', $r['cc'] ?? '', $r['kw'] ?? '']);
+            $groupes[$cle][] = (float) $r['Fc'];
+            $exemples[$cle]  = $r;
+        }
+
+        $maintenant = now();
+        $lignes     = [];
+
+        foreach ($groupes as $cle => $consos) {
+            $r = $exemples[$cle];
+
+            // Mediane plutot que moyenne : quelques immatriculations portent
+            // des valeurs aberrantes, et une seule suffirait a tirer une
+            // moyenne.
+            sort($consos);
+            $mediane = $consos[intdiv(count($consos), 2)];
+
+            $ligne = [
+                'source'               => 'eea',
+                'cycle'                => 'wltp',
+                'model_year'           => $annee,
+                'make_raw'             => trim((string) $r['Mk']),
+                'model_raw'            => trim((string) $r['Cn']),
+                'vehicle_class'        => $r['Ct'] ?? null,       // M1 : voiture, N1 : utilitaire
+                'engine_l'             => $r['cc'] ? round(((int) $r['cc']) / 1000, 1) : null,
+                'cylinders'            => null,                    // absent du registre europeen
+                'transmission_code'    => null,
+                'fuel_code'            => $this->carburantEea($r['Ft'] ?? null),
+                'consumption_city'     => null,                    // le registre ne donne que le mixte
+                'consumption_highway'  => null,
+                'consumption_combined' => round($mediane, 1),
+                'co2_g_km'             => null,
+                'created_at'           => $maintenant,
+                'updated_at'           => $maintenant,
+            ];
+            $ligne['cle_source'] = self::empreinte($ligne);
+            $lignes[] = $ligne;
+        }
+
+        return $lignes;
+    }
+
+    /** Le vocabulaire europeen ramene aux codes deja utilises. */
+    private function carburantEea(?string $ft): ?string
+    {
+        $f = mb_strtolower(trim((string) $ft));
+
+        // Les hybrides rechargeables gardent un code a part : leur cote
+        // officielle, ponderee sur un parcours qui commence batterie pleine,
+        // tombe sous 1 l/100. Affichee comme une consommation d'essence, elle
+        // ferait passer une Classe C pour une voiture qui ne boit rien.
+        $hybride = str_contains($f, 'electric') && (str_contains($f, 'petrol') || str_contains($f, 'diesel'));
+
+        return match (true) {
+            $f === ''                  => null,
+            $hybride                   => 'H',
+            str_contains($f, 'diesel') => 'D',
+            str_contains($f, 'petrol') => 'X',
+            str_contains($f, 'lpg')    => 'L',
+            str_contains($f, 'e85')    => 'E',
+            str_contains($f, 'ng')     => 'N',
+            str_contains($f, 'electric') => 'B',
+            default                    => null,
+        };
+    }
+
     // ── Analyse ──────────────────────────────────────────────────────
 
     /**
@@ -233,7 +563,7 @@ class ImportConsommations extends Command
             }
 
             $total['retenues']++;
-            $lignes[] = [
+            $ligne = [
                 'source'               => 'nrcan',
                 'cycle'                => '5-cycle',
                 'model_year'           => (int) $annee,
@@ -251,6 +581,8 @@ class ImportConsommations extends Command
                 'created_at'           => $maintenant,
                 'updated_at'           => $maintenant,
             ];
+            $ligne['cle_source'] = self::empreinte($ligne);
+            $lignes[] = $ligne;
         }
 
         fclose($flux);

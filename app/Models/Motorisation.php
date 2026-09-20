@@ -99,7 +99,11 @@ class Motorisation extends Model
             'D'     => 'Diesel',
             'E'     => 'Ethanol (E85)',
             'N'     => 'Gaz naturel',
+            'L'     => 'GPL',
             'B'     => 'Electrique',
+            // Sa cote officielle demarre batterie pleine : elle ne dit rien
+            // de ce que la voiture boit une fois la batterie vide.
+            'H'     => 'Hybride rechargeable',
             default => null,
         };
     }
