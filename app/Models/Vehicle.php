@@ -18,6 +18,17 @@ class Vehicle extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /**
+     * Fourchette de consommation officielle, posee par le controleur.
+     *
+     * Elle coute une requete par vehicule : on ne la calcule donc que sur la
+     * fiche detaillee, jamais sur une liste de quatre-vingts annonces.
+     * Nulle ailleurs, et la ressource ne l'expose pas.
+     *
+     * @var array<string, mixed>|null
+     */
+    public ?array $cotesOfficielles = null;
+
     protected $fillable = [
         'reference', 'vin', 'registration_status', 'vehicle_type', 'body_style',
         'brand_id', 'vehicle_model_id', 'trim_id', 'engine_type_id', 'drivetrain_id', 'color_id',

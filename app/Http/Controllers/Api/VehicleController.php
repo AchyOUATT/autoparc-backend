@@ -203,7 +203,13 @@ class VehicleController extends Controller
 
     public function show(Vehicle $vehicle): VehicleResource
     {
-        return new VehicleResource($this->loadRelations($vehicle));
+        $vehicle = $this->loadRelations($vehicle);
+
+        // Seulement ici : une requete par vehicule, que la liste ne peut pas
+        // se permettre.
+        $vehicle->cotesOfficielles = \App\Support\CotesOfficielles::pourVehicule($vehicle);
+
+        return new VehicleResource($vehicle);
     }
 
     public function update(UpdateVehicleRequest $request, Vehicle $vehicle): VehicleResource

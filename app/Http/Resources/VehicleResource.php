@@ -67,6 +67,13 @@ class VehicleResource extends JsonResource
                 'electric_range_km'   => $this->electric_range_km,
                 'co2_g_km'            => $this->co2_g_km,
                 'fuel_tank_liters'    => $this->fuel_tank_liters,
+
+                // Fourchette officielle du modele, sur la fiche detaillee
+                // uniquement. Une annonce connait son modele et son
+                // millesime, rarement sa motorisation : annoncer une valeur
+                // unique reviendrait a choisir un moteur au hasard pour le
+                // compte de l'acheteur.
+                'official'            => $this->resource->cotesOfficielles,
             ],
 
             'commercial' => [

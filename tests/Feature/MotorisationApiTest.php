@@ -34,7 +34,12 @@ class MotorisationApiTest extends TestCase
     {
         parent::setUp();
 
-        $toyota = Brand::create(['name' => 'Toyota']);
+        // La factory de vehicule pioche un type de moteur, une couleur et une
+        // motricite dans les donnees de reference : sans elles, elle ne peut
+        // rien construire.
+        $this->seed([\Database\Seeders\ReferenceDataSeeder::class]);
+
+        $toyota = Brand::firstOrCreate(['slug' => 'toyota'], ['name' => 'Toyota']);
         $this->camry = VehicleModel::create([
             'brand_id' => $toyota->id, 'name' => 'Camry', 'generation' => 'XV50',
             'production_start' => 2011, 'production_end' => 2017,
@@ -106,6 +111,59 @@ class MotorisationApiTest extends TestCase
     {
         $this->getJson('/api/catalog/motorisations?vehicle_model_id=99999')
             ->assertStatus(422);
+    }
+
+    // ── Fiche d'une annonce ──────────────────────────────────────────
+
+    public function test_la_fiche_d_une_annonce_annonce_une_fourchette(): void
+    {
+        $this->cote();
+        $this->cote(['engine_l' => 3.5, 'consumption_combined' => 9.4, 'cle_source' => 'v6']);
+
+        $annonce = \App\Models\Vehicle::factory()->create([
+            'brand_id'           => $this->camry->brand_id,
+            'vehicle_model_id'   => $this->camry->id,
+            'manufacturing_year' => 2013,
+        ]);
+
+        // Une annonce connait son modele, rarement sa motorisation : annoncer
+        // 8,2 seul reviendrait a choisir un moteur pour l'acheteur.
+        $this->getJson('/api/catalog/vehicles/'.$annonce->id)
+            ->assertOk()
+            ->assertJsonPath('data.consumption.official.min', 8.2)
+            ->assertJsonPath('data.consumption.official.max', 9.4)
+            ->assertJsonPath('data.consumption.official.motorisations', 2)
+            ->assertJsonPath('data.consumption.official.source', 'Ressources naturelles Canada');
+    }
+
+    public function test_la_liste_des_annonces_ne_paie_pas_ce_calcul(): void
+    {
+        $this->cote();
+        \App\Models\Vehicle::factory()->create([
+            'brand_id'         => $this->camry->brand_id,
+            'vehicle_model_id' => $this->camry->id,
+        ]);
+
+        // Une requete par annonce sur une liste de quatre-vingts fiches : la
+        // fourchette reste reservee a la fiche detaillee.
+        $this->getJson('/api/catalog/vehicles')
+            ->assertOk()
+            ->assertJsonPath('data.0.consumption.official', null);
+    }
+
+    public function test_un_modele_sans_cote_ne_promet_rien(): void
+    {
+        $fortuner = VehicleModel::create([
+            'brand_id' => $this->camry->brand_id, 'name' => 'Fortuner',
+        ]);
+        $annonce = \App\Models\Vehicle::factory()->create([
+            'brand_id'         => $this->camry->brand_id,
+            'vehicle_model_id' => $fortuner->id,
+        ]);
+
+        $this->getJson('/api/catalog/vehicles/'.$annonce->id)
+            ->assertOk()
+            ->assertJsonPath('data.consumption.official', null);
     }
 
     // ── Garage ───────────────────────────────────────────────────────
