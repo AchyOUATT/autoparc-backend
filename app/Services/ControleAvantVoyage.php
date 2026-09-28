@@ -84,10 +84,6 @@ class ControleAvantVoyage
                 continue;
             }
 
-            if ($preRemplissage !== null && $preRemplissage['reason'] !== null) {
-                $raisons[] = $preRemplissage['reason'];
-            }
-
             $retenus[] = [
                 'gabarit' => $gabarit,
                 'raisons' => $raisons,
@@ -108,6 +104,10 @@ class ControleAvantVoyage
             // Les raisons ne sont pas decoratives : elles sont ce qui distingue
             // une liste composee d'une liste generique, et ce qui donne envie
             // d'ouvrir le capot plutot que de cocher.
+            //
+            // La raison du pre-remplissage n'y figure pas : elle sort dans
+            // prefill_reason, et l'ecran affichait sinon deux fois « Expirée
+            // depuis 12 jours » sur la meme carte.
             'reasons'        => array_values($ligne['raisons']),
 
             'prefill_status' => $ligne['prefill']['status'] ?? null,
@@ -333,7 +333,11 @@ class ControleAvantVoyage
         if ($joursRestants <= self::ECHEANCE_PROCHE_JOURS) {
             return [
                 'status' => 'watch',
-                'reason' => $joursRestants === 0 ? "Expire aujourd'hui" : "Expire dans {$joursRestants} jours",
+                'reason' => match ($joursRestants) {
+                    0       => "Expire aujourd'hui",
+                    1       => 'Expire demain',
+                    default => "Expire dans {$joursRestants} jours",
+                },
             ];
         }
 

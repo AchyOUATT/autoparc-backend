@@ -50,6 +50,14 @@ return new class extends Migration
             $table->unsignedInteger('min_mileage_km')->nullable();
             $table->unsignedTinyInteger('min_age_years')->nullable();
             $table->json('engine_codes')->nullable();  // ['diesel'] — engine_types.code
+
+            // L'inverse d'engine_codes, et pas son complement : un point n'est
+            // ecarte que si l'on SAIT que la motorisation ne le concerne pas.
+            // « Courroie d'accessoires » n'a aucun sens sur une electrique, mais
+            // exiger engine_codes = [petrol, diesel, hybrid] la retirerait aussi
+            // a tous les vehicules dont le proprietaire n'a pas saisi son moteur
+            // — le cas le plus courant.
+            $table->json('excluded_engine_codes')->nullable();
             $table->json('body_types')->nullable();    // ['pick-up'] — vehicle_models.body_type
             // Mois calendaires, de 1 a 12 : la poussiere de l'harmattan et la
             // saison des pluies n'usent pas les memes pieces.

@@ -30,7 +30,7 @@ class VehicleCheckItem extends Model
     protected $fillable = [
         'code', 'category', 'title', 'help', 'severity', 'is_core',
         'min_trip_distance_km', 'min_mileage_km', 'min_age_years',
-        'engine_codes', 'body_types', 'months', 'trigger_label',
+        'engine_codes', 'excluded_engine_codes', 'body_types', 'months', 'trigger_label',
         'prefill_source', 'part_category_slug', 'position', 'is_active',
     ];
 
@@ -42,7 +42,8 @@ class VehicleCheckItem extends Model
             'min_trip_distance_km' => 'integer',
             'min_mileage_km'       => 'integer',
             'min_age_years'        => 'integer',
-            'engine_codes'         => 'array',
+            'engine_codes'          => 'array',
+            'excluded_engine_codes' => 'array',
             'body_types'           => 'array',
             'months'               => 'array',
             'position'             => 'integer',
@@ -107,6 +108,18 @@ class VehicleCheckItem extends Model
             $raisons[] = $vehicule->libelleMotorisation() ?? ucfirst($code);
         }
 
+        // L'exclusion ne joue que sur une motorisation CONNUE, et ne produit
+        // aucune raison : elle ne dit pas pourquoi le point est la, elle dit
+        // pourquoi il n'y est pas. Une courroie d'accessoires demandee sur une
+        // electrique decredibilise toute la liste ; la retirer a un vehicule dont
+        // le moteur n'est pas saisi priverait la plupart des vehicules du point.
+        if (! empty($this->excluded_engine_codes)) {
+            $code = $vehicule->codeMotorisation();
+            if ($code !== null && in_array($code, $this->excluded_engine_codes, true)) {
+                return null;
+            }
+        }
+
         if (! empty($this->body_types)) {
             $carrosserie = $vehicule->carrosserie();
             if ($carrosserie === null || ! in_array($carrosserie, $this->body_types, true)) {
@@ -138,6 +151,7 @@ class VehicleCheckItem extends Model
             && $this->min_mileage_km === null
             && $this->min_age_years === null
             && empty($this->engine_codes)
+            && empty($this->excluded_engine_codes)
             && empty($this->body_types)
             && empty($this->months);
     }

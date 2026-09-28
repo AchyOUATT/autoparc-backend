@@ -189,6 +189,67 @@ class ControleAvantVoyageTest extends TestCase
         $this->assertContains('120 000 km au compteur', $point['reasons']);
     }
 
+    public function test_une_electrique_ne_se_fait_pas_demander_une_courroie(): void
+    {
+        // Demander de verifier une courroie d'accessoires sur une electrique — et
+        // bloquer le depart dessus — decredibilise la liste entiere : celui qui
+        // lit ca cesse de croire aux autres points.
+        $electrique = $this->vehicule([
+            'engine_type_id' => \App\Models\EngineType::firstOrCreate(
+                ['code' => 'electric'],
+                ['label' => 'Électrique', 'uses_fuel' => false, 'uses_battery' => true],
+            )->id,
+            'mileage_km' => 190_000, 'manufacturing_year' => 2014,
+        ]);
+
+        $codes = $this->codes($this->liste($electrique, 400, CarbonImmutable::parse('2027-01-15')));
+
+        foreach (['moteur-courroie', 'moteur-distribution', 'moteur-filtre-air', 'moteur-refroidissement'] as $thermique) {
+            $this->assertNotContains($thermique, $codes, "« {$thermique} » n'existe pas sur une electrique.");
+        }
+
+        // Ce qui reste vrai pour elle ne doit pas disparaitre au passage.
+        $this->assertContains('pneus-etat', $codes);
+        $this->assertContains('moteur-batterie', $codes, 'Une electrique a aussi une batterie 12 V.');
+    }
+
+    public function test_un_point_thermique_reste_pose_quand_le_moteur_n_est_pas_saisi(): void
+    {
+        // L'exclusion ne joue que sur une motorisation connue. La plupart des
+        // proprietaires ne saisissent pas leur type de moteur : traiter
+        // « inconnu » comme « electrique » priverait presque tout le parc du
+        // point sur la courroie.
+        $sansMoteur = $this->vehicule(['mileage_km' => 190_000]);
+
+        $this->assertContains('moteur-courroie', $this->codes($this->liste($sansMoteur, 400)));
+    }
+
+    public function test_une_echeance_de_demain_se_dit_au_singulier(): void
+    {
+        $vehicule = $this->vehicule([
+            'insurance_expiry' => CarbonImmutable::parse('2026-09-29')->toDateString(),
+        ]);
+
+        $point = $this->point(
+            $this->liste($vehicule, null, CarbonImmutable::parse('2026-09-28')),
+            'papiers-assurance',
+        );
+
+        $this->assertSame('Expire demain', $point['prefill_reason']);
+    }
+
+    public function test_la_raison_du_pre_remplissage_ne_se_dit_qu_une_fois(): void
+    {
+        // Elle sortait a la fois dans reasons et dans prefill_reason, et l'ecran
+        // affichait donc « Expirée depuis 12 jours » deux fois sur la meme carte.
+        $vehicule = $this->vehicule(['insurance_expiry' => now()->subDays(12)->toDateString()]);
+
+        $point = $this->point($this->liste($vehicule), 'papiers-assurance');
+
+        $this->assertSame('Expirée depuis 12 jours', $point['prefill_reason']);
+        $this->assertNotContains('Expirée depuis 12 jours', $point['reasons']);
+    }
+
     public function test_un_point_saisonnier_suit_le_mois(): void
     {
         $vehicule = $this->vehicule();

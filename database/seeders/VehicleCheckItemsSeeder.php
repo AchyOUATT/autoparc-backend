@@ -42,6 +42,7 @@ class VehicleCheckItemsSeeder extends Seeder
         'min_mileage_km' => null,
         'min_age_years' => null,
         'engine_codes' => null,
+        'excluded_engine_codes' => null,
         'body_types' => null,
         'months' => null,
         'trigger_label' => null,
@@ -58,7 +59,7 @@ class VehicleCheckItemsSeeder extends Seeder
         foreach ($this->points() as $point) {
             $ligne = array_merge(self::NEUTRE, $point);
 
-            foreach (['engine_codes', 'body_types', 'months'] as $json) {
+            foreach (['engine_codes', 'excluded_engine_codes', 'body_types', 'months'] as $json) {
                 if ($ligne[$json] !== null) {
                     $ligne[$json] = json_encode($ligne[$json]);
                 }
@@ -67,6 +68,9 @@ class VehicleCheckItemsSeeder extends Seeder
             $lignes[] = $ligne + ['created_at' => now(), 'updated_at' => now()];
         }
 
+        // Les colonnes mises a jour se deduisent de NEUTRE : une condition
+        // ajoutee au schema sans etre ajoutee a NEUTRE ne serait ni remise a
+        // zero ni mise a jour au rejeu du seeder.
         DB::table('vehicle_check_items')->upsert(
             $lignes,
             ['code'],
@@ -176,6 +180,10 @@ class VehicleCheckItemsSeeder extends Seeder
                 'title' => "État de la courroie d'accessoires",
                 'help' => "Craquelures, effilochage, jeu au doigt. Cette courroie entraîne l'alternateur et souvent la pompe à eau : si elle casse en route, tu t'arrêtes là où elle a cassé.",
                 'severity' => 'blocking', 'is_core' => false, 'min_mileage_km' => 60000,
+                // Une electrique n'a pas de courroie d'accessoires : demander de
+                // la verifier, et bloquer le depart dessus, decredibilise la
+                // liste entiere.
+                'excluded_engine_codes' => ['electric'],
             ],
             [
                 'code' => 'moteur-distribution', 'category' => 'moteur', 'position' => 610,
@@ -183,6 +191,7 @@ class VehicleCheckItemsSeeder extends Seeder
                 'help' => "Si personne ne sait quand elle a été changée, un long trajet n'est pas le moment de le découvrir : sa rupture casse le moteur, pas seulement la courroie.",
                 'severity' => 'watch', 'is_core' => false,
                 'min_age_years' => 10, 'min_trip_distance_km' => 200,
+                'excluded_engine_codes' => ['electric'],
                 'part_category_slug' => 'kit-distribution',
             ],
             [
@@ -195,6 +204,7 @@ class VehicleCheckItemsSeeder extends Seeder
                 // point apparaitrait sans aucune raison affichee — exactement ce
                 // qu'on cherche a eviter.
                 'trigger_label' => 'Saison sèche',
+                'excluded_engine_codes' => ['electric'],
                 'part_category_slug' => 'filtre-air',
             ],
             [
@@ -218,6 +228,10 @@ class VehicleCheckItemsSeeder extends Seeder
                 'help' => "Le ventilateur doit se déclencher moteur chaud. Durites souples sans craquelure, colliers serrés : c'est la panne la plus fréquente sur une longue nationale en pleine chaleur.",
                 'severity' => 'watch', 'is_core' => false,
                 'min_trip_distance_km' => 200, 'min_mileage_km' => 100000,
+                // L'aide parle de ventilateur declenche moteur chaud : le geste
+                // decrit n'est pas celui d'une electrique, meme si elle a bien un
+                // circuit de refroidissement.
+                'excluded_engine_codes' => ['electric'],
                 'part_category_slug' => 'refroidissement',
             ],
 
