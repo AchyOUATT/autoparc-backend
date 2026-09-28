@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\OemNumber;
 use App\Models\OwnedVehicle;
 use App\Models\Part;
+use App\Models\PartCategory;
 use App\Models\Vehicle;
 use App\Models\VehicleModel;
 use Illuminate\Database\Eloquent\Builder;
@@ -30,8 +31,13 @@ class CompatibilityService
                   ->orWhereHas('oemNumbers.fitments', fn ($f) => $this->applyVehicleCriteria($f, $vehicle));
             });
 
+        // Les pieces sont rattachees aux feuilles de l'arbre : un filtre pose
+        // sur « Freinage » ou « Disques & Plaquettes » — les niveaux que
+        // l'utilisateur voit — ne remontait rien, et sans erreur. PartController
+        // descendait deja l'arbre ; ces deux chemins-ci ne le faisaient pas, et
+        // le controle avant voyage renvoie precisement vers ces niveaux.
         if (! empty($filters['category_id'])) {
-            $query->where('part_category_id', $filters['category_id']);
+            $query->whereIn('part_category_id', PartCategory::descendantIds((int) $filters['category_id']));
         }
 
         if (! empty($filters['in_stock'])) {
@@ -116,7 +122,7 @@ class CompatibilityService
         );
 
         if (! empty($filters['category_id'])) {
-            $query->where('part_category_id', $filters['category_id']);
+            $query->whereIn('part_category_id', PartCategory::descendantIds((int) $filters['category_id']));
         }
 
         if (! empty($filters['in_stock'])) {

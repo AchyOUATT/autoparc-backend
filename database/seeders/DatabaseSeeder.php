@@ -43,6 +43,11 @@ class DatabaseSeeder extends Seeder
             FeaturesSeeder::class,
             VehicleModelsSeeder::class,
             TrimsSeeder::class,
+            // Les points du controle avant voyage : du referentiel, pas des
+            // donnees metier. Ils doivent etre remis a jour a chaque
+            // deploiement, meme sur une base deja peuplee — sans quoi un point
+            // ajoute ici resterait invisible en production.
+            VehicleCheckItemsSeeder::class,
         ]);
 
         // ─── 2. Staff ──────────────────────────────────────────────────

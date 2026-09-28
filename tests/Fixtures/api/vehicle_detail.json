@@ -1,24 +1,24 @@
 {
     "data": {
         "id": 1,
-        "reference": "VH-CNK92W0B",
+        "reference": "VH-UUFTUMPD",
         "vin": null,
-        "designation": "Nissan Navara Base 2023",
+        "designation": "Nissan Qashqai Base 2023",
         "vehicle_type": "passenger",
-        "body_style": "pickup",
+        "body_style": "suv",
         "registration_status": {
-            "value": "unregistered",
-            "label": "Non immatricule"
+            "value": "registered",
+            "label": "Deja immatricule"
         },
         "identity": {
             "brand": "Nissan",
             "brand_slug": "nissan",
             "brand_logo_path": null,
-            "model": "Navara",
+            "model": "Qashqai",
             "generation": null,
             "trim": "Base",
-            "engine_type": "Hybride",
-            "drivetrain": "AWD",
+            "engine_type": "Électrique",
+            "drivetrain": "RWD",
             "color": "Rouge",
             "color_hex": "#C0392B",
             "color_finish": "opaque",
@@ -33,19 +33,20 @@
             "power_kw": null,
             "torque_nm": null,
             "cylinders": null,
-            "seats": 5,
-            "doors": 2,
+            "seats": 7,
+            "doors": 4,
             "mileage_km": null
         },
         "consumption": {
-            "urban_l_100km": "11.10",
-            "extra_urban_l_100km": "7.30",
+            "urban_l_100km": null,
+            "extra_urban_l_100km": null,
             "combined_l_100km": "9.40",
             "electric_kwh_100km": null,
             "battery_kwh": null,
             "electric_range_km": null,
-            "co2_g_km": 206,
-            "fuel_tank_liters": 75
+            "co2_g_km": null,
+            "fuel_tank_liters": null,
+            "official": null
         },
         "commercial": {
             "condition": "new",
@@ -61,7 +62,7 @@
             "price_negotiable": true,
             "deal_type": "good_deal",
             "deal_label": "Bonne affaire",
-            "site": null,
+            "site": "Ouagadougou",
             "location": null,
             "location_id": null,
             "partner": null,
@@ -73,14 +74,19 @@
         "fault_score": 0,
         "features": [
             {
+                "id": 2,
+                "name": "Caméra de recul",
+                "category": "securite"
+            },
+            {
                 "id": 6,
                 "name": "Régulateur de vitesse",
                 "category": "securite"
             },
             {
-                "id": 2,
-                "name": "Caméra de recul",
-                "category": "securite"
+                "id": 4,
+                "name": "Sièges cuir",
+                "category": "confort"
             },
             {
                 "id": 5,
@@ -88,16 +94,26 @@
                 "category": "confort"
             },
             {
-                "id": 4,
-                "name": "Sièges cuir",
+                "id": 1,
+                "name": "Climatisation",
                 "category": "confort"
+            },
+            {
+                "id": 7,
+                "name": "Navigation GPS",
+                "category": "multimedia"
+            },
+            {
+                "id": 3,
+                "name": "Bluetooth",
+                "category": "multimedia"
             }
         ],
-        "optional_feature_count": 4,
+        "optional_feature_count": 7,
         "is_full_option": false,
         "media": [],
         "description": null,
-        "published_at": "2026-08-08T21:52:33+00:00",
-        "created_at": "2026-09-13T21:52:33+00:00"
+        "published_at": "2026-09-12T22:03:51+00:00",
+        "created_at": "2026-09-28T22:03:51+00:00"
     }
 }

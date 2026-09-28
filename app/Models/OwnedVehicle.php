@@ -40,7 +40,13 @@ class OwnedVehicle extends Model
      * date d'echeance quand elle en a une, et le nombre de jours restants,
      * negatif si l'echeance est depassee.
      *
-     * @return array<int, array{kind:string,label:string,due_on:?string,days_left:?int,overdue:bool,detail:?string}>
+     * La vidange ne se compte pas en jours mais en kilometres : elle porte
+     * km_left la ou les autres portent days_left, et c'est la seule entree dans
+     * ce cas. Ce nombre n'etait auparavant lisible qu'a travers le libelle
+     * detail, que la tache de rappel relisait par expression reguliere — une
+     * reformulation du libelle suffisait donc a eteindre le rappel.
+     *
+     * @return array<int, array{kind:string,label:string,due_on:?string,days_left:?int,km_left:?int,overdue:bool,detail:?string}>
      */
     public function deadlines(): array
     {
@@ -62,6 +68,7 @@ class OwnedVehicle extends Model
                 'label'     => $label,
                 'due_on'    => $date->toDateString(),
                 'days_left' => $daysLeft,
+                'km_left'   => null,
                 'overdue'   => $daysLeft < 0,
                 'detail'    => null,
             ];
@@ -69,14 +76,15 @@ class OwnedVehicle extends Model
 
         // Vidange : suivi kilometrique, donc tributaire d'un kilometrage tenu
         // a jour par le proprietaire. Sans les trois valeurs, pas de rappel.
-        if ($this->service_interval_km && $this->last_service_mileage_km !== null && $this->mileage_km !== null) {
-            $remaining = $this->service_interval_km - ($this->mileage_km - $this->last_service_mileage_km);
+        $remaining = $this->kilometresAvantVidange();
 
+        if ($remaining !== null) {
             $items[] = [
                 'kind'      => 'service',
                 'label'     => 'Vidange',
                 'due_on'    => null,
                 'days_left' => null,
+                'km_left'   => $remaining,
                 'overdue'   => $remaining <= 0,
                 'detail'    => $remaining > 0
                     ? "Dans {$remaining} km"
@@ -87,6 +95,90 @@ class OwnedVehicle extends Model
         usort($items, fn ($a, $b) => ($a['days_left'] ?? PHP_INT_MAX) <=> ($b['days_left'] ?? PHP_INT_MAX));
 
         return $items;
+    }
+
+    /**
+     * Kilometres restants avant la prochaine vidange, negatif si elle est
+     * depassee. Null quand l'une des trois valeurs manque.
+     *
+     * Ce nombre existait deja, mais seulement a l'interieur de la chaine
+     * « Dans 4000 km » construite par deadlines() — et la tache de rappel le
+     * relisait par une expression reguliere sur cette chaine. Toute
+     * reformulation du libelle cassait donc silencieusement le declenchement du
+     * rappel de vidange. Le nombre se lit desormais ici, et le libelle n'est
+     * plus qu'un affichage.
+     */
+    public function kilometresAvantVidange(): ?int
+    {
+        if (! $this->service_interval_km || $this->last_service_mileage_km === null || $this->mileage_km === null) {
+            return null;
+        }
+
+        return (int) $this->service_interval_km - ((int) $this->mileage_km - (int) $this->last_service_mileage_km);
+    }
+
+    /**
+     * Code de motorisation retenu : celui saisi, sinon celui que la cote
+     * officielle laisse deduire.
+     *
+     * Deux sources parce que les deux existent en pratique : le proprietaire
+     * choisit un type de moteur a la saisie, ou choisit une motorisation pour
+     * connaitre sa consommation — et l'un n'implique pas l'autre.
+     */
+    public function codeMotorisation(): ?string
+    {
+        $type = $this->engineType ?? $this->trim?->defaultEngineType;
+
+        if ($type?->code !== null) {
+            return $type->code;
+        }
+
+        // Codes carburant des sources officielles : D pour le gasoil, X et Z
+        // pour l'essence ordinaire et super, E pour l'ethanol — dont le moteur
+        // reste un moteur a essence.
+        return match ($this->motorisation?->fuel_code) {
+            'D'            => 'diesel',
+            'X', 'Z', 'E'  => 'petrol',
+            default        => null,
+        };
+    }
+
+    public function libelleMotorisation(): ?string
+    {
+        return ($this->engineType ?? $this->trim?->defaultEngineType)?->label;
+    }
+
+    /**
+     * Carrosserie du vehicule, en minuscules : berline, suv, pick-up...
+     *
+     * Elle n'est pas portee par le vehicule du garage mais par le modele du
+     * catalogue, dans une colonne libre dont la casse varie d'un seeder a
+     * l'autre (« SUV » ici, « suv » la) — d'ou le passage en minuscules, deja
+     * fait ailleurs dans le projet. Elle peut rester nulle : un point de
+     * controle qui en depend ne doit alors simplement pas apparaitre.
+     */
+    public function carrosserie(): ?string
+    {
+        $type = $this->vehicleModel?->body_type;
+
+        return $type === null || trim($type) === '' ? null : strtolower(trim($type));
+    }
+
+    public function checks()
+    {
+        return $this->hasMany(VehicleCheck::class);
+    }
+
+    /**
+     * Le dernier controle en date.
+     *
+     * latestOfMany plutot qu'un orderBy sur la relation : l'historique du garage
+     * affiche une ligne par vehicule, et sans cela la liste ferait une requete
+     * par vehicule pour trouver son dernier passage.
+     */
+    public function dernierControle()
+    {
+        return $this->hasOne(VehicleCheck::class)->latestOfMany('performed_at');
     }
 
     public function user()

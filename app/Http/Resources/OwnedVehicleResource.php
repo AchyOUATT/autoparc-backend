@@ -64,6 +64,32 @@ class OwnedVehicleResource extends JsonResource
                 ];
             }),
 
+            // Le dernier controle avant voyage, en resume.
+            //
+            // Sous whenLoaded, comme la consommation : la cle disparait quand la
+            // relation n'est pas chargee, plutot que de valoir null — sans quoi
+            // l'application ne saurait pas distinguer « aucun controle » de
+            // « pas demande ».
+            //
+            // Trois nombres et une date, pas les reponses : la fiche du garage
+            // affiche « 2 points a reprendre », et c'est l'ecran de controle qui
+            // dit lesquels.
+            'last_check' => $this->whenLoaded('dernierControle', function () {
+                if (! $this->dernierControle) {
+                    return null;
+                }
+
+                return [
+                    'id'             => $this->dernierControle->id,
+                    'performed_at'   => $this->dernierControle->performed_at?->toIso8601String(),
+                    'mileage_km'     => $this->dernierControle->mileage_km,
+                    'verdict'        => $this->dernierControle->verdict?->value,
+                    'verdict_label'  => $this->dernierControle->verdict?->libelle(),
+                    'blocking_count' => $this->dernierControle->blocking_count,
+                    'watch_count'    => $this->dernierControle->watch_count,
+                ];
+            }),
+
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

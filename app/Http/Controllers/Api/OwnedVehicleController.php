@@ -16,7 +16,9 @@ class OwnedVehicleController extends Controller
 {
     use AuthorizesRequests;
 
-    protected array $relations = ['brand', 'vehicleModel', 'trim', 'engineType', 'motorisation', 'drivetrain', 'color'];
+    // dernierControle est charge par latestOfMany : une seule requete pour toute
+    // la liste, au lieu d'une par vehicule pour trouver son dernier passage.
+    protected array $relations = ['brand', 'vehicleModel', 'trim', 'engineType', 'motorisation', 'drivetrain', 'color', 'dernierControle'];
 
     public function index(Request $request)
     {

@@ -21,7 +21,8 @@
                     "kind": "insurance",
                     "label": "Assurance",
                     "due_on": "2027-01-15",
-                    "days_left": 124,
+                    "days_left": 109,
+                    "km_left": null,
                     "overdue": false,
                     "detail": null
                 },
@@ -29,7 +30,8 @@
                     "kind": "technical_inspection",
                     "label": "Visite technique",
                     "due_on": "2027-03-01",
-                    "days_left": 169,
+                    "days_left": 154,
+                    "km_left": null,
                     "overdue": false,
                     "detail": null
                 },
@@ -38,6 +40,7 @@
                     "label": "Vidange",
                     "due_on": null,
                     "days_left": null,
+                    "km_left": 4000,
                     "overdue": false,
                     "detail": "Dans 4000 km"
                 }
@@ -51,7 +54,10 @@
                 "color": null
             },
             "compatibility_ready": false,
-            "created_at": "2026-09-13T21:52:33+00:00"
+            "motorisation_id": null,
+            "consumption": null,
+            "last_check": null,
+            "created_at": "2026-09-28T22:03:52+00:00"
         }
     ],
     "links": {

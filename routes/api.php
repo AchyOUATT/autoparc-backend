@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Api\RentalController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\VehicleController;
+use App\Http\Controllers\Api\VehicleCheckController;
 use App\Http\Controllers\Api\VehicleFaultController;
 use Illuminate\Support\Facades\Route;
 
@@ -118,6 +119,17 @@ Route::middleware('firebase')->prefix('my')->group(function () {
         ->parameters(['vehicles' => 'ownedVehicle'])
         ->names('my-vehicles');
     Route::get('vehicles/{ownedVehicle}/compatible-parts', [CompatibilityController::class, 'partsForOwnedVehicle']);
+
+    // Controle avant voyage. La liste n'est pas figee : elle se compose a partir
+    // des echeances, du millesime, du kilometrage et de la carrosserie du
+    // vehicule, d'ou une route de composition distincte de l'enregistrement.
+    //
+    // Un passage ne se modifie pas : ni PUT, ni DELETE. Refaire le controle est
+    // la seule correction d'un constat errone.
+    Route::get('vehicles/{ownedVehicle}/check-template', [VehicleCheckController::class, 'template']);
+    Route::get('vehicles/{ownedVehicle}/checks',  [VehicleCheckController::class, 'index']);
+    Route::post('vehicles/{ownedVehicle}/checks', [VehicleCheckController::class, 'store']);
+    Route::get('checks/{vehicleCheck}',           [VehicleCheckController::class, 'show']);
 
     // Compatibilité inverse : pour une pièce donnée, quels véhicules du garage sont compatibles ?
     Route::get('parts/{part}/garage-compatibility', [GarageCompatibilityController::class, 'checkPart']);

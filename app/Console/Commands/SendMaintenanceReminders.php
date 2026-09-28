@@ -100,9 +100,12 @@ class SendMaintenanceReminders extends Command
             return $deadline['days_left'] <= $days;
         }
 
-        // Vidange : le detail porte le kilometrage restant.
-        if ($deadline['kind'] === 'service' && preg_match('/(\d+)/', (string) $deadline['detail'], $m)) {
-            return (int) $m[1] <= $km;
+        // Vidange : elle se compte en kilometres. Ce nombre se lisait avant par
+        // une expression reguliere sur le libelle « Dans 4000 km » — reformuler
+        // ce libelle eteignait donc le rappel sans que rien ne le signale.
+        // deadlines() porte desormais km_left.
+        if ($deadline['kind'] === 'service' && ($deadline['km_left'] ?? null) !== null) {
+            return $deadline['km_left'] <= $km;
         }
 
         return false;
