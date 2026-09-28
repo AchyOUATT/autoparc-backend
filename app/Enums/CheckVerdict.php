@@ -45,15 +45,19 @@ enum CheckVerdict: string
      */
     public function detail(int $bloquants, int $aSurveiller, int $verifies): string
     {
+        // Le detail complete le libelle, il ne le repete pas : « À régler avant
+        // de partir » suivi de « 1 point à régler avant de partir » occupait
+        // deux lignes pour une seule information.
         return match ($this) {
-            self::Blocked => $this->compte($bloquants, 'point à régler avant de partir', 'points à régler avant de partir'),
+            self::Blocked => $this->compte($bloquants, 'point bloquant', 'points bloquants')
+                . ($aSurveiller > 0 ? ", {$aSurveiller} à surveiller" : ''),
 
             self::Attention => $this->compte($aSurveiller, 'point à surveiller', 'points à surveiller')
                 . ", rien qui empêche de partir",
 
             self::Clear => $verifies === 1
-                ? 'Rien à signaler sur le point vérifié'
-                : "Rien à signaler sur les {$verifies} points vérifiés",
+                ? 'sur le point vérifié'
+                : "sur les {$verifies} points vérifiés",
         };
     }
 

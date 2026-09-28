@@ -470,7 +470,7 @@ class ControleAvantVoyageTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.verdict.value', 'blocked')
             ->assertJsonPath('data.verdict.label', 'À régler avant de partir')
-            ->assertJsonPath('data.verdict.detail', '1 point à régler avant de partir')
+            ->assertJsonPath('data.verdict.detail', '1 point bloquant')
             ->assertJsonPath('data.counts.blocking', 1);
     }
 
@@ -503,7 +503,7 @@ class ControleAvantVoyageTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.verdict.value', 'clear')
             ->assertJsonPath('data.verdict.label', 'Rien à signaler')
-            ->assertJsonPath('data.verdict.detail', 'Rien à signaler sur les 3 points vérifiés');
+            ->assertJsonPath('data.verdict.detail', 'sur les 3 points vérifiés');
 
         // L'application n'a rien constate : elle a pose trois questions. Ces
         // formulations lui feraient certifier l'etat du vehicule, ce qu'elle
