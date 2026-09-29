@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\CheckReason;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreVehicleCheckRequest;
 use App\Http\Resources\VehicleCheckResource;
@@ -12,6 +13,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * Le controle avant voyage d'un vehicule du garage.
@@ -43,17 +45,27 @@ class VehicleCheckController extends Controller
 
         $valide = $request->validate([
             'trip_distance_km' => ['nullable', 'integer', 'min:1', 'max:5000'],
+            'reason'           => ['nullable', Rule::enum(CheckReason::class)],
         ]);
 
         $distance = isset($valide['trip_distance_km']) ? (int) $valide['trip_distance_km'] : null;
+        $motif = CheckReason::tryFrom($valide['reason'] ?? '') ?? CheckReason::Trip;
 
         $ownedVehicle->load($this->relations);
 
         return response()->json([
             'data' => [
+                'reason'           => $motif->value,
+                'title'            => $this->controle->titre($motif),
                 'trip_distance_km' => $distance,
                 'mileage_km'       => $ownedVehicle->mileage_km,
-                'items'            => $this->controle->liste($ownedVehicle, $distance),
+
+                // Quels controles ont un sens aujourd'hui, et sous quel nom.
+                // Le calendrier des saisons reste cote serveur : decoupe des
+                // deux cotes, il finirait par ne plus tomber au meme mois.
+                'available_reasons' => $this->controle->typesDisponibles(),
+
+                'items' => $this->controle->liste($ownedVehicle, $distance, null, $motif),
             ],
         ]);
     }
@@ -87,6 +99,7 @@ class VehicleCheckController extends Controller
             note: $donnees['note'] ?? null,
             referenceClient: $reference,
             effectueLe: isset($donnees['performed_at']) ? CarbonImmutable::parse($donnees['performed_at']) : null,
+            motif: CheckReason::tryFrom($donnees['reason'] ?? '') ?? CheckReason::Trip,
         );
 
         return (new VehicleCheckResource($controle))

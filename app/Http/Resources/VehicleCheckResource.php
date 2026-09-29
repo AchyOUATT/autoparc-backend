@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\CheckReason;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,6 +26,18 @@ class VehicleCheckResource extends JsonResource
         return $this;
     }
 
+    /**
+     * Le motif du passage, qui commande le vocabulaire du verdict.
+     *
+     * Un motif inconnu — une valeur ecrite par une version plus recente de
+     * l'application, ou a la main en base — retombe sur le voyage plutot que de
+     * faire echouer la lecture d'un historique.
+     */
+    private function motif(): CheckReason
+    {
+        return CheckReason::tryFrom((string) $this->reason) ?? CheckReason::Trip;
+    }
+
     public function toArray(Request $request): array
     {
         return [
@@ -42,11 +55,12 @@ class VehicleCheckResource extends JsonResource
             // personne n'a constate.
             'verdict' => [
                 'value'  => $this->verdict?->value,
-                'label'  => $this->verdict?->libelle(),
+                'label'  => $this->verdict?->libelle($this->motif()),
                 'detail' => $this->verdict?->detail(
                     $this->blocking_count,
                     $this->watch_count,
                     $this->checked_count,
+                    $this->motif(),
                 ),
             ],
 

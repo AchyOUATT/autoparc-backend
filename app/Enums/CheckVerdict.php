@@ -27,10 +27,14 @@ enum CheckVerdict: string
     /** Rien de signale sur ce qui a ete verifie. */
     case Clear = 'clear';
 
-    public function libelle(): string
+    /**
+     * Le libelle depend du motif : « À régler avant de partir » ne veut rien
+     * dire pour un controle de saison, ou personne ne part nulle part.
+     */
+    public function libelle(CheckReason $motif = CheckReason::Trip): string
     {
         return match ($this) {
-            self::Blocked   => 'À régler avant de partir',
+            self::Blocked   => $motif->verdictBloquant(),
             self::Attention => 'Points à surveiller',
             self::Clear     => 'Rien à signaler',
         };
@@ -43,8 +47,12 @@ enum CheckVerdict: string
      * le cas favorable precisement pour rappeler que le constat porte sur cette
      * liste-la, et sur rien d'autre.
      */
-    public function detail(int $bloquants, int $aSurveiller, int $verifies): string
-    {
+    public function detail(
+        int $bloquants,
+        int $aSurveiller,
+        int $verifies,
+        CheckReason $motif = CheckReason::Trip,
+    ): string {
         // Le detail complete le libelle, il ne le repete pas : « À régler avant
         // de partir » suivi de « 1 point à régler avant de partir » occupait
         // deux lignes pour une seule information.
@@ -53,7 +61,7 @@ enum CheckVerdict: string
                 . ($aSurveiller > 0 ? ", {$aSurveiller} à surveiller" : ''),
 
             self::Attention => $this->compte($aSurveiller, 'point à surveiller', 'points à surveiller')
-                . ", rien qui empêche de partir",
+                . ', ' . $motif->complementSansBlocage(),
 
             self::Clear => $verifies === 1
                 ? 'sur le point vérifié'

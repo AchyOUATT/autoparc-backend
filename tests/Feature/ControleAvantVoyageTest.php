@@ -68,15 +68,25 @@ class ControleAvantVoyageTest extends TestCase
     }
 
     /** @return array<int, array<string, mixed>> */
-    private function liste(OwnedVehicle $vehicule, ?int $distanceKm = null, ?CarbonImmutable $jour = null): array
-    {
+    private function liste(
+        OwnedVehicle $vehicule,
+        ?int $distanceKm = null,
+        ?CarbonImmutable $jour = null,
+        \App\Enums\CheckReason $motif = \App\Enums\CheckReason::Trip,
+    ): array {
         if ($jour !== null) {
             $this->travelTo($jour);
         }
 
         return app(\App\Services\ControleAvantVoyage::class)->liste($vehicule->fresh()->load([
             'vehicleModel', 'engineType', 'trim.defaultEngineType', 'motorisation',
-        ]), $distanceKm, $jour);
+        ]), $distanceKm, $jour, $motif);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function listeSaison(OwnedVehicle $vehicule, CarbonImmutable $jour): array
+    {
+        return $this->liste($vehicule, null, $jour, \App\Enums\CheckReason::Seasonal);
     }
 
     /** @param  array<int, array<string, mixed>>  $liste */
@@ -287,7 +297,10 @@ class ControleAvantVoyageTest extends TestCase
                 && $point->min_age_years === null
                 && empty($point->engine_codes)
                 && empty($point->body_types)
-                && empty($point->months))
+                && empty($point->months)
+                // Un point saisonnier a sa raison d'etre : la saison, que le
+                // titre du controle annonce deja.
+                && empty($point->seasons))
             ->pluck('code')
             ->all();
 
@@ -349,6 +362,120 @@ class ControleAvantVoyageTest extends TestCase
         $point = $this->point($this->liste($vehicule, 360), 'confort-clim');
         $this->assertNotNull($point);
         $this->assertContains('Trajet de 360 km', $point['reasons']);
+    }
+
+    // ── Le controle saisonnier ───────────────────────────────────────
+
+    public function test_la_saison_decide_de_la_liste(): void
+    {
+        $vehicule = $this->vehicule();
+
+        // Juillet : hivernage. L'eau et la boue — voir, etre vu, tenir la route.
+        $pluies = $this->codes($this->listeSaison($vehicule, CarbonImmutable::parse('2027-07-10')));
+        $this->assertContains('pluies-pneus', $pluies);
+        $this->assertContains('pluies-essuie-glaces', $pluies);
+        $this->assertNotContains('seche-filtre-air', $pluies);
+
+        // Janvier : saison seche. La poussiere et la chaleur — respirer et refroidir.
+        $seche = $this->codes($this->listeSaison($vehicule, CarbonImmutable::parse('2027-01-10')));
+        $this->assertContains('seche-filtre-air', $seche);
+        $this->assertContains('seche-radiateur', $seche);
+        $this->assertNotContains('pluies-pneus', $seche);
+    }
+
+    public function test_un_controle_de_saison_tient_en_cinq_points(): void
+    {
+        // C'est la condition de survie de ce type de controle : il n'a aucun
+        // declencheur exterieur. Personne ne se demande « dois-je faire mon
+        // controle d'hivernage ? » comme on se demande si la voiture tiendra
+        // jusqu'a Bobo. Il ne se fait que s'il se fait en trois minutes.
+        $vehicule = $this->vehicule();
+
+        foreach (['2027-07-10' => 'hivernage', '2027-01-10' => 'saison seche'] as $jour => $nom) {
+            $liste = $this->listeSaison($vehicule, CarbonImmutable::parse($jour));
+
+            $this->assertLessThanOrEqual(
+                6,
+                count($liste),
+                "Le controle d'{$nom} doit rester court, sans quoi il ne sera pas refait.",
+            );
+            $this->assertGreaterThan(0, count($liste));
+        }
+    }
+
+    public function test_un_point_saisonnier_n_encombre_pas_le_controle_avant_voyage(): void
+    {
+        // « Écoulements et joints de portes » se verifie une fois avant les
+        // pluies, pas avant chaque trajet. Les deux listes ne se recouvrent pas.
+        $codes = $this->codes($this->liste($this->vehicule(), 400, CarbonImmutable::parse('2027-07-10')));
+
+        foreach (['pluies-pneus', 'pluies-etancheite', 'seche-filtre-air'] as $saisonnier) {
+            $this->assertNotContains($saisonnier, $codes);
+        }
+    }
+
+    public function test_une_electrique_echappe_aussi_aux_points_saisonniers_thermiques(): void
+    {
+        $electrique = $this->vehicule([
+            'engine_type_id' => \App\Models\EngineType::firstOrCreate(
+                ['code' => 'electric'],
+                ['label' => 'Électrique', 'uses_fuel' => false, 'uses_battery' => true],
+            )->id,
+        ]);
+
+        $codes = $this->codes($this->listeSaison($electrique, CarbonImmutable::parse('2027-01-10')));
+
+        $this->assertNotContains('seche-filtre-air', $codes);
+        $this->assertNotContains('seche-radiateur', $codes);
+        $this->assertContains('seche-clim', $codes, 'Une electrique a bien une climatisation.');
+    }
+
+    public function test_le_verdict_d_un_controle_de_saison_ne_parle_pas_de_partir(): void
+    {
+        // « À régler avant de partir » ne veut rien dire pour un controle de
+        // saison, ou personne ne part nulle part.
+        $user = $this->client();
+        $vehicule = $this->vehicule([], $user);
+
+        $this->envoyer($user, $vehicule, ['pluies-pneus' => 'bad'], ['reason' => 'seasonal'])
+            ->assertCreated()
+            ->assertJsonPath('data.reason', 'seasonal')
+            ->assertJsonPath('data.verdict.label', 'À régler avant la saison');
+
+        $this->envoyer($user, $vehicule, ['pluies-etancheite' => 'watch'], ['reason' => 'seasonal'])
+            ->assertCreated()
+            ->assertJsonPath('data.verdict.detail', "1 point à surveiller, rien d'urgent");
+    }
+
+    public function test_l_application_apprend_du_serveur_quels_controles_proposer(): void
+    {
+        // Le calendrier des saisons reste cote serveur : decoupe des deux cotes,
+        // il finirait par ne plus tomber au meme mois.
+        $user = $this->client();
+        $vehicule = $this->vehicule([], $user);
+
+        $this->travelTo(CarbonImmutable::parse('2027-07-10'));
+
+        $reponse = $this->actingAsClient($user)
+            ->getJson("/api/my/vehicles/{$vehicule->id}/check-template?reason=seasonal")
+            ->assertOk()
+            ->assertJsonPath('data.reason', 'seasonal')
+            ->assertJsonPath('data.title', "Contrôle d'hivernage");
+
+        $types = collect($reponse->json('data.available_reasons'));
+
+        $this->assertSame(['trip', 'seasonal'], $types->pluck('value')->all());
+        $this->assertSame("Contrôle d'hivernage", $types->firstWhere('value', 'seasonal')['label']);
+    }
+
+    public function test_un_motif_inconnu_est_refuse(): void
+    {
+        $user = $this->client();
+        $vehicule = $this->vehicule([], $user);
+
+        $this->actingAsClient($user)
+            ->getJson("/api/my/vehicles/{$vehicule->id}/check-template?reason=inventaire")
+            ->assertStatus(422);
     }
 
     // ── Composition : ce que l'application sait deja ─────────────────

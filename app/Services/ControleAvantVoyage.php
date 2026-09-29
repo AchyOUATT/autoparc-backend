@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Enums\CheckReason;
 use App\Enums\CheckVerdict;
 use App\Models\OwnedVehicle;
 use App\Models\PartCategory;
 use App\Models\VehicleCheck;
 use App\Models\VehicleCheckItem;
+use App\Support\Saison;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -58,10 +60,24 @@ class ControleAvantVoyage
      *
      * @return array<int, array<string, mixed>>
      */
-    public function liste(OwnedVehicle $vehicule, ?int $distanceKm = null, ?CarbonImmutable $jour = null): array
-    {
+    public function liste(
+        OwnedVehicle $vehicule,
+        ?int $distanceKm = null,
+        ?CarbonImmutable $jour = null,
+        CheckReason $motif = CheckReason::Trip,
+    ): array {
         $jour ??= CarbonImmutable::today();
-        $gabarits = VehicleCheckItem::query()->actifs()->get();
+
+        // Les deux listes ne se recouvrent pas, et c'est voulu. Un point
+        // saisonnier se verifie une fois avant la saison, pas avant chaque
+        // trajet ; un point de voyage n'a rien a dire d'une saison qui
+        // commence. Melanger les deux allongerait les deux listes de points que
+        // personne ne referait.
+        $gabarits = VehicleCheckItem::query()->actifs()->get()->filter(
+            fn (VehicleCheckItem $g) => $motif === CheckReason::Seasonal
+                ? $g->appartientA(Saison::pour($jour))
+                : ! $g->estSaisonnier(),
+        );
 
         $retenus = [];
 
@@ -134,6 +150,7 @@ class ControleAvantVoyage
         ?string $note = null,
         ?string $referenceClient = null,
         ?CarbonImmutable $effectueLe = null,
+        CheckReason $motif = CheckReason::Trip,
     ): VehicleCheck {
         // Un controle se remplit capot ouvert, souvent sans reseau : l'envoi
         // sera rejoue. Sans cette reprise, un reseau hesitant enregistrerait
@@ -176,11 +193,11 @@ class ControleAvantVoyage
 
         $verdict = CheckVerdict::depuis($lignes);
 
-        return DB::transaction(function () use ($vehicule, $lignes, $verdict, $distanceKm, $kilometrage, $note, $referenceClient, $effectueLe) {
+        return DB::transaction(function () use ($vehicule, $lignes, $verdict, $distanceKm, $kilometrage, $note, $referenceClient, $effectueLe, $motif) {
             $controle = VehicleCheck::create([
                 'owned_vehicle_id' => $vehicule->id,
                 'user_id'          => $vehicule->user_id,
-                'reason'           => 'trip',
+                'reason'           => $motif->value,
                 'trip_distance_km' => $distanceKm,
                 'mileage_km'       => $kilometrage,
                 'performed_at'     => $effectueLe ?? now(),
@@ -198,6 +215,44 @@ class ControleAvantVoyage
 
             return $controle->load('answers');
         });
+    }
+
+    /**
+     * Les controles que l'application peut proposer aujourd'hui.
+     *
+     * Le calendrier vit ici et non dans l'application, pour la meme raison que
+     * les echeances : une saison decoupee des deux cotes finirait par ne plus
+     * tomber au meme mois, et l'application proposerait un controle d'hivernage
+     * que le serveur composerait en saison seche.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function typesDisponibles(?CarbonImmutable $jour = null): array
+    {
+        $saison = Saison::pour($jour ?? CarbonImmutable::today());
+
+        return [
+            [
+                'value' => CheckReason::Trip->value,
+                'label' => 'Avant un voyage',
+                'hint'  => 'La liste dépend de la distance : un aller-retour en ville et une descente de quatre cents kilomètres ne demandent pas la même chose.',
+                'season' => null,
+            ],
+            [
+                'value' => CheckReason::Seasonal->value,
+                'label' => $saison->libelleControle(),
+                'hint'  => $saison->raison(),
+                'season' => $saison->value,
+            ],
+        ];
+    }
+
+    /** Le titre de l'ecran pour ce motif, saison comprise. */
+    public function titre(CheckReason $motif, ?CarbonImmutable $jour = null): string
+    {
+        return $motif === CheckReason::Seasonal
+            ? Saison::pour($jour ?? CarbonImmutable::today())->libelleControle()
+            : $motif->titreParDefaut();
     }
 
     /**

@@ -84,7 +84,11 @@ class OwnedVehicleResource extends JsonResource
                     'performed_at'   => $this->dernierControle->performed_at?->toIso8601String(),
                     'mileage_km'     => $this->dernierControle->mileage_km,
                     'verdict'        => $this->dernierControle->verdict?->value,
-                    'verdict_label'  => $this->dernierControle->verdict?->libelle(),
+                    'reason'         => $this->dernierControle->reason,
+                    'verdict_label'  => $this->dernierControle->verdict?->libelle(
+                        \App\Enums\CheckReason::tryFrom((string) $this->dernierControle->reason)
+                            ?? \App\Enums\CheckReason::Trip,
+                    ),
                     'blocking_count' => $this->dernierControle->blocking_count,
                     'watch_count'    => $this->dernierControle->watch_count,
                 ];

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Saison;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -30,7 +31,7 @@ class VehicleCheckItem extends Model
     protected $fillable = [
         'code', 'category', 'title', 'help', 'severity', 'is_core',
         'min_trip_distance_km', 'min_mileage_km', 'min_age_years',
-        'engine_codes', 'excluded_engine_codes', 'body_types', 'months', 'trigger_label',
+        'engine_codes', 'excluded_engine_codes', 'body_types', 'months', 'seasons', 'trigger_label',
         'prefill_source', 'part_category_slug', 'position', 'is_active',
     ];
 
@@ -45,7 +46,8 @@ class VehicleCheckItem extends Model
             'engine_codes'          => 'array',
             'excluded_engine_codes' => 'array',
             'body_types'           => 'array',
-            'months'               => 'array',
+            'months'                => 'array',
+            'seasons'               => 'array',
             'position'             => 'integer',
         ];
     }
@@ -53,6 +55,24 @@ class VehicleCheckItem extends Model
     public function scopeActifs(Builder $q): Builder
     {
         return $q->where('is_active', true)->orderBy('position');
+    }
+
+    /** Ce point appartient-il au controle de cette saison ? */
+    public function appartientA(Saison $saison): bool
+    {
+        return in_array($saison->value, $this->seasons ?? [], true);
+    }
+
+    /**
+     * Un point saisonnier n'a rien a faire dans un controle avant voyage.
+     *
+     * « Écoulements et joints de portes » se verifie une fois avant les pluies,
+     * pas avant chaque trajet : l'y ajouter allongerait la liste du voyage d'un
+     * point que personne ne referait.
+     */
+    public function estSaisonnier(): bool
+    {
+        return ! empty($this->seasons);
     }
 
     /**

@@ -45,6 +45,7 @@ class VehicleCheckItemsSeeder extends Seeder
         'excluded_engine_codes' => null,
         'body_types' => null,
         'months' => null,
+        'seasons' => null,
         'trigger_label' => null,
         'prefill_source' => null,
         'part_category_slug' => null,
@@ -59,7 +60,7 @@ class VehicleCheckItemsSeeder extends Seeder
         foreach ($this->points() as $point) {
             $ligne = array_merge(self::NEUTRE, $point);
 
-            foreach (['engine_codes', 'excluded_engine_codes', 'body_types', 'months'] as $json) {
+            foreach (['engine_codes', 'excluded_engine_codes', 'body_types', 'months', 'seasons'] as $json) {
                 if ($ligne[$json] !== null) {
                     $ligne[$json] = json_encode($ligne[$json]);
                 }
@@ -267,6 +268,85 @@ class VehicleCheckItemsSeeder extends Seeder
                 'severity' => 'watch', 'is_core' => false,
                 'body_types' => ['pick-up', 'utilitaire'], 'min_trip_distance_km' => 50,
                 'part_category_slug' => 'pneus',
+            ],
+
+            // ── Hivernage : voir, etre vu, tenir la route ──────────
+            //
+            // Cinq points, et pas un de plus. Un controle saisonnier n'a aucun
+            // declencheur exterieur — personne ne se demande « dois-je faire mon
+            // controle d'hivernage ? » comme on se demande si la voiture tiendra
+            // jusqu'a Bobo. Il ne tient que s'il se fait en trois minutes.
+            [
+                'code' => 'pluies-pneus', 'category' => 'pneus', 'position' => 2000,
+                'title' => 'Profondeur des rainures',
+                'help' => "Sur route mouillée, un pneu à moitié usé n'évacue plus l'eau : la voiture flotte et ne dirige plus. C'est le seul point de cette liste qui tue.",
+                'severity' => 'blocking', 'seasons' => ['pluies'],
+                'part_category_slug' => 'pneus',
+            ],
+            [
+                'code' => 'pluies-essuie-glaces', 'category' => 'eclairage', 'position' => 2010,
+                'title' => 'Balais et lave-glace',
+                'help' => "Un balai durci transforme une averse en écran opaque. Ils se remplacent avant la première pluie, pas après — au milieu de la saison, tout le monde en cherche en même temps.",
+                'severity' => 'blocking', 'seasons' => ['pluies'],
+            ],
+            [
+                'code' => 'pluies-eclairage', 'category' => 'eclairage', 'position' => 2020,
+                'title' => 'Feux avant, arrière et antibrouillards',
+                'help' => "Une averse ramène la visibilité à cinquante mètres en plein jour. Les feux arrière comptent autant que les phares : ce sont eux qui te font voir de celui qui arrive derrière.",
+                'severity' => 'blocking', 'seasons' => ['pluies'],
+                'part_category_slug' => 'eclairage',
+            ],
+            [
+                'code' => 'pluies-etancheite', 'category' => 'niveaux', 'position' => 2030,
+                'title' => 'Écoulements et joints de portes',
+                'help' => "Les écoulements du pare-brise et du toit se bouchent de poussière et de feuilles pendant la saison sèche. L'eau passe alors dans l'habitacle, pourrit les tapis et finit dans le faisceau électrique — une panne qui coûte cher et qu'on ne relie jamais à la pluie.",
+                'severity' => 'watch', 'seasons' => ['pluies'],
+            ],
+            [
+                'code' => 'pluies-desembuage', 'category' => 'confort', 'position' => 2040,
+                'title' => 'Désembuage du pare-brise',
+                'help' => "Par temps de pluie, c'est la climatisation qui assèche l'air et désembue, pas la ventilation seule. Si elle ne fonctionne pas, tu roules à l'aveugle au premier orage.",
+                'severity' => 'watch', 'seasons' => ['pluies'],
+                'part_category_slug' => 'climatisation',
+            ],
+
+            // ── Saison seche : respirer et refroidir ───────────────
+            [
+                'code' => 'seche-filtre-air', 'category' => 'moteur', 'position' => 2100,
+                'title' => 'Filtre à air',
+                'help' => "La poussière de l'harmattan le bouche en quelques milliers de kilomètres : le moteur s'essouffle et la consommation monte sans qu'on comprenne pourquoi. Sors-le et regarde-le à la lumière du jour.",
+                'severity' => 'blocking', 'seasons' => ['seche'],
+                'excluded_engine_codes' => ['electric'],
+                'part_category_slug' => 'filtre-air',
+            ],
+            [
+                'code' => 'seche-radiateur', 'category' => 'moteur', 'position' => 2110,
+                'title' => 'Radiateur et ventilateur',
+                'help' => "Le radiateur se colmate de poussière et d'insectes : il refroidit moins juste au moment où il fait le plus chaud. Souffle-le de l'intérieur vers l'extérieur, jamais dans l'autre sens — sinon la saleté s'enfonce dans les ailettes.",
+                'severity' => 'blocking', 'seasons' => ['seche'],
+                'excluded_engine_codes' => ['electric'],
+                'part_category_slug' => 'refroidissement',
+            ],
+            [
+                'code' => 'seche-clim', 'category' => 'confort', 'position' => 2120,
+                'title' => 'Climatisation',
+                'help' => "Elle va servir tous les jours pendant six mois. Une clim qui souffle tiède se recharge maintenant, pas en pleine chaleur quand tous les garages sont pris.",
+                'severity' => 'watch', 'seasons' => ['seche'],
+                'part_category_slug' => 'climatisation',
+            ],
+            [
+                'code' => 'seche-filtre-habitacle', 'category' => 'confort', 'position' => 2130,
+                'title' => "Filtre d'habitacle",
+                'help' => "Celui qui filtre ce que tu respires, et ce que respirent les enfants à l'arrière. Saturé, il laisse passer la poussière et fait peiner la climatisation.",
+                'severity' => 'watch', 'seasons' => ['seche'],
+                'part_category_slug' => 'filtre-habitacle',
+            ],
+            [
+                'code' => 'seche-batterie', 'category' => 'moteur', 'position' => 2140,
+                'title' => 'Batterie : cosses et niveau',
+                'help' => "La chaleur évapore l'électrolyte et raccourcit de moitié la vie d'une batterie. Cosses propres, fixation serrée, et niveau au-dessus des plaques si elle se remplit.",
+                'severity' => 'watch', 'seasons' => ['seche'],
+                'part_category_slug' => 'batterie-12v',
             ],
 
             // ── Le depart lui-meme ─────────────────────────────────

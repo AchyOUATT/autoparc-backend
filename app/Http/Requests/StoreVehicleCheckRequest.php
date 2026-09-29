@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\CheckReason;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * L'envoi d'un controle avant voyage.
@@ -28,6 +30,7 @@ class StoreVehicleCheckRequest extends FormRequest
             // assez bas pour attraper un kilometrage saisi dans le mauvais champ.
             'trip_distance_km' => ['nullable', 'integer', 'min:1', 'max:5000'],
             'mileage_km'       => ['nullable', 'integer', 'min:0', 'max:2000000'],
+            'reason'           => ['nullable', Rule::enum(CheckReason::class)],
             'note'             => ['nullable', 'string', 'max:2000'],
             'client_reference' => ['nullable', 'uuid'],
             'performed_at'     => ['nullable', 'date', 'before_or_equal:now', 'after_or_equal:-30 days'],
