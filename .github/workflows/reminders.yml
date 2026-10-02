@@ -1,0 +1,106 @@
+# Rappels d'entretien quotidiens.
+#
+# Render n'offre aucun plan gratuit pour les taches cron : leur documentation
+# annonce un minimum d'un dollar par mois et par service. Le render.yaml en
+# declarait pourtant une avec `plan: free` — elle n'a donc jamais existe, et
+# rien ne le signalait. Pendant ce temps aucun rappel n'est parti, alors que des
+# visites techniques etaient depassees depuis des semaines.
+#
+# L'ordonnanceur vit donc ici. Le point important n'est pas qu'il soit gratuit,
+# c'est qu'il soit OBSERVABLE : chaque execution laisse une trace datee dans
+# l'onglet Actions, avec la sortie de la commande. La question « est-ce que ca
+# tourne ? » ne se reposera plus.
+#
+# Deux limites de GitHub Actions a connaitre :
+#   - les executions planifiees peuvent etre retardees de plusieurs dizaines de
+#     minutes quand la plateforme est chargee. Sans importance pour un rappel
+#     quotidien, redhibitoire pour une tache a la minute ;
+#   - GitHub DESACTIVE un planning apres 60 jours sans aucune activite sur le
+#     depot. Ce depot est pousse regulierement, donc le cas ne devrait pas se
+#     presenter — mais si le projet dort deux mois, le planning s'arrete et il
+#     faut le reactiver a la main depuis l'onglet Actions.
+name: Rappels d'entretien
+
+on:
+  schedule:
+    # 8 h UTC, soit 8 h au Burkina Faso qui reste a UTC+0 toute l'annee.
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "A blanc : calcule les rappels sans rien envoyer"
+        type: boolean
+        default: false
+
+concurrency:
+  # Deux executions simultanees enverraient les memes rappels deux fois. Le
+  # dedoublonnage de la commande les rattraperait, mais autant ne pas compter
+  # dessus.
+  group: rappels-entretien
+  cancel-in-progress: false
+
+jobs:
+  declencher:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Verifier la configuration
+        env:
+          URL: ${{ secrets.TASKS_URL }}
+          JETON: ${{ secrets.TASKS_SECRET }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$JETON" ]; then
+            echo "::error::Les secrets TASKS_URL et TASKS_SECRET doivent etre definis dans le depot."
+            exit 1
+          fi
+
+      - name: Reveiller l'instance
+        # Le plan gratuit de Render met le service en veille apres inactivite :
+        # la premiere requete peut demander une minute. On la fait a part pour
+        # que l'appel qui compte ne se perde pas dans ce delai, et on ignore son
+        # resultat — c'est un reveil, pas une verification.
+        env:
+          URL: ${{ secrets.TASKS_URL }}
+        run: |
+          base="${URL%/api/*}"
+          curl -s -o /dev/null --max-time 120 "${base}/api/catalog/part-categories" || true
+
+      - name: Lancer les rappels
+        env:
+          URL: ${{ secrets.TASKS_URL }}
+          JETON: ${{ secrets.TASKS_SECRET }}
+          A_BLANC: ${{ inputs.dry_run }}
+        run: |
+          corps='{"dry_run": false}'
+          [ "$A_BLANC" = "true" ] && corps='{"dry_run": true}'
+
+          echo "Appel de $URL"
+
+          code=$(curl -sS --max-time 300 \
+                   -o reponse.json -w '%{http_code}' \
+                   -X POST "$URL" \
+                   -H "X-Task-Token: $JETON" \
+                   -H 'Content-Type: application/json' \
+                   -H 'Accept: application/json' \
+                   -d "$corps")
+
+          echo "Code HTTP : $code"
+          echo "--- Reponse ---"
+          cat reponse.json || true
+          echo
+
+          # La sortie de la commande devient le resume de l'execution : on y lit
+          # combien de rappels sont partis sans ouvrir quoi que ce soit d'autre.
+          resume=$(python3 -c "import json,sys; print(json.load(open('reponse.json')).get('output',''))" 2>/dev/null || true)
+          if [ -n "$resume" ]; then
+            echo "### Rappels d'entretien" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "$resume" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ "$code" != "200" ]; then
+            echo "::error::Le declenchement a echoue (HTTP $code)."
+            exit 1
+          fi

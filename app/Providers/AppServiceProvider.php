@@ -75,6 +75,16 @@ class AppServiceProvider extends ServiceProvider
                 'Trop de demandes envoyees. Patientez une minute avant de reessayer.'
             )));
 
+        // Le declencheur de taches planifiees. Trois par minute : l'ordonnanceur
+        // appelle une fois par jour, et la tache balaie le parc entier — rien ne
+        // justifie d'en accepter davantage. Par IP, puisque l'appelant n'a pas
+        // de compte.
+        RateLimiter::for('scheduled-tasks', fn (Request $request) => Limit::perMinute(3)
+            ->by($request->ip())
+            ->response($this->refus(
+                'Trop de declenchements. Une tache planifiee ne se lance pas en rafale.'
+            )));
+
         // ── Plafond general ──────────────────────────────────────────────────
         //
         // Large a dessein : il ne s'agit pas de rationner un usage normal mais

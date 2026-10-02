@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\PartOrderController;
 use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Api\RentalController;
 use App\Http\Controllers\Api\SaleController;
+use App\Http\Controllers\Api\ScheduledTaskController;
 use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\VehicleCheckController;
 use App\Http\Controllers\Api\VehicleFaultController;
@@ -305,3 +306,16 @@ Route::middleware(['auth:sanctum', 'staff'])->group(function () {
     Route::post('part-orders/{partOrder}/cancel', [PartOrderController::class, 'cancel'])
         ->middleware('capability:manage-orders');
 });
+
+/* ------------------- Taches planifiees (declencheur externe) ------------- */
+//
+// Render n'offre aucun plan gratuit pour les taches cron : le render.yaml en
+// declarait une avec `plan: free`, donc elle n'a jamais existe, et rien ne le
+// signalait. L'ordonnanceur vit desormais chez GitHub Actions, qui est gratuit
+// et surtout observable — chaque execution laisse une trace datee.
+//
+// La route est gardee par un secret partage (X-Task-Token) et plafonnee a
+// quelques appels par minute : la tache balaie le parc entier.
+Route::post('tasks/{tache}', [ScheduledTaskController::class, 'run'])
+    ->middleware('throttle:scheduled-tasks')
+    ->whereIn('tache', ['reminders']);

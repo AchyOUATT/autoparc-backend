@@ -39,4 +39,16 @@ return [
 		'credentials' => env('FIREBASE_CREDENTIALS') ?: storage_path('app/firebase/service-account.json'),
 	],
 
+    /*
+     * Secret partage du declencheur de taches planifiees.
+     *
+     * Volontairement sans valeur par defaut : une chaine vide ferme la route
+     * (voir ScheduledTaskController). Un defaut quelconque ferait tourner la
+     * tache sur une valeur devinable, et un defaut vide ouvrirait la porte a
+     * tout le monde si la comparaison n'y prenait pas garde.
+     */
+    'tasks' => [
+        'secret' => env('TASKS_SECRET'),
+    ],
+
 ];

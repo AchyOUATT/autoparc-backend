@@ -37,54 +37,29 @@ services:
           property: password
       - key: FIREBASE_CREDENTIALS
         sync: false          # JSON de ta clé de service Firebase
+      - key: TASKS_SECRET
+        # Secret partagé du déclencheur de tâches planifiées, appelé par GitHub
+        # Actions. La même valeur doit être posée dans les secrets du dépôt.
+        # Non défini, la route refuse tout — c'est voulu : un oubli doit fermer
+        # la porte, pas l'ouvrir.
+        generateValue: true
 
-  # Rappels d'entretien du garage client.
+  # Les rappels d'entretien ne sont PLUS ici.
   #
-  # Un cron dédié plutôt qu'un `schedule:run` appelé chaque minute : la tâche
-  # est quotidienne, un worker permanent serait payé à ne rien faire 1 439
-  # minutes sur 1 440. Si d'autres tâches planifiées apparaissent, ajouter un
-  # cron par tâche, ou basculer sur un worker `schedule:work`.
+  # Ce fichier declarait un service `type: cron` avec `plan: free`. Render
+  # n'offre aucun plan gratuit pour les taches cron — leur documentation annonce
+  # un minimum d'un dollar par mois et par service. Le service n'a donc jamais
+  # pu exister, et c'est le pire de l'affaire : le fichier decrivait une tache
+  # quotidienne, personne n'avait de raison d'en douter, et aucun rappel n'est
+  # jamais parti pendant que des visites techniques etaient depassees depuis des
+  # semaines. Une declaration qui ment coute plus cher qu'une absence.
   #
-  # L'heure est en UTC chez Render : 8 h UTC correspond a 8 h au Burkina Faso,
-  # qui est a UTC+0 toute l'annee.
-  - type: cron
-    name: autoparc-reminders
-    env: docker
-    plan: free
-    dockerfilePath: ./Dockerfile
-    schedule: "0 8 * * *"
-    dockerCommand: php artisan reminders:maintenance
-    envVars:
-      - key: APP_ENV
-        value: production
-      - key: APP_DEBUG
-        value: false
-      - key: APP_KEY
-        sync: false
-      - key: DB_CONNECTION
-        value: pgsql
-      - key: DB_HOST
-        fromDatabase:
-          name: autoparc-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: autoparc-db
-          property: port
-      - key: DB_DATABASE
-        fromDatabase:
-          name: autoparc-db
-          property: database
-      - key: DB_USERNAME
-        fromDatabase:
-          name: autoparc-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: autoparc-db
-          property: password
-      - key: FIREBASE_CREDENTIALS
-        sync: false          # meme cle que le service web : les rappels poussent via FCM
+  # L'ordonnanceur vit desormais dans .github/workflows/reminders.yml : il
+  # appelle POST /api/tasks/reminders, garde par le secret TASKS_SECRET. Gratuit,
+  # et surtout observable — chaque execution laisse une trace datee.
+  #
+  # Pour revenir a un cron Render, il faudra retirer `plan: free` et accepter la
+  # facturation : la commande `reminders:maintenance` n'a pas bouge.
 
 databases:
   - name: autoparc-db
