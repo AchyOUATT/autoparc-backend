@@ -4,11 +4,33 @@ namespace App\Http\Requests;
 
 use App\Enums\PartCondition;
 use App\Enums\PartType;
+use App\Http\Requests\Concerns\RepliSurLaValeurParDefaut;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StorePartRequest extends FormRequest
 {
+    use RepliSurLaValeurParDefaut;
+
+    /**
+     * Colonnes NOT NULL que la migration dote d'un `default()`.
+     *
+     * Les regles ci-dessous les declarent facultatives, et c'est bien ainsi :
+     * la liste sert a rendre un null explicite equivalent a une cle absente,
+     * pour que la base applique son defaut au lieu de refuser l'insertion.
+     * Voir {@see RepliSurLaValeurParDefaut}.
+     *
+     * @var list<string>
+     */
+    protected const COLONNES_A_VALEUR_PAR_DEFAUT = [
+        'currency', 'vat_rate', 'stock_quantity', 'stock_alert_threshold', 'is_active',
+    ];
+
+    protected function prepareForValidation(): void
+    {
+        $this->ignorerLesNulls(self::COLONNES_A_VALEUR_PAR_DEFAUT);
+    }
+
     public function authorize(): bool
     {
         return true;
