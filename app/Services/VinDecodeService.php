@@ -124,10 +124,23 @@ class VinDecodeService
         $nhtsaMake  = $nhtsa['Make']  ?? null;
         $nhtsaModel = $nhtsa['Model'] ?? null;
 
-        $brand      = $nhtsaMake               ? $this->resolveBrand($nhtsaMake)                  : null;
-        $model      = ($brand && $nhtsaModel)  ? $this->resolveModel($brand['id'], $nhtsaModel)   : null;
+        // L'annee retenue commande la generation : « Mazda3 » designe trois
+        // generations au catalogue, et seule l'annee dit laquelle.
+        $anneeRetenue = $nhtsaYear ?? ($yearCandidates[0] ?? null);
+
+        $brand      = $nhtsaMake              ? $this->resolveBrand($nhtsaMake)                                : null;
+        $model      = ($brand && $nhtsaModel) ? $this->resolveModel($brand['id'], $nhtsaModel, $anneeRetenue)  : null;
         $engineType = $this->resolveEngineType($nhtsa);
         $drivetrain = $this->resolveDrivetrain($nhtsa);
+
+        // Une generation proposee hors de sa periode de production se corrige a
+        // la main : encore faut-il que le proprietaire sache qu'il y a quelque
+        // chose a corriger.
+        if ($model !== null && $model['covers_year'] === false && $anneeRetenue !== null) {
+            $generation = $model['generation'] ?? $model['name'];
+            $warnings[] = "Aucune génération de {$model['name']} au catalogue ne couvre {$anneeRetenue} : "
+                . "la {$generation} est proposée par défaut, vérifiez-la.";
+        }
 
         // 7. Résumé NHTSA brut (utile pour pré-remplir des champs hors-base côté Flutter)
         $nhtsaSummary = $nhtsa ? [
@@ -283,24 +296,93 @@ class VinDecodeService
     }
 
     /**
-     * Résout vehicle_model_id depuis le nom de modèle NHTSA, dans le scope d'une marque.
+     * Résout vehicle_model_id depuis le nom de modèle NHTSA, dans le scope d'une
+     * marque — et dans celui de l'année, qui décide de la génération.
      *
-     * @return array{id: int, name: string, slug: string, generation: string|null, body_type: string|null}|null
+     * Un « modèle » est une génération, pas un nom commercial : trois Mazda3
+     * coexistent au catalogue (BL 2008-2013, BM 2013-2018, BP depuis 2018), et
+     * elles répondent toutes au nom « Mazda3 ». Sans l'année, la requête en
+     * rendait une au hasard de l'ordre de la base — un VIN de 2014 ressortait
+     * sur la BL, dont la production s'est arrêtée l'année d'avant, et le
+     * décodage annonçait pourtant une confiance « haute ». Le véhicule était
+     * ensuite apparié à des pièces qui ne vont pas dessus.
+     *
+     * L'année est connue : NHTSA la donne, et le dixième caractère du VIN la
+     * confirme. Il n'y avait aucune raison de ne pas s'en servir.
+     *
+     * @param  int|null  $annee  Millésime retenu, quand il est connu.
+     * @return array{id: int, name: string, slug: string, generation: string|null, body_type: string|null, covers_year: bool}|null
      */
-    private function resolveModel(int $brandId, string $nhtsaModel): ?array
+    private function resolveModel(int $brandId, string $nhtsaModel, ?int $annee = null): ?array
     {
         $lower = strtolower($nhtsaModel);
 
-        $model = VehicleModel::where('brand_id', $brandId)
+        $candidats = VehicleModel::where('brand_id', $brandId)
             ->where('is_active', true)
             ->where(function ($q) use ($lower) {
                 $q->whereRaw('LOWER(name) = ?', [$lower])
                   ->orWhereRaw('LOWER(name) LIKE ?', ["%{$lower}%"]);
             })
             ->orderByRaw("CASE WHEN LOWER(name) = ? THEN 0 ELSE 1 END", [$lower])
-            ->first(['id', 'name', 'slug', 'generation', 'body_type']);
+            ->get(['id', 'name', 'slug', 'generation', 'body_type', 'production_start', 'production_end']);
 
-        return $model?->toArray();
+        if ($candidats->isEmpty()) {
+            return null;
+        }
+
+        $retenu = $this->generationPour($candidats, $annee);
+        $couvre = $annee === null || $this->couvre($retenu, $annee);
+
+        return [
+            'id'          => $retenu->id,
+            'name'        => $retenu->name,
+            'slug'        => $retenu->slug,
+            'generation'  => $retenu->generation,
+            'body_type'   => $retenu->body_type,
+
+            // Dit si la generation retenue couvre reellement l'annee. L'appelant
+            // en tire un avertissement et une confiance moindre : proposer une
+            // generation plausible est utile, la presenter comme certaine ne
+            // l'est pas.
+            'covers_year' => $couvre,
+        ];
+    }
+
+    /**
+     * La génération qui correspond à l'année, ou la moins éloignée.
+     *
+     * Quand deux générations couvrent la même année — elles se chevauchent
+     * systématiquement l'année du changement — on retient la plus récente :
+     * un millésime donné appartient le plus souvent à la génération qui démarre,
+     * les constructeurs lançant en cours d'année civile.
+     */
+    private function generationPour($candidats, ?int $annee)
+    {
+        if ($annee === null) {
+            return $candidats->first();
+        }
+
+        $couvrantes = $candidats->filter(fn ($m) => $this->couvre($m, $annee));
+
+        if ($couvrantes->isNotEmpty()) {
+            return $couvrantes->sortByDesc(fn ($m) => $m->production_start ?? 0)->first();
+        }
+
+        // Aucune ne couvre : la moins eloignee, pour que le proprietaire ait
+        // quelque chose a corriger plutot qu'un champ vide.
+        return $candidats->sortBy(function ($m) use ($annee) {
+            $debut = $m->production_start ?? $annee;
+            $fin   = $m->production_end   ?? $annee;
+
+            return $annee < $debut ? $debut - $annee : ($annee > $fin ? $annee - $fin : 0);
+        })->first();
+    }
+
+    /** Une generation sans borne est ouverte de ce cote-la. */
+    private function couvre($modele, int $annee): bool
+    {
+        return ($modele->production_start === null || $annee >= $modele->production_start)
+            && ($modele->production_end   === null || $annee <= $modele->production_end);
     }
 
     /**
@@ -448,6 +530,13 @@ class VinDecodeService
         if ($model)      $score += 3;
         if ($engineType) $score += 1;
         if ($drivetrain) $score += 1;
+
+        // Une generation hors de sa periode de production reste une proposition
+        // utile, pas une certitude : annoncer « high » dessus etait precisement
+        // ce qui empechait de voir qu'il fallait la corriger.
+        if ($model !== null && ($model['covers_year'] ?? true) === false) {
+            $score -= 2;
+        }
 
         return match (true) {
             $score >= 6 => 'high',
