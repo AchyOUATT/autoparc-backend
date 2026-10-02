@@ -232,7 +232,7 @@ class AccessoryController extends Controller
             $accessory->refresh();
 
             if ($data['operation'] === 'decrease' && $accessory->stock_quantity < $data['quantity']) {
-                abort(422, "Stock insuffisant pour {$accessory->sku} : {$accessory->stock_quantity} disponible(s), {$data['quantity']} demande(s).");
+                abort(422, "Stock insuffisant pour {$accessory->display_reference} : {$accessory->stock_quantity} disponible(s), {$data['quantity']} demande(s).");
             }
 
             $newQty = match ($data['operation']) {

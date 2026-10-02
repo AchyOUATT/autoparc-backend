@@ -74,9 +74,8 @@ class CompatibiliteSaisieTest extends TestCase
     private function corps(array $extra = []): array
     {
         return array_merge([
-            // Le SKU est declare nullable par la requete mais la colonne ne
-            // l'est pas : l'omettre rend un 500. Defaut connu, hors de ce
-            // sujet, il est renseigne ici pour ne pas le masquer.
+            // Le SKU est facultatif (voir SkuFacultatifTest) ; il est
+            // renseigne ici parce qu'une piece en stock en porte une.
             'sku'              => 'ESSAI-'.bin2hex(random_bytes(4)),
             'name'             => 'Piece essai',
             'part_category_id' => PartCategory::query()->value('id'),

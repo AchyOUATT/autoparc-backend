@@ -184,7 +184,8 @@ class BackfillFitments extends Command
         ) {
             foreach ($lot as $piece) {
                 $slug    = PartTaxonomy::slugFor($piece->name);
-                $choisis = FitmentPlanner::modelesPour($piece->sku, $slug, $tous, $prioritaires);
+                $cle     = self::cleStable('piece', $piece->id, $piece->sku);
+                $choisis = FitmentPlanner::modelesPour($cle, $slug, $tous, $prioritaires);
 
                 $lignes = [];
 
@@ -192,7 +193,7 @@ class BackfillFitments extends Command
                     $modele = $modeles[$modeleId];
 
                     [$de, $a] = FitmentPlanner::plageAnnees(
-                        $piece->sku.':'.$modeleId,
+                        $cle.':'.$modeleId,
                         $modele->production_start,
                         $modele->production_end,
                     );
@@ -250,8 +251,9 @@ class BackfillFitments extends Command
      *
      * La table etait vide elle aussi, et c'est le pivot de la recherche par
      * numero OEM : sans elle, saisir une reference ne renvoie jamais rien. La
-     * reference derive du SKU, donc elle est stable et ne peut pas entrer en
-     * collision avec celle d'une autre piece.
+     * reference derive de la cle stable de la piece, donc elle ne bouge pas
+     * d'une execution a l'autre et ne peut pas entrer en collision avec celle
+     * d'une autre piece.
      */
     private function attacherOem(Part $piece): bool
     {
@@ -259,7 +261,8 @@ class BackfillFitments extends Command
             return false;
         }
 
-        $empreinte = strtoupper(substr(md5($piece->sku), 0, 9));
+        $cle       = self::cleStable('piece', $piece->id, $piece->sku);
+        $empreinte = strtoupper(substr(md5($cle), 0, 9));
         $numero    = substr($empreinte, 0, 5).'-'.substr($empreinte, 5, 4);
 
         $oem = OemNumber::firstOrCreate(
@@ -307,8 +310,9 @@ class BackfillFitments extends Command
             $modeles, $tous, $prioritaires, &$ecrites, &$traites, $barre
         ) {
             foreach ($lot as $accessoire) {
+                $cle     = self::cleStable('accessoire', $accessoire->id, $accessoire->sku);
                 $choisis = FitmentPlanner::modelesPour(
-                    $accessoire->sku,
+                    $cle,
                     self::familleAccessoire($accessoire->name),
                     $tous,
                     $prioritaires,
@@ -320,7 +324,7 @@ class BackfillFitments extends Command
                     $modele = $modeles[$modeleId];
 
                     [$de, $a] = FitmentPlanner::plageAnnees(
-                        $accessoire->sku.':'.$modeleId,
+                        $cle.':'.$modeleId,
                         $modele->production_start,
                         $modele->production_end,
                     );
@@ -358,6 +362,27 @@ class BackfillFitments extends Command
             $ecrites,
             $this->option('dry-run') ? ' (non ecrites)' : '',
         ));
+    }
+
+    /**
+     * Cle stable d'un article, pour une selection rejouable.
+     *
+     * Le SKU tenait ce role seul. Mais il est facultatif : l'ecran de saisie
+     * ne l'impose pas, l'API non plus, et la colonne accepte NULL depuis
+     * qu'elle a cesse de rendre un 500 sur une piece sans reference. Un
+     * article sans SKU arretait alors la commande en pleine boucle —
+     * `modelesPour()` attend un `string` — et `md5(null)` donnait la meme
+     * empreinte a tous, donc un seul numero OEM partage par tous les articles
+     * sans reference.
+     *
+     * L'identifiant tient le meme role : unique, et stable dans le temps. La
+     * selection reste donc rejouable, et un article qui recoit plus tard un
+     * SKU change simplement de cle — sans consequence, puisque la commande
+     * laisse tranquille tout article deja rattache.
+     */
+    private static function cleStable(string $prefixe, int $id, ?string $sku): string
+    {
+        return $sku ?? $prefixe.':'.$id;
     }
 
     /**

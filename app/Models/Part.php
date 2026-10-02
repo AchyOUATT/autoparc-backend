@@ -117,6 +117,18 @@ class Part extends Model
         return round((float) $this->selling_price * (1 + (float) $this->vat_rate / 100), 2);
     }
 
+    /**
+     * De quoi designer la piece dans un message destine a quelqu'un.
+     *
+     * Le SKU est facultatif : l'interpoler tel quel laissait un trou la ou la
+     * personne attend de savoir de quel article on lui parle (« Stock
+     * insuffisant pour la piece  : 1 disponible(s) »).
+     */
+    public function getDisplayReferenceAttribute(): string
+    {
+        return $this->sku ?: $this->name;
+    }
+
     public function scopeActive(Builder $q): Builder
     {
         return $q->where('is_active', true);

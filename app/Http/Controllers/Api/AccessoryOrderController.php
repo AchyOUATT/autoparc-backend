@@ -125,7 +125,7 @@ class AccessoryOrderController extends Controller
                 if ($accessory->stock_quantity < $item->quantity) {
                     abort(
                         422,
-                        "Stock insuffisant pour {$accessory->sku} : {$accessory->stock_quantity} disponible(s), {$item->quantity} demande(s)."
+                        "Stock insuffisant pour {$accessory->display_reference} : {$accessory->stock_quantity} disponible(s), {$item->quantity} demande(s)."
                     );
                 }
                 $accessory->decrement('stock_quantity', $item->quantity);

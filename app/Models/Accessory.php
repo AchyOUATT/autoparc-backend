@@ -79,6 +79,12 @@ class Accessory extends Model
         return round((float) $this->selling_price * (1 + (float) $this->vat_rate / 100), 2);
     }
 
+    /** Voir Part::getDisplayReferenceAttribute() : le SKU est facultatif. */
+    public function getDisplayReferenceAttribute(): string
+    {
+        return $this->sku ?: $this->name;
+    }
+
     public function scopeActive(Builder $q): Builder
     {
         return $q->where('is_active', true);
