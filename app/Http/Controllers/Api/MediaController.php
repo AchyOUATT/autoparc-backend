@@ -27,9 +27,26 @@ use Illuminate\Support\Str;
  */
 class MediaController extends Controller
 {
-    private const DISK       = 'public';
     private const MAX_SIZE   = 8192;   // ko — 8 Mo par fichier
     private const ALLOWED    = ['image/jpeg', 'image/png', 'image/webp'];
+
+    /**
+     * Ou ecrire les nouvelles photos.
+     *
+     * Le disque etait fige a `public`, c'est-a-dire le disque local. En ligne,
+     * celui de Render est ephemere : les photos disparaissaient au deploiement
+     * suivant, en laissant des lignes `media` qui pointent sur des fichiers
+     * absents. Le reglage vit maintenant dans la configuration, et vaut `s3`
+     * en production.
+     *
+     * Lu a chaque ecriture, et non mis en cache dans une propriete : la
+     * configuration peut changer d'une requete a l'autre, et les tests en
+     * dependent.
+     */
+    private function disque(): string
+    {
+        return config('media.disk');
+    }
 
     // ── Upload ───────────────────────────────────────────────────────
 
@@ -65,7 +82,7 @@ class MediaController extends Controller
         foreach ($request->file('photos', []) as $file) {
             $ext  = $file->getClientOriginalExtension();
             $name = Str::uuid() . '.' . $ext;
-            $path = $file->storeAs("{$folder}/{$model->id}", $name, self::DISK);
+            $path = $file->storeAs("{$folder}/{$model->id}", $name, $this->disque());
 
             // Position = dernier existant + 1
             $position = $model->media()
@@ -79,7 +96,7 @@ class MediaController extends Controller
             $media = $model->media()->create([
                 'collection' => $collection,
                 'path'       => $path,
-                'disk'       => self::DISK,
+                'disk'       => $this->disque(),
                 'mime_type'  => $file->getMimeType(),
                 'size'       => $file->getSize(),
                 'position'   => $position,

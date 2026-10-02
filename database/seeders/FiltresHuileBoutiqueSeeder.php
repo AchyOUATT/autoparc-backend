@@ -150,6 +150,28 @@ class FiltresHuileBoutiqueSeeder extends Seeder
             "compatibilites" => [
             ],
         ],
+        [
+            "sku"           => "90915-YZZD4",
+            "nom"           => "Filtre a huile visse 90915-YZZD4",
+            "description"   => "Visse, gros moteurs essence 1GR-FE 4.0, 2UZ-FE 4.7 et 1FZ-FE 4.5. Ne convient pas aux diesel KD, qui relevent du 90915-YZZD2.",
+            "remplace"      => ["90915-20004"],
+            "compatibilites" => [
+                ["hilux-an10", 2005, 2013, "1GR-FE"],
+                ["fortuner-an50", 2005, 2013, "1GR-FE"],
+                ["land-cruiser-j100", 1998, 2007, "2UZ-FE"],
+                ["land-cruiser-j200", 2007, 2012, "1GR-FE"],
+                ["land-cruiser-prado-j120", 2003, 2009, "1GR-FE"],
+                ["land-cruiser-prado-j120", 2002, 2009, "5L-E"],
+            ],
+        ],
+        [
+            "sku"           => "90915-10001",
+            "nom"           => "Filtre a huile visse 90915-10001",
+            "description"   => "Visse, ancienne reference remplacee par le 90915-YZZN1 sur les catalogues nord-americains. Applications anterieures a 2008, anterieures au referentiel.",
+            "remplace"      => [],
+            "compatibilites" => [
+            ],
+        ],
     ];
 
     public function run(): void

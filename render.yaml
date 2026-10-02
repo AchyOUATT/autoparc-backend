@@ -44,6 +44,36 @@ services:
         # la porte, pas l'ouvrir.
         generateValue: true
 
+      # ── Stockage des photos ─────────────────────────────────────────
+      #
+      # Le disque de Render est éphémère : tout fichier écrit sur place
+      # disparaît au déploiement suivant, et une migration de données en
+      # déclenche un. Des photos chargées dans storage/app/public seraient
+      # effacées à la mise à jour d'après, en laissant des lignes `media`
+      # qui pointent sur des fichiers absents.
+      #
+      # Elles vont donc sur un stockage objet compatible S3 (Cloudflare R2).
+      # Tant que ces variables ne sont pas remplies, MEDIA_DISK doit rester
+      # à `public` : les photos ne survivront pas, mais rien ne plantera.
+      #
+      # Procédure complète : docs/stockage-images.md
+      - key: MEDIA_DISK
+        sync: false          # `s3` une fois le stockage objet configuré
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_BUCKET
+        sync: false
+      - key: AWS_DEFAULT_REGION
+        value: auto          # R2 n'a pas de région au sens d'AWS
+      - key: AWS_ENDPOINT
+        sync: false          # https://<ID de compte>.r2.cloudflarestorage.com
+      - key: AWS_URL
+        sync: false          # l'adresse publique qui sert les images
+      - key: AWS_USE_PATH_STYLE_ENDPOINT
+        value: true          # R2 adresse les compartiments par le chemin
+
   # Les rappels d'entretien ne sont PLUS ici.
   #
   # Ce fichier declarait un service `type: cron` avec `plan: free`. Render

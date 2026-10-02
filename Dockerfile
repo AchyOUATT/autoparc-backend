@@ -59,6 +59,8 @@ EXPOSE 8000
 # ce qui vaut mieux qu'une instance qui refuse de démarrer.
 CMD php artisan config:cache \
     && php artisan route:cache \
+    && (php artisan storage:link \
+        || echo "ATTENTION : lien de stockage non cree, les photos locales seront en 404") \
     && php artisan migrate --force \
     && (php artisan db:seed --class=VehicleModelsSeeder --force \
         || echo "ATTENTION : referentiel des modeles non mis a jour") \

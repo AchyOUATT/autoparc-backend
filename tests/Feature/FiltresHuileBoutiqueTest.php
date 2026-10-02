@@ -43,6 +43,7 @@ class FiltresHuileBoutiqueTest extends TestCase
     private const REFERENCES = [
         '90915-YZZF2', '90915-YZZE1', '90915-YZZD1', '90915-YZZD2',
         '90915-YZZN1', '90915-YZZN2', '04152-YZZA1', '04152-YZZA6',
+        '90915-YZZD4', '90915-10001',
     ];
 
     protected function setUp(): void
@@ -173,7 +174,7 @@ class FiltresHuileBoutiqueTest extends TestCase
 
         $lignes = PartFitment::with('vehicleModel')->get();
 
-        $this->assertCount(10, $lignes,
+        $this->assertCount(16, $lignes,
             "Des compatibilites ont ete perdues : un slug ne se resout plus.");
 
         foreach ($lignes as $ligne) {
@@ -408,7 +409,7 @@ class FiltresHuileBoutiqueTest extends TestCase
     {
         $this->semer();
 
-        $enAttente = ['90915-YZZF2', '90915-YZZE1', '90915-YZZD1', '90915-YZZN2', '04152-YZZA6'];
+        $enAttente = ['90915-YZZF2', '90915-YZZE1', '90915-YZZD1', '90915-YZZN2', '04152-YZZA6', '90915-10001'];
 
         foreach ($enAttente as $sku) {
             $piece = Part::where('sku', $sku)->with('fitments')->firstOrFail();
