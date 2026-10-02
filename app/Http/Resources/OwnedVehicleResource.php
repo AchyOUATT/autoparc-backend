@@ -33,6 +33,13 @@ class OwnedVehicleResource extends JsonResource
 
             'identity' => [
                 'brand'      => $this->whenLoaded('brand', fn () => $this->brand->name),
+
+                // Le slug identifie le fichier de logo cote application
+                // (assets/brands/<slug>.svg), comme pour les annonces du
+                // catalogue. L'accueil le fabriquait jusqu'ici a partir du nom,
+                // ce qui marchait tant qu'aucune marque n'avait d'accent :
+                // « Citroën » y devenait « citro-n » et perdait son logo.
+                'brand_slug' => $this->whenLoaded('brand', fn () => $this->brand->slug),
                 'model'      => $this->whenLoaded('vehicleModel', fn () => $this->vehicleModel->name),
                 'trim'       => $this->whenLoaded('trim', fn () => $this->trim?->name),
                 'engine_type' => $this->whenLoaded('engineType', fn () => $this->engineType?->label),
