@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\FitmentSource;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAccessoryRequest;
 use App\Http\Resources\AccessoryResource;
@@ -85,7 +86,7 @@ class AccessoryController extends Controller
             $accessory = Accessory::create(collect($data)->except('fitments')->all());
 
             foreach ($data['fitments'] ?? [] as $fitment) {
-                $accessory->fitments()->create($fitment);
+                $accessory->fitments()->create($this->declaree($fitment));
             }
 
             return $accessory;
@@ -163,16 +164,33 @@ class AccessoryController extends Controller
         DB::transaction(function () use ($accessory, $data) {
             $accessory->update(collect($data)->except('fitments')->all());
 
-            // Remplacement complet des fitments si fournis
+            // Remplacement complet des fitments si fournis. L'ecran d'edition
+            // affiche la liste entiere : ce qui y reste a l'enregistrement
+            // devient une declaration, y compris les lignes fabriquees.
             if (array_key_exists('fitments', $data)) {
                 $accessory->fitments()->delete();
                 foreach ($data['fitments'] as $fitment) {
-                    $accessory->fitments()->create($fitment);
+                    $accessory->fitments()->create($this->declaree($fitment));
                 }
             }
         });
 
         return new AccessoryResource($accessory->refresh()->load(['manufacturer', 'fitments']));
+    }
+
+    /**
+     * Marque une ligne de compatibilite comme saisie par un humain.
+     *
+     * Voir PartController::declaree() : l'origine est imposee apres les
+     * donnees recues pour qu'aucune requete ne puisse faire passer sa saisie
+     * pour une fabrication, et la rendre effacable par le recalcul.
+     *
+     * @param  array<string, mixed>  $fitment
+     * @return array<string, mixed>
+     */
+    private function declaree(array $fitment): array
+    {
+        return array_merge($fitment, ['source' => FitmentSource::Declared]);
     }
 
     /** DELETE /api/accessories/{accessory} — soft delete */

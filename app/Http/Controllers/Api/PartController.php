@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\FitmentSource;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePartRequest;
 use App\Http\Resources\PartResource;
@@ -65,7 +66,7 @@ class PartController extends Controller
             $this->syncOemNumbers($part, $data['oem_numbers'] ?? []);
 
             foreach ($data['fitments'] ?? [] as $fitment) {
-                $part->fitments()->create($fitment);
+                $part->fitments()->create($this->declaree($fitment));
             }
 
             return $part;
@@ -147,15 +148,34 @@ class PartController extends Controller
                 $this->syncOemNumbers($part, $data['oem_numbers'], replace: true);
             }
 
+            // Remplacement total, et c'est volontaire : l'ecran d'edition
+            // affiche la liste complete, celui qui enregistre repond donc de
+            // chaque ligne qu'il y a laissee. Toute ligne conservee devient
+            // une declaration, meme si elle avait ete fabriquee.
             if (array_key_exists('fitments', $data)) {
                 $part->fitments()->delete();
                 foreach ($data['fitments'] as $fitment) {
-                    $part->fitments()->create($fitment);
+                    $part->fitments()->create($this->declaree($fitment));
                 }
             }
         });
 
         return new PartResource($part->refresh()->load(['category', 'manufacturer', 'oemNumbers', 'fitments']));
+    }
+
+    /**
+     * Marque une ligne de compatibilite comme saisie par un humain.
+     *
+     * L'origine est imposee apres les donnees recues, jamais avant : aucune
+     * requete ne doit pouvoir faire passer sa saisie pour une fabrication,
+     * ce qui la rendrait effacable par le recalcul du catalogue.
+     *
+     * @param  array<string, mixed>  $fitment
+     * @return array<string, mixed>
+     */
+    private function declaree(array $fitment): array
+    {
+        return array_merge($fitment, ['source' => FitmentSource::Declared]);
     }
 
     /** Bascule la disponibilité (disponible ↔ indisponible). */

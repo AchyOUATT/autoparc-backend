@@ -57,12 +57,22 @@ class AccessoryResource extends JsonResource
             'is_active' => $this->is_active,
 
             // Compatibilités : chargées uniquement sur le détail
+            // Voir PartResource : les identifiants sont ce qui permet a
+            // l'ecran d'edition de relire la liste et de la renvoyer sans
+            // perte. Un accessoire n'a ni code moteur ni position.
             'fitments' => $this->whenLoaded('fitments', fn () => $this->fitments->map(fn ($f) => [
+                'id'               => $f->id,
                 'vehicle_model_id' => $f->vehicle_model_id,
                 'vehicle_model'    => $f->vehicleModel?->full_name ?? null,
+                'brand_id'         => $f->vehicleModel?->brand_id,
+                'trim_id'          => $f->trim_id,
                 'trim'             => $f->trim?->name,
+                'engine_type_id'   => $f->engine_type_id,
+                'drivetrain_id'    => $f->drivetrain_id,
                 'year_from'        => $f->year_from,
                 'year_to'          => $f->year_to,
+                'notes'            => $f->notes,
+                'source'           => $f->source?->value,
             ])),
             'partners' => PartnerResource::collection($this->whenLoaded('partners')),
         ];

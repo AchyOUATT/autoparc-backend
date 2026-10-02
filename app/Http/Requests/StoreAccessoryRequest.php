@@ -41,6 +41,11 @@ class StoreAccessoryRequest extends FormRequest
             'fitments'                         => ['nullable', 'array'],
             'fitments.*.vehicle_model_id'      => ['required_with:fitments', 'exists:vehicle_models,id'],
             'fitments.*.trim_id'               => ['nullable', 'exists:trims,id'],
+            // La table porte ces trois colonnes et la ressource les rend :
+            // les omettre ici les ferait disparaitre a chaque modification.
+            'fitments.*.engine_type_id'        => ['nullable', 'exists:engine_types,id'],
+            'fitments.*.drivetrain_id'         => ['nullable', 'exists:drivetrains,id'],
+            'fitments.*.notes'                 => ['nullable', 'string', 'max:2000'],
             'fitments.*.year_from'             => ['nullable', 'integer', 'min:1950'],
             'fitments.*.year_to'               => ['nullable', 'integer', 'min:1950', 'gte:fitments.*.year_from'],
         ];

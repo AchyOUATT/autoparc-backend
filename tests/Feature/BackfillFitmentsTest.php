@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\FitmentSource;
 use App\Models\Accessory;
+use App\Models\AccessoryFitment;
 use App\Models\Brand;
 use App\Models\OwnedVehicle;
 use App\Models\Part;
@@ -126,8 +128,9 @@ class BackfillFitmentsTest extends TestCase
         $this->assertSame($premier, PartFitment::count());
 
         // Avec --fresh : tout est recalcule, et le resultat est identique
-        // puisque la selection est deterministe.
-        $this->artisan('catalog:backfill-fitments --fresh')->assertSuccessful();
+        // puisque la selection est deterministe. --force saute la question
+        // que la commande pose avant de detruire quoi que ce soit.
+        $this->artisan('catalog:backfill-fitments --fresh --force')->assertSuccessful();
         $this->assertSame($premier, PartFitment::count());
     }
 
@@ -186,5 +189,188 @@ class BackfillFitmentsTest extends TestCase
         foreach (Part::with('oemNumbers')->get() as $piece) {
             $this->assertCount(1, $piece->oemNumbers, "SKU {$piece->sku}");
         }
+    }
+
+    // ── Ce que la commande n'a pas le droit de detruire ──────────────────
+
+    /**
+     * Le defaut que cette serie verrouille.
+     *
+     * `--fresh` faisait `delete()` sur toutes les lignes d'une piece avant de
+     * les reecrire. Une compatibilite saisie a la main disparaissait sans un
+     * mot, et la checklist de publication demande justement de lancer la
+     * commande en production.
+     */
+    public function test_le_recalcul_epargne_une_compatibilite_saisie(): void
+    {
+        $modele = $this->modele('Alpha');
+        $piece  = Part::factory()->create();
+
+        $piece->fitments()->create([
+            'vehicle_model_id' => $modele->id,
+            'year_from'        => 2012,
+            'year_to'          => 2016,
+            'position'         => 'avant gauche',
+            'source'           => FitmentSource::Declared,
+        ]);
+
+        $this->artisan('catalog:backfill-fitments --fresh --force')->assertSuccessful();
+
+        $restantes = $piece->fitments()->get();
+
+        $this->assertCount(1, $restantes, 'La saisie a ete detruite ou noyee.');
+        $this->assertSame(FitmentSource::Declared, $restantes->first()->source);
+        $this->assertSame('avant gauche', $restantes->first()->position);
+    }
+
+    /**
+     * Et l'inverse : la commande reste libre de refaire son propre travail,
+     * sans quoi la protection l'aurait simplement paralysee.
+     */
+    public function test_le_recalcul_remplace_bien_ce_qu_il_a_fabrique(): void
+    {
+        $this->modele('Alpha');
+        $this->modele('Beta');
+        $piece = Part::factory()->create();
+
+        $this->artisan('catalog:backfill-fitments')->assertSuccessful();
+
+        $fabriquees = $piece->fitments()->count();
+        $this->assertGreaterThan(0, $fabriquees);
+        $this->assertSame(
+            $fabriquees,
+            $piece->fitments()->where('source', FitmentSource::Generated)->count(),
+            'La commande doit signer ses propres lignes.',
+        );
+
+        // Une ligne parasite, comme si un ancien passage avait derive.
+        $piece->fitments()->create([
+            'vehicle_model_id' => VehicleModel::first()->id,
+            'source'           => FitmentSource::Generated,
+        ]);
+
+        $this->artisan('catalog:backfill-fitments --fresh --force')->assertSuccessful();
+
+        $this->assertSame($fabriquees, $piece->fitments()->count());
+    }
+
+    /**
+     * Une piece dont la compatibilite est declaree n'est pas seulement
+     * epargnee : elle n'est pas completee non plus. Melanger une ligne
+     * verifiee et quinze lignes vraisemblables dans la meme liste reviendrait
+     * a rendre la premiere indistinguable des autres.
+     */
+    public function test_une_piece_declaree_ne_recoit_aucune_ligne_fabriquee(): void
+    {
+        $modele = $this->modele('Alpha');
+        $this->modele('Beta');
+        $this->modele('Gamma');
+
+        $declaree = Part::factory()->create();
+        $declaree->fitments()->create([
+            'vehicle_model_id' => $modele->id,
+            'source'           => FitmentSource::Declared,
+        ]);
+
+        $libre = Part::factory()->create();
+
+        $this->artisan('catalog:backfill-fitments --fresh --force')->assertSuccessful();
+
+        $this->assertSame(1, $declaree->fitments()->count());
+        $this->assertGreaterThan(0, $libre->fitments()->count(), 'Les autres pieces doivent rester traitees.');
+    }
+
+    /** Un recalcul annonce ce qu'il va detruire et s'arrete si on dit non. */
+    public function test_le_recalcul_demande_confirmation_avant_de_detruire(): void
+    {
+        $this->modele('Alpha');
+        Part::factory()->count(2)->create();
+
+        $this->artisan('catalog:backfill-fitments')->assertSuccessful();
+
+        // Les identifiants, pas le nombre : la selection etant deterministe,
+        // un recalcul qui supprime puis reecrit rend exactement le meme
+        // compte. Compter n'aurait donc rien prouve.
+        $avant = PartFitment::orderBy('id')->pluck('id')->all();
+        $this->assertNotEmpty($avant);
+
+        $this->artisan('catalog:backfill-fitments --fresh')
+            ->expectsConfirmation('Continuer ?', 'no')
+            ->assertFailed();
+
+        $this->assertSame(
+            $avant,
+            PartFitment::orderBy('id')->pluck('id')->all(),
+            'Un refus doit laisser les lignes elles-memes en place, pas seulement leur nombre.',
+        );
+    }
+
+    /** La commande signe ce qu'elle fabrique, cote accessoires aussi. */
+    public function test_la_commande_signe_les_lignes_d_accessoire_qu_elle_fabrique(): void
+    {
+        $this->modele('Alpha');
+        Accessory::factory()->count(2)->create();
+
+        $this->artisan('catalog:backfill-fitments --only=accessories')->assertSuccessful();
+
+        $total = AccessoryFitment::count();
+
+        $this->assertGreaterThan(0, $total);
+        $this->assertSame(
+            $total,
+            AccessoryFitment::where('source', FitmentSource::Generated)->count(),
+            'Une ligne non signee serait epargnee a tort au recalcul suivant.',
+        );
+    }
+
+    /**
+     * La seconde barriere, eprouvee seule.
+     *
+     * La commande ne peut pas l'atteindre tant que la premiere tient — une
+     * piece declaree n'est jamais selectionnee. C'est precisement pourquoi
+     * elle se teste ici : le jour ou quelqu'un relache la selection pour
+     * completer une piece declaree, c'est ce filtre qui empechera la perte,
+     * et rien ne l'aurait signale s'il avait disparu entre-temps.
+     */
+    public function test_la_portee_des_lignes_fabriquees_exclut_les_saisies(): void
+    {
+        $modele = $this->modele('Alpha');
+        $piece  = Part::factory()->create();
+
+        $piece->fitments()->create([
+            'vehicle_model_id' => $modele->id,
+            'source'           => FitmentSource::Declared,
+        ]);
+        $piece->fitments()->create([
+            'vehicle_model_id' => $modele->id,
+            'source'           => FitmentSource::Generated,
+        ]);
+
+        PartFitment::where('part_id', $piece->id)->fabriquees()->delete();
+
+        $restantes = $piece->fitments()->get();
+
+        $this->assertCount(1, $restantes);
+        $this->assertSame(FitmentSource::Declared, $restantes->first()->source);
+    }
+
+    /** Les accessoires suivent la meme regle que les pieces. */
+    public function test_le_recalcul_epargne_aussi_un_accessoire_saisi(): void
+    {
+        $modele     = $this->modele('Alpha');
+        $accessoire = Accessory::factory()->create();
+
+        $accessoire->fitments()->create([
+            'vehicle_model_id' => $modele->id,
+            'notes'            => 'verifie sur le vehicule du client',
+            'source'           => FitmentSource::Declared,
+        ]);
+
+        $this->artisan('catalog:backfill-fitments --fresh --force')->assertSuccessful();
+
+        $restantes = $accessoire->fitments()->get();
+
+        $this->assertCount(1, $restantes);
+        $this->assertSame('verifie sur le vehicule du client', $restantes->first()->notes);
     }
 }

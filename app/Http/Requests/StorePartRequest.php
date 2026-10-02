@@ -57,6 +57,10 @@ class StorePartRequest extends FormRequest
             'fitments.*.year_from'         => ['nullable', 'integer', 'min:1950'],
             'fitments.*.year_to'           => ['nullable', 'integer', 'min:1950', 'gte:fitments.*.year_from'],
             'fitments.*.position'          => ['nullable', 'string', 'max:60'],
+            // Une colonne absente de ces regles est une colonne perdue :
+            // `validated()` l'ecarte, et l'ecran d'edition la vide au premier
+            // enregistrement. C'est ainsi que les notes disparaissaient.
+            'fitments.*.notes'             => ['nullable', 'string', 'max:2000'],
         ];
     }
 }

@@ -59,14 +59,28 @@ class PartResource extends JsonResource
             'weight_kg'       => $this->weight_kg,
             'dimensions'      => $this->dimensions,
             'is_active'       => $this->is_active,
+            // Les identifiants comptent autant que les libelles : l'ecran
+            // d'edition relit cette liste et la renvoie telle quelle. Rendre
+            // « Toyota Corolla » et « 1.4 D-4D » sans les identifiants rendait
+            // l'aller-retour impossible — l'ecriture, elle, attend trim_id et
+            // engine_type_id. Toute cle absente ici est une donnee perdue au
+            // premier enregistrement.
             'fitments'        => $this->whenLoaded('fitments', fn () => $this->fitments->map(fn ($f) => [
+                'id'               => $f->id,
                 'vehicle_model_id' => $f->vehicle_model_id,
                 'vehicle_model'    => $f->vehicleModel?->full_name,
+                'brand_id'         => $f->vehicleModel?->brand_id,
+                'trim_id'          => $f->trim_id,
                 'trim'             => $f->trim?->name,
+                'engine_type_id'   => $f->engine_type_id,
                 'engine_type'      => $f->engineType?->label,
+                'drivetrain_id'    => $f->drivetrain_id,
+                'engine_code'      => $f->engine_code,
                 'year_from'        => $f->year_from,
                 'year_to'          => $f->year_to,
                 'position'         => $f->position,
+                'notes'            => $f->notes,
+                'source'           => $f->source?->value,
             ])),
             'partners'        => PartnerResource::collection($this->whenLoaded('partners')),
         ];

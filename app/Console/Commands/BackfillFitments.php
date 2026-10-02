@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\FitmentSource;
 use App\Models\Accessory;
 use App\Models\AccessoryFitment;
 use App\Models\OemNumber;
@@ -28,12 +29,20 @@ use Illuminate\Support\Facades\DB;
  * de vrais garages et de vraies commandes. Cette commande complete l'existant
  * sans y toucher, et se relance sans risque : la selection etant deterministe,
  * une piece deja traitee retrouve exactement les memes modeles.
+ *
+ * Ce qu'elle ecrit porte l'origine `generated`, et c'est la seule chose qu'elle
+ * s'autorise a detruire. `--fresh` effacait auparavant toutes les lignes d'une
+ * piece avant de les reecrire : une compatibilite saisie a la main disparaissait
+ * sans un mot. Desormais une piece qui porte au moins une ligne declaree est
+ * laissee entierement tranquille — on ne complete pas au jugé le travail de
+ * quelqu'un qui a verifie.
  */
 class BackfillFitments extends Command
 {
     protected $signature = 'catalog:backfill-fitments
-                            {--fresh : Recalculer aussi les compatibilites existantes}
+                            {--fresh : Recalculer les compatibilites fabriquees (les saisies sont epargnees)}
                             {--dry-run : Afficher ce qui serait ecrit, sans rien ecrire}
+                            {--force : Ne pas demander confirmation avant un recalcul}
                             {--only= : Se limiter a "parts" ou "accessories"}';
 
     protected $description = 'Genere les compatibilites manquantes entre le catalogue et les modeles de vehicule';
@@ -71,6 +80,12 @@ class BackfillFitments extends Command
             $this->warn('Mode essai : rien ne sera ecrit.');
         }
 
+        if ($this->option('fresh') && ! $this->confirmerRecalcul()) {
+            $this->line('Abandon : rien n\'a ete touche.');
+
+            return self::FAILURE;
+        }
+
         if ($seulement !== 'accessories') {
             $this->traiterPieces($modeles, $tous, $prioritaires);
         }
@@ -80,6 +95,35 @@ class BackfillFitments extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Annonce ce qu'un recalcul va detruire, et demande l'accord.
+     *
+     * Les lignes declarees sont epargnees par construction. Reste que le
+     * classement des lignes anterieures a la colonne d'origine est une
+     * deduction : une saisie reduite a « cette marque, ce modele » porte la
+     * meme signature qu'une fabrication et a pu etre rendue au recalcul. C'est
+     * la raison de cette question — un chiffre affiche avant la suppression
+     * valait mieux qu'une decouverte apres.
+     */
+    private function confirmerRecalcul(): bool
+    {
+        $fabriquees = PartFitment::where('source', FitmentSource::Generated)->count()
+            + AccessoryFitment::where('source', FitmentSource::Generated)->count();
+
+        $declarees = PartFitment::where('source', FitmentSource::Declared)->count()
+            + AccessoryFitment::where('source', FitmentSource::Declared)->count();
+
+        $this->newLine();
+        $this->line(sprintf('Recalcul : %d ligne(s) fabriquee(s) seront remplacees.', $fabriquees));
+        $this->line(sprintf('%d ligne(s) declaree(s) seront epargnees.', $declarees));
+
+        if ($this->option('dry-run') || $this->option('force')) {
+            return true;
+        }
+
+        return $this->confirm('Continuer ?', default: false);
     }
 
     /**
@@ -111,6 +155,12 @@ class BackfillFitments extends Command
         $this->info('Pieces');
 
         $requete = Part::query()->select(['id', 'sku', 'name']);
+
+        // Une piece dont quelqu'un a declare la compatibilite est laissee
+        // tranquille, y compris en recalcul : completer au jugé une liste
+        // verifiee reviendrait a melanger du vrai et du vraisemblable sans
+        // que personne puisse plus les distinguer a l'ecran.
+        $requete->whereDoesntHave('fitments', fn ($f) => $f->where('source', FitmentSource::Declared));
 
         if (! $this->option('fresh')) {
             $requete->whereDoesntHave('fitments');
@@ -152,6 +202,9 @@ class BackfillFitments extends Command
                         'vehicle_model_id' => $modeleId,
                         'year_from'        => $de,
                         'year_to'          => $a,
+                        // insert() contourne les casts du modele : la valeur
+                        // brute de l'enum, pas l'enum.
+                        'source'           => FitmentSource::Generated->value,
                         'created_at'       => now(),
                         'updated_at'       => now(),
                     ];
@@ -162,7 +215,10 @@ class BackfillFitments extends Command
                         // En mode --fresh la piece peut deja porter des lignes :
                         // on remplace plutot que d'empiler, sans quoi chaque
                         // execution doublerait le nombre de compatibilites.
-                        PartFitment::where('part_id', $piece->id)->delete();
+                        // Seules les lignes fabriquees sont remplacees — la
+                        // selection a deja ecarte les pieces qui portent une
+                        // declaration, ce filtre est la ceinture.
+                        PartFitment::where('part_id', $piece->id)->fabriquees()->delete();
                         PartFitment::insert($lignes);
 
                         if ($this->attacherOem($piece)) {
@@ -228,6 +284,9 @@ class BackfillFitments extends Command
 
         $requete = Accessory::query()->select(['id', 'sku', 'name']);
 
+        // Voir traiterPieces() : une declaration met l'accessoire hors d'atteinte.
+        $requete->whereDoesntHave('fitments', fn ($f) => $f->where('source', FitmentSource::Declared));
+
         if (! $this->option('fresh')) {
             $requete->whereDoesntHave('fitments');
         }
@@ -271,6 +330,7 @@ class BackfillFitments extends Command
                         'vehicle_model_id' => $modeleId,
                         'year_from'        => $de,
                         'year_to'          => $a,
+                        'source'           => FitmentSource::Generated->value,
                         'created_at'       => now(),
                         'updated_at'       => now(),
                     ];
@@ -278,7 +338,7 @@ class BackfillFitments extends Command
 
                 if (! $this->option('dry-run')) {
                     DB::transaction(function () use ($accessoire, $lignes) {
-                        AccessoryFitment::where('accessory_id', $accessoire->id)->delete();
+                        AccessoryFitment::where('accessory_id', $accessoire->id)->fabriquees()->delete();
                         AccessoryFitment::insert($lignes);
                     });
                 }
