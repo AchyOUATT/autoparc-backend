@@ -80,7 +80,7 @@ class VehicleModelsSeeder extends Seeder
             ['mitsubishi', 'L200',        'KB',   'pick-up', 'D', 2005, 2015],
 
             // ─── SUZUKI ────────────────────────────────────────────────
-            ['suzuki', 'Alto',          'HA36',  'citadine',  'A', 2015, null],
+            ['suzuki', 'Alto',          null,  'citadine',  'A', 2015, null],
             ['suzuki', 'Swift',         'AZG', 'citadine',  'B', 2017, null],
             ['suzuki', 'Swift',         'ZC7', 'citadine',  'B', 2011, 2017],
             ['suzuki', 'Jimny',         'JB74','tout-terrain','B', 2018, null],

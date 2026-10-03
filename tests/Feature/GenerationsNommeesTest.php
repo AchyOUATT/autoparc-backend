@@ -253,7 +253,10 @@ class GenerationsNommeesTest extends TestCase
     {
         $this->referentiel();
 
-        foreach ([['peugeot', '208'], ['renault', 'Duster'], ['volkswagen', 'Amarok'], ['mercedes-benz', 'Sprinter']] as [$marque, $nom]) {
+        // Le Suzuki Alto figure ici parce qu'il avait ete nomme par erreur :
+        // la revision le scinde en HA36 (2015-2021) et HA37/HA97 (2021-), et
+        // notre ligne court toujours. Une migration lui a rendu sa case vide.
+        foreach ([['peugeot', '208'], ['renault', 'Duster'], ['volkswagen', 'Amarok'], ['mercedes-benz', 'Sprinter'], ['suzuki', 'Alto']] as [$marque, $nom]) {
             $modele = VehicleModel::where('brand_id', Brand::where('slug', $marque)->value('id'))
                 ->where('name', $nom)
                 ->first();
