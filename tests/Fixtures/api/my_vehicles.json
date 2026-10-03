@@ -2,10 +2,11 @@
     "data": [
         {
             "id": 1,
-            "designation": "Toyota Corolla  2018",
+            "designation": "Toyota Corolla 2018",
             "nickname": "La Corolla",
             "brand_id": 1,
             "vehicle_model_id": 1,
+            "model_libre": null,
             "vin": null,
             "engine_code": null,
             "plate_number": null,
@@ -21,7 +22,7 @@
                     "kind": "insurance",
                     "label": "Assurance",
                     "due_on": "2027-01-15",
-                    "days_left": 109,
+                    "days_left": 104,
                     "km_left": null,
                     "overdue": false,
                     "detail": null
@@ -30,7 +31,7 @@
                     "kind": "technical_inspection",
                     "label": "Visite technique",
                     "due_on": "2027-03-01",
-                    "days_left": 154,
+                    "days_left": 149,
                     "km_left": null,
                     "overdue": false,
                     "detail": null
@@ -47,6 +48,7 @@
             ],
             "identity": {
                 "brand": "Toyota",
+                "brand_slug": "toyota-fixture",
                 "model": "Corolla",
                 "trim": null,
                 "engine_type": null,
@@ -57,7 +59,7 @@
             "motorisation_id": null,
             "consumption": null,
             "last_check": null,
-            "created_at": "2026-09-28T22:03:52+00:00"
+            "created_at": "2026-10-03T09:03:07+00:00"
         }
     ],
     "links": {

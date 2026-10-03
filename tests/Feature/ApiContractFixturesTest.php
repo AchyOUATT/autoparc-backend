@@ -127,6 +127,19 @@ class ApiContractFixturesTest extends TestCase
         }
 
         $this->capture('part_categories', $this->getJson('/api/catalog/part-categories'));
+
+        // L'arbre elague, qui alimente les pastilles de filtre. Capture a part
+        // de l'arbre complet : les deux reponses ont la meme forme a un drapeau
+        // pres, mais pas les memes lignes, et c'est precisement la difference
+        // que l'application exploite. Sans cette capture, le jour ou l'elagage
+        // se mettrait a rendre l'arbre entier, rien ne le signalerait.
+        $elague = $this->capture(
+            'part_categories_non_empty',
+            $this->getJson('/api/catalog/part-categories?non_empty=1'),
+        );
+        $this->assertArrayHasKey('has_own_parts', $elague[0], 'Le drapeau dont depend le choix du niveau de pastilles.');
+
+        $this->capture('accessory_categories', $this->getJson('/api/catalog/accessory-categories'));
         $this->capture('countries', $this->getJson('/api/catalog/countries'));
     }
 

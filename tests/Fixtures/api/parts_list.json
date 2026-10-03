@@ -35,7 +35,12 @@
             "warranty_months": null,
             "weight_kg": null,
             "dimensions": null,
-            "is_active": true
+            "is_active": true,
+            "compatibility": {
+                "count": 0,
+                "vehicles": []
+            },
+            "fitments": []
         }
     ],
     "links": {

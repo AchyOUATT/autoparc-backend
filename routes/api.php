@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\ScheduledTaskController;
 use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\VehicleCheckController;
 use App\Http\Controllers\Api\VehicleFaultController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -79,7 +80,42 @@ Route::prefix('catalog')->group(function () {
     // `parent_id` permet a l'application de ne proposer que les 9 categories
     // racines : les 89 lignes de l'arbre complet feraient une barre de filtres
     // interminable.
-    Route::get('part-categories', fn () => \App\Models\PartCategory::orderBy('name')->get(['id', 'parent_id', 'name']));
+    //
+    // `non_empty=1` elague l'arbre aux seules branches qui menent a une piece.
+    // Le parametre est volontairement optionnel, et l'arbre complet reste la
+    // reponse par defaut : le meme appel sert la barre de filtres ET les menus
+    // deroulants ou l'on CHOISIT une categorie — formulaire d'ajout d'une
+    // piece, formulaire « Exprimer un besoin ». Elaguer pour tout le monde
+    // rendrait impossible de classer la premiere piece d'une categorie, qui
+    // n'apparaitrait pas tant qu'elle est vide et resterait vide a jamais ; et
+    // sur l'ecran de modification d'une piece deja rangee dans une categorie
+    // devenue absente de la liste, le champ se serait vide tout seul.
+    Route::get('part-categories', fn (Request $request) => $request->boolean('non_empty')
+        ? \App\Models\PartCategory::arbreNonVide()
+        : \App\Models\PartCategory::orderBy('name')->get(['id', 'parent_id', 'name']));
+
+    // Categories d'accessoires qui contiennent au moins un article en vente.
+    //
+    // Les cinq categories sont une enumeration cote serveur et une liste codee
+    // en dur cote application, avec son libelle et son icone — que l'API ne
+    // peut pas fournir. Cette route ne rend donc que les valeurs occupees, et
+    // l'application garde ses libelles : elle n'affiche que les pastilles dont
+    // la valeur revient ici.
+    //
+    // Les memes conditions que la liste publique des accessoires, sans quoi une
+    // pastille promettrait des articles que l'ecran ne montre pas : `active()`
+    // et `is_available`, car ce catalogue-la masque les ruptures de stock.
+    Route::get('accessory-categories', fn () => \App\Models\Accessory::query()
+        ->active()
+        ->where('is_available', true)
+        ->whereNotNull('category')
+        ->distinct()
+        ->pluck('category')
+        ->map(fn ($categorie) => $categorie instanceof \App\Enums\AccessoryCategory
+            ? $categorie->value
+            : $categorie)
+        ->sort()
+        ->values());
 
     // Fabricants / équipementiers (pour les formulaires staff)
     Route::get('manufacturers', fn () => \App\Models\Manufacturer::orderBy('name')->get(['id', 'name']));
