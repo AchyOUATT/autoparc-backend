@@ -154,10 +154,10 @@ class Part extends Model
         $normalized = OemNumber::normalize($term);
 
         return $q->where(function (Builder $sub) use ($term, $normalized) {
-            $sub->where('sku', 'like', "%{$term}%")
-                ->orWhere('name', 'like', "%{$term}%")
-                ->orWhere('manufacturer_reference', 'like', "%{$term}%")
-                ->orWhereHas('oemNumbers', fn ($o) => $o->where('normalized_number', 'like', "%{$normalized}%"));
+            $sub->whereLike('sku', "%{$term}%")
+                ->orWhereLike('name', "%{$term}%")
+                ->orWhereLike('manufacturer_reference', "%{$term}%")
+                ->orWhereHas('oemNumbers', fn ($o) => $o->whereLike('normalized_number', "%{$normalized}%"));
         });
     }
 

@@ -51,9 +51,9 @@ class Partner extends Model
         }
 
         return $q->where(function (Builder $sub) use ($term) {
-            $sub->where('company_name', 'like', "%{$term}%")
-                ->orWhere('contact_name', 'like', "%{$term}%")
-                ->orWhere('phone', 'like', "%{$term}%");
+            $sub->whereLike('company_name', "%{$term}%")
+                ->orWhereLike('contact_name', "%{$term}%")
+                ->orWhereLike('phone', "%{$term}%");
         });
     }
 }

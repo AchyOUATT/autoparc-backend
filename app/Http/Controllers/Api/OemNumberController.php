@@ -16,7 +16,7 @@ class OemNumberController extends Controller
         $query = OemNumber::query()->with(['brand', 'fitments.vehicleModel.brand']);
 
         if ($request->filled('q')) {
-            $query->where('normalized_number', 'like', '%'.OemNumber::normalize($request->string('q')->toString()).'%');
+            $query->whereLike('normalized_number', '%'.OemNumber::normalize($request->string('q')->toString()).'%');
         }
 
         if ($request->filled('brand_id')) {

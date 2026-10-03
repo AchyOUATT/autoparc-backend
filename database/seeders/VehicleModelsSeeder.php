@@ -210,6 +210,48 @@ class VehicleModelsSeeder extends Seeder
             ['mazda', 'CX-3',       null,   'suv',       'B', 2015, null],
             ['mazda', 'BT-50',      null,   'pick-up',   'D', 2011, null],
 
+            // Ajoutes apres un blocage : un CX-9 ne pouvait pas etre
+            // enregistre, faute de fiche. Le modele n'a jamais ete vendu en
+            // Europe ni au Japon — il n'arrive que des Etats-Unis et du Golfe,
+            // d'ou son absence d'un referentiel bati sur les flux europeens.
+            ['mazda', 'CX-9',       'TB',   'suv',       'E', 2006, 2015],
+            ['mazda', 'CX-9',       'TC',   'suv',       'E', 2016, 2024],
+            ['mazda', 'CX-7',       'ER',   'suv',       'D', 2006, 2012],
+            ['mazda', 'CX-30',      'DM',   'suv',       'C', 2019, null],
+
+            // Une ligne par epoque, et non par carrosserie.
+            //
+            // Les breaks ont leur propre code chez Mazda — GY face au GG, GZ
+            // face au GH — mais ils couvrent exactement les memes annees. Deux
+            // lignes par epoque violeraient la regle de non-chevauchement que
+            // CatalogueModelesTest fait respecter : le rattachement des cotes
+            // de consommation choisit la generation produite l'annee du
+            // vehicule, et deux candidates rendraient ce choix arbitraire.
+            //
+            // La carrosserie n'est donc pas un element d'identite ici. Un
+            // proprietaire de break choisit « Mazda6 » de son epoque, et la
+            // compatibilite des pieces ne s'en trouve pas changee : berline et
+            // break partagent les memes moteurs.
+            //
+            // Les bornes se touchent sans se recouvrir, comme pour la Mazda3.
+            ['mazda', 'Mazda6',     'GG',   'berline',   'D', 2002, 2008],
+            ['mazda', 'Mazda6',     'GH',   'berline',   'D', 2008, 2012],
+            ['mazda', 'Mazda6',     'GJ',   'berline',   'D', 2012, 2024],
+
+            // Deux noms pour un meme vehicule : Premacy au Japon, Mazda5 a
+            // l'export. Les deux figurent sur les cartes grises des vehicules
+            // importes, d'ou le libelle double — c'est exactement le detail qui
+            // fait dire « je ne trouve pas mon modele ».
+            ['mazda', 'Mazda5 / Premacy', 'CP', 'monospace', 'C', 1999, 2004],
+            ['mazda', 'Mazda5 / Premacy', 'CR', 'monospace', 'C', 2004, 2010],
+            ['mazda', 'Mazda5 / Premacy', 'CW', 'monospace', 'C', 2010, 2018],
+
+            // La premiere generation s'arrete en 2006 et non en 2010 : la
+            // borne large chevauchait la seconde, et un Tribute de 2008 aurait
+            // remonte sur les deux fiches.
+            ['mazda', 'Tribute',    'EP',   'suv',       'C', 2000, 2006],
+            ['mazda', 'Tribute',    null,   'suv',       'C', 2007, 2011],
+
             // ─── SUBARU ────────────────────────────────────────────────
             ['subaru', 'Forester',  'SK',   'suv',       'C', 2018, null],
             ['subaru', 'Outback',   'BT',   'break',     'D', 2020, null],

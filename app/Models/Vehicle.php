@@ -334,11 +334,11 @@ class Vehicle extends Model
         }
 
         return $q->where(function (Builder $sub) use ($term) {
-            $sub->where('reference', 'like', "%{$term}%")
-                ->orWhere('vin', 'like', "%{$term}%")
-                ->orWhereHas('brand', fn ($b) => $b->where('name', 'like', "%{$term}%"))
-                ->orWhereHas('vehicleModel', fn ($m) => $m->where('name', 'like', "%{$term}%"))
-                ->orWhereHas('registrationDetail', fn ($r) => $r->where('plate_number', 'like', "%{$term}%"));
+            $sub->whereLike('reference', "%{$term}%")
+                ->orWhereLike('vin', "%{$term}%")
+                ->orWhereHas('brand', fn ($b) => $b->whereLike('name', "%{$term}%"))
+                ->orWhereHas('vehicleModel', fn ($m) => $m->whereLike('name', "%{$term}%"))
+                ->orWhereHas('registrationDetail', fn ($r) => $r->whereLike('plate_number', "%{$term}%"));
         });
     }
 }

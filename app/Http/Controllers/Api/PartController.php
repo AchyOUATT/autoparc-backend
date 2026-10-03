@@ -29,7 +29,14 @@ class PartController extends Controller
     public function index(Request $request)
     {
         $parts = Part::query()
-            ->with(['category', 'manufacturer', 'oemNumbers', 'location', 'media'])
+            // Les compatibilites sont chargees ici pour que la vignette de la
+            // liste annonce les vehicules concernes. Sans elles, il fallait
+            // ouvrir chaque fiche pour savoir si la piece pouvait convenir.
+            // Trois requetes de plus pour la page entiere, pas une par piece.
+            ->with([
+                'category', 'manufacturer', 'oemNumbers', 'location', 'media',
+                'fitments.vehicleModel.brand',
+            ])
             ->search($request->string('q')->toString() ?: null)
             ->when($request->filled('oem'), fn ($q) => $q->matchingOem($request->string('oem')->toString()))
             // Filtrer sur une categorie inclut ses descendantes. L'arbre compte

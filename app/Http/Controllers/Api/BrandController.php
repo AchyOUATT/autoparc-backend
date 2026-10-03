@@ -19,7 +19,7 @@ class BrandController extends Controller
         $brands = Brand::query()
             ->with('country')
             ->withCount('vehicleModels')
-            ->when($request->filled('q'), fn ($q) => $q->where('name', 'like', '%'.$request->q.'%'))
+            ->when($request->filled('q'), fn ($q) => $q->whereLike('name', '%'.$request->q.'%'))
             ->when($request->boolean('active_only', true), fn ($q) => $q->where('is_active', true))
             ->orderBy('name')
             ->get();

@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -18,6 +20,43 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerRateLimiters();
+        $this->enregistrerRechercheInsensibleALaCasse();
+    }
+
+    /**
+     * `whereLike` et `orWhereLike` : une recherche qui ignore la casse partout.
+     *
+     * Le defaut etait invisible en developpement et bien reel en ligne. MySQL
+     * compare `LIKE` sans tenir compte de la casse ; PostgreSQL, lui, la
+     * distingue. Le poste de developpement tourne sous MySQL, la production
+     * sous PostgreSQL : chercher « filtre » rendait dix resultats en local et
+     * deux en ligne, les deux seuls dont le libelle portait le mot en
+     * minuscule. « cartouche » n'en rendait aucun.
+     *
+     * Quinze appels a `where(..., 'like', ...)` etaient concernes, dans huit
+     * fichiers — pieces, accessoires, vehicules, partenaires, clients,
+     * marques. Les corriger un par un aurait laisse le prochain repartir du
+     * mauvais pied : le defaut est dans l'operateur, la correction doit y etre
+     * aussi.
+     *
+     * `ILIKE` est propre a PostgreSQL, d'ou le choix selon le pilote. SQLite,
+     * employe par les tests, ignore deja la casse sur l'ASCII.
+     */
+    private function enregistrerRechercheInsensibleALaCasse(): void
+    {
+        $operateur = function ($requete): string {
+            return $requete->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+        };
+
+        foreach ([EloquentBuilder::class, QueryBuilder::class] as $builder) {
+            $builder::macro('whereLike', function (string $colonne, string $valeur) use ($operateur) {
+                return $this->where($colonne, $operateur($this), $valeur);
+            });
+
+            $builder::macro('orWhereLike', function (string $colonne, string $valeur) use ($operateur) {
+                return $this->orWhere($colonne, $operateur($this), $valeur);
+            });
+        }
     }
 
     /**

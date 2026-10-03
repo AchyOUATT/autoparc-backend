@@ -419,6 +419,44 @@ class FiltresHuileBoutiqueTest extends TestCase
         }
     }
 
+    /**
+     * Le depot decrit, la boutique commerce.
+     *
+     * Le seeder reecrivait tout a chaque passage. Le commercant corrigeait son
+     * stock le matin depuis l'application et le retrouvait faux apres le
+     * deploiement du soir, sans comprendre pourquoi — la republication avait
+     * remis la valeur du fichier.
+     *
+     * Prix et stock sont donc poses a la creation, puis laisses tranquilles.
+     * Le reste — libelle, description, categorie, compatibilites — reste du
+     * ressort du depot et se rafraichit a chaque publication.
+     */
+    public function test_rejouer_le_seeder_ne_touche_ni_au_prix_ni_au_stock(): void
+    {
+        $this->semer();
+
+        $piece = Part::where('sku', '90915-YZZD2')->firstOrFail();
+
+        // Ce que ferait le commercant depuis l'application.
+        $piece->update([
+            'selling_price'  => 4500,
+            'stock_quantity' => 12,
+            'name'           => 'Libelle modifie a la main',
+        ]);
+
+        $this->semer();
+
+        $apres = Part::where('sku', '90915-YZZD2')->firstOrFail();
+
+        $this->assertSame(4500.0, (float) $apres->selling_price,
+            'Le prix ajuste en boutique a ete ecrase par la republication.');
+        $this->assertSame(12, $apres->stock_quantity,
+            'Le stock ajuste en boutique a ete ecrase par la republication.');
+
+        // Le libelle, lui, appartient au depot : il revient a sa valeur.
+        $this->assertNotSame('Libelle modifie a la main', $apres->name);
+    }
+
     /** Un modele introuvable doit se voir, pas se perdre. */
     public function test_un_slug_devenu_introuvable_est_signale(): void
     {

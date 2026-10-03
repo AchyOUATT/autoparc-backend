@@ -56,6 +56,15 @@ class FiltresHuileBoutiqueSeeder extends Seeder
     private const PRIX = 3000;
 
     /**
+     * Le stock pose a la creation d une reference.
+     *
+     * Uniforme au demarrage : le commercant ajustera depuis l application,
+     * arrivage par arrivage. Cette valeur ne sert donc qu aux references
+     * nouvelles — celles deja en base gardent le leur, voir run().
+     */
+    private const STOCK_INITIAL = 15;
+
+    /**
      * L'origine declaree par le commercant.
      *
      * « Chine » designe une provenance plutot qu'un equipementier, et se
@@ -194,20 +203,46 @@ class FiltresHuileBoutiqueSeeder extends Seeder
 
         foreach (self::FILTRES as $filtre) {
             DB::transaction(function () use ($filtre, $categorie, $origine, &$ecrits, &$lignes, &$absents) {
-                $piece = Part::updateOrCreate(
-                    ['sku' => $filtre['sku']],
-                    [
-                        'name'                   => $filtre['nom'],
-                        'description'            => $filtre['description'],
-                        'part_category_id'       => $categorie->id,
-                        'manufacturer_id'        => $origine->id,
-                        'manufacturer_reference' => $filtre['sku'],
-                        'type'                   => 'aftermarket',
-                        'condition'              => 'new',
-                        'selling_price'          => self::PRIX,
-                        'is_active'              => true,
-                    ],
-                );
+                // Ce que le depot decrit, et qu'il a donc le droit de
+                // reecrire a chaque publication.
+                $description = [
+                    'name'                   => $filtre['nom'],
+                    'description'            => $filtre['description'],
+                    'part_category_id'       => $categorie->id,
+                    'manufacturer_id'        => $origine->id,
+                    'manufacturer_reference' => $filtre['sku'],
+                    'type'                   => 'aftermarket',
+                    'condition'              => 'new',
+                ];
+
+                // Ce que la boutique gere, et que le depot ne pose qu'une fois.
+                //
+                // Le seeder faisait un `updateOrCreate` sur tout : chaque
+                // republication aurait remis le prix a 3000 et le stock a la
+                // valeur du fichier, effacant un reajustement fait depuis
+                // l'application. Le commercant aurait corrige son stock le
+                // matin et l'aurait retrouve faux apres le deploiement du
+                // soir, sans comprendre.
+                //
+                // Le depot pose donc ces valeurs a la creation et n'y touche
+                // plus. Pour les changer en masse, il faut les changer ici ET
+                // vider la colonne concernee — un geste explicite, pas un
+                // effet de bord.
+                $commerce = [
+                    'selling_price'  => self::PRIX,
+                    'stock_quantity' => $filtre['stock'] ?? self::STOCK_INITIAL,
+                    'is_active'      => true,
+                ];
+
+                $piece = Part::where('sku', $filtre['sku'])->first();
+
+                if ($piece === null) {
+                    $piece = Part::create(
+                        array_merge(['sku' => $filtre['sku']], $description, $commerce)
+                    );
+                } else {
+                    $piece->update($description);
+                }
 
                 $this->rattacherNumeros($piece, $filtre);
 

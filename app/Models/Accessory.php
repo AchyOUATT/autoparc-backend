@@ -113,8 +113,8 @@ class Accessory extends Model
         }
 
         return $q->where(function (Builder $sub) use ($term) {
-            $sub->where('sku', 'like', "%{$term}%")
-                ->orWhere('name', 'like', "%{$term}%");
+            $sub->whereLike('sku', "%{$term}%")
+                ->orWhereLike('name', "%{$term}%");
         });
     }
 

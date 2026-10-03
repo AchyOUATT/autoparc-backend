@@ -23,11 +23,11 @@ class CustomerController extends Controller
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = $request->string('q')->toString();
                 $q->where(fn ($sub) => $sub
-                    ->where('first_name', 'like', "%{$term}%")
-                    ->orWhere('last_name', 'like', "%{$term}%")
-                    ->orWhere('company_name', 'like', "%{$term}%")
-                    ->orWhere('phone', 'like', "%{$term}%")
-                    ->orWhere('code', 'like', "%{$term}%"));
+                    ->whereLike('first_name', "%{$term}%")
+                    ->orWhereLike('last_name', "%{$term}%")
+                    ->orWhereLike('company_name', "%{$term}%")
+                    ->orWhereLike('phone', "%{$term}%")
+                    ->orWhereLike('code', "%{$term}%"));
             })
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->type))
             ->latest()
