@@ -112,6 +112,18 @@ class CompatibilityService
      */
     public function partsForOwnedVehicle(OwnedVehicle $vehicle, array $filters = []): Builder
     {
+        // Sans modele au referentiel, rien a comparer : les compatibilites sont
+        // declarees par modele. On rend une requete vide plutot que de laisser
+        // passer un null sur un parametre typé `int`, ce qui serait une erreur
+        // 500 sur un vehicule parfaitement valide depuis que le modele est
+        // facultatif.
+        //
+        // Zero piece, et `compatibility_ready` a faux : l'ecran dira « on ne
+        // peut pas savoir », jamais « aucune piece ne convient ».
+        if ($vehicle->vehicle_model_id === null) {
+            return Part::query()->whereRaw('1 = 0');
+        }
+
         $query = $this->partsForCriteria(
             $vehicle->vehicle_model_id,
             $vehicle->manufacturing_year,

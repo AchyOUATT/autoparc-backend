@@ -12,7 +12,7 @@ class OwnedVehicle extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'user_id', 'brand_id', 'vehicle_model_id', 'trim_id',
+        'user_id', 'brand_id', 'vehicle_model_id', 'model_libre', 'trim_id',
         'engine_type_id', 'motorisation_id', 'drivetrain_id', 'color_id',
         'manufacturing_year', 'vin', 'engine_code', 'plate_number', 'nickname', 'mileage_km',
         'technical_inspection_expiry', 'insurance_expiry',
@@ -251,21 +251,52 @@ class OwnedVehicle extends Model
         return $this->engine_code ?: null;
     }
 
-    /** Le vehicule a un moteur precis (saisi ou deduit) : la compatibilite sera plus fiable. */
+    /**
+     * Le vehicule a-t-il de quoi trancher une compatibilite ?
+     *
+     * Deux conditions, et la premiere est la plus importante : un modele du
+     * referentiel. Les compatibilites sont declarees par modele — sans lui,
+     * aucune ne peut correspondre, et la recherche rend zero piece.
+     *
+     * Ce zero ne veut pas dire « aucune piece ne convient » mais « on ne sait
+     * pas ». Repondre vrai ici le ferait passer pour un resultat : l'ecran
+     * afficherait « Non compatible » en rouge sur un vehicule dont on ignore
+     * tout. La saisie libre nomme le vehicule pour son proprietaire, elle ne
+     * le rattache a rien.
+     */
     public function hasPreciseEngineData(): bool
     {
+        if ($this->vehicle_model_id === null) {
+            return false;
+        }
+
         return $this->effective_engine_type_id !== null || $this->effective_engine_code !== null;
+    }
+
+    /**
+     * Le modele tel qu'il doit s'afficher : celui du referentiel, sinon celui
+     * que le proprietaire a tape.
+     *
+     * Un seul endroit pour cette retombee, parce qu'un oubli ne se verrait pas
+     * : la fiche afficherait « Mazda 2015 » au lieu de « Mazda CX-9 2015 », un
+     * libelle plausible dont rien ne dit qu'il est incomplet.
+     */
+    public function modeleAffiche(): ?string
+    {
+        $libre = trim((string) $this->model_libre);
+
+        return $this->vehicleModel?->name ?? ($libre === '' ? null : $libre);
     }
 
     public function getDesignationAttribute(): string
     {
-        return trim(sprintf(
+        return trim(preg_replace('/\s+/', ' ', sprintf(
             '%s %s %s %d',
             $this->brand?->name,
-            $this->vehicleModel?->name,
+            $this->modeleAffiche() ?? '',
             $this->trim?->name ?? '',
             $this->manufacturing_year
-        ));
+        )));
     }
 
     public function scopeOwnedBy(Builder $q, int $userId): Builder

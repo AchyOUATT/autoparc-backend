@@ -14,11 +14,42 @@ class StoreOwnedVehicleRequest extends FormRequest
         return true; // policy 'create' verifiee dans le controller
     }
 
+    /**
+     * Un champ laisse vide vaut absent.
+     *
+     * Le formulaire envoie une chaine vide pour une saisie libre effacee ; sans
+     * cette normalisation la colonne stockerait `''`, que ni la validation ni
+     * l'affichage ne distinguent de NULL — mais que `whereNull` ne trouve pas.
+     * Le vehicule aurait alors un modele vide invisible, impossible a rattraper
+     * par une requete.
+     */
+    protected function prepareForValidation(): void
+    {
+        foreach (['vehicle_model_id', 'model_libre'] as $champ) {
+            if ($this->has($champ) && trim((string) $this->input($champ)) === '') {
+                $this->merge([$champ => null]);
+            }
+        }
+
+        if ($this->filled('model_libre')) {
+            $this->merge(['model_libre' => trim((string) $this->input('model_libre'))]);
+        }
+    }
+
     public function rules(): array
     {
         return [
             'brand_id'           => ['required', 'exists:brands,id'],
-            'vehicle_model_id'   => ['required', 'exists:vehicle_models,id'],
+
+            // Le modele n'est plus obligatoire, mais l'un des deux l'est.
+            //
+            // Le referentiel est bati sur les flux d'occasion europeens ; le
+            // parc vient aussi des Etats-Unis, du Golfe et du Japon. Il
+            // manquera toujours des modeles — un CX-9, jamais vendu en Europe,
+            // rendait l'enregistrement impossible. Qui ne trouve pas le sien
+            // le tape, et le vehicule entre quand meme au garage.
+            'vehicle_model_id'   => ['nullable', 'required_without:model_libre', 'exists:vehicle_models,id'],
+            'model_libre'        => ['nullable', 'required_without:vehicle_model_id', 'string', 'max:80'],
             'trim_id'            => ['nullable', 'exists:trims,id'],
             'engine_type_id'     => ['nullable', 'exists:engine_types,id'],
             'motorisation_id'    => ['nullable', 'exists:motorisations,id'],

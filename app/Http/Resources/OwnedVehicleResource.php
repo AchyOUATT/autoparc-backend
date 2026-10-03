@@ -15,6 +15,12 @@ class OwnedVehicleResource extends JsonResource
             'nickname'         => $this->nickname,
             'brand_id'         => $this->brand_id,
             'vehicle_model_id' => $this->vehicle_model_id,
+
+            // Le modele tape a la main, quand le referentiel ne l'avait pas.
+            // Il est transmis tel quel : le formulaire de modification doit
+            // pouvoir le reafficher, et non le remplacer par un vide qui
+            // effacerait la seule trace du modele reel.
+            'model_libre'      => $this->model_libre,
             'vin'          => $this->vin,
             'engine_code'  => $this->engine_code,
             'plate_number' => $this->plate_number,
@@ -40,7 +46,15 @@ class OwnedVehicleResource extends JsonResource
                 // ce qui marchait tant qu'aucune marque n'avait d'accent :
                 // « Citroën » y devenait « citro-n » et perdait son logo.
                 'brand_slug' => $this->whenLoaded('brand', fn () => $this->brand->slug),
-                'model'      => $this->whenLoaded('vehicleModel', fn () => $this->vehicleModel->name),
+                // `relationLoaded` plutot que `whenLoaded` : ce dernier rend
+                // null sans appeler le callback des que la relation vaut null,
+                // ce qui est exactement le cas d'un vehicule au modele tape a
+                // la main — la retombee sur la saisie libre n'aurait jamais eu
+                // lieu, et la fiche aurait affiche une marque sans modele.
+                'model'      => $this->when(
+                    $this->relationLoaded('vehicleModel'),
+                    fn () => $this->modeleAffiche(),
+                ),
                 'trim'       => $this->whenLoaded('trim', fn () => $this->trim?->name),
                 'engine_type' => $this->whenLoaded('engineType', fn () => $this->engineType?->label),
                 'drivetrain' => $this->whenLoaded('drivetrain', fn () => $this->drivetrain?->code),
