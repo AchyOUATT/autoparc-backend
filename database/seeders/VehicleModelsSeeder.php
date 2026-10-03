@@ -36,7 +36,7 @@ class VehicleModelsSeeder extends Seeder
             ['toyota', 'Prius',        'XW50',  'berline',   'C', 2015, null],
             ['toyota', 'Prius',        'XW30',  'berline',   'C', 2009, 2015],
             ['toyota', 'Vios',         null,    'berline',   'B', 2013, null],
-            ['toyota', 'Rush',         null,    'suv',       'B', 2017, null],
+            ['toyota', 'Rush',         'F800',    'suv',       'B', 2017, null],
             ['toyota', 'Avensis',      'T270',  'berline',   'D', 2008, 2018],
             ['toyota', 'Auris',        'E180',  'compacte',  'C', 2012, 2019],
 
@@ -75,12 +75,12 @@ class VehicleModelsSeeder extends Seeder
             ['mitsubishi', 'ASX',         'GA',   'suv',     'C', 2010, null],
             ['mitsubishi', 'Pajero',      'V80',  'suv',     'E', 2006, null],
             ['mitsubishi', 'Pajero Sport','QF',   'suv',     'D', 2015, null],
-            ['mitsubishi', 'Eclipse Cross', null, 'suv',     'C', 2017, null],
+            ['mitsubishi', 'Eclipse Cross', 'GK/GL', 'suv',     'C', 2017, null],
             ['mitsubishi', 'L200',        'KL',   'pick-up', 'D', 2015, null],
             ['mitsubishi', 'L200',        'KB',   'pick-up', 'D', 2005, 2015],
 
             // ─── SUZUKI ────────────────────────────────────────────────
-            ['suzuki', 'Alto',          null,  'citadine',  'A', 2015, null],
+            ['suzuki', 'Alto',          'HA36',  'citadine',  'A', 2015, null],
             ['suzuki', 'Swift',         'AZG', 'citadine',  'B', 2017, null],
             ['suzuki', 'Swift',         'ZC7', 'citadine',  'B', 2011, 2017],
             ['suzuki', 'Jimny',         'JB74','tout-terrain','B', 2018, null],
@@ -111,14 +111,14 @@ class VehicleModelsSeeder extends Seeder
             ['kia', 'Sportage',      'QL',  'suv',       'C', 2015, 2021],
             ['kia', 'Sportage',      'NQ5', 'suv',       'C', 2021, null],
             ['kia', 'Sorento',       'UM',  'suv',       'D', 2014, 2020],
-            ['kia', 'Stonic',        null,  'suv',       'B', 2017, null],
-            ['kia', 'Seltos',        null,  'suv',       'B', 2019, null],
+            ['kia', 'Stonic',        'YB CUV',  'suv',       'B', 2017, null],
+            ['kia', 'Seltos',        'SP2',  'suv',       'B', 2019, null],
 
             // ─── PEUGEOT ───────────────────────────────────────────────
             ['peugeot', '207',       null,  'citadine',  'B', 2006, 2012],
             ['peugeot', '208',       null,  'citadine',  'B', 2012, null],
-            ['peugeot', '301',       null,  'berline',   'C', 2012, null],
-            ['peugeot', '307',       null,  'compacte',  'C', 2001, 2008],
+            ['peugeot', '301',       'M33',  'berline',   'C', 2012, null],
+            ['peugeot', '307',       'T5',  'compacte',  'C', 2001, 2008],
             ['peugeot', '308',       null,  'compacte',  'C', 2013, null],
             ['peugeot', '2008',      null,  'suv',       'B', 2013, null],
             ['peugeot', '3008',      null,  'suv',       'C', 2016, null],
@@ -171,15 +171,15 @@ class VehicleModelsSeeder extends Seeder
             ['ford', 'Focus',       'Mk3',  'compacte',  'C', 2011, 2018],
             ['ford', 'Ranger',      'T6',   'pick-up',   'D', 2011, null],
             ['ford', 'Everest',     null,   'suv',       'E', 2015, null],
-            ['ford', 'EcoSport',    null,   'suv',       'B', 2012, null],
+            ['ford', 'EcoSport',    'B515 / II',   'suv',       'B', 2012, null],
             ['ford', 'Explorer',    'U625', 'suv',       'E', 2019, null],
 
             // ─── CHEVROLET ─────────────────────────────────────────────
             ['chevrolet', 'Spark',   'M300','citadine',  'A', 2009, 2015],
-            ['chevrolet', 'Aveo',    null,  'berline',   'B', 2011, 2016],
+            ['chevrolet', 'Aveo',    'T300',  'berline',   'B', 2011, 2016],
             ['chevrolet', 'Cruze',   'J300','berline',   'C', 2009, 2016],
             ['chevrolet', 'Captiva', null,  'suv',       'D', 2006, 2018],
-            ['chevrolet', 'Trailblazer', null,'suv',     'D', 2012, null],
+            ['chevrolet', 'Trailblazer', 'RG','suv',     'D', 2012, null],
 
             // ─── JEEP ──────────────────────────────────────────────────
             ['jeep', 'Wrangler',    'JL',   'tout-terrain','D', 2018, null],
@@ -207,7 +207,7 @@ class VehicleModelsSeeder extends Seeder
             ['mazda', 'Mazda3',     'BM',   'compacte',  'C', 2013, 2018],
             ['mazda', 'Mazda3',     'BL',   'compacte',  'C', 2008, 2013],
             ['mazda', 'CX-5',       'KF',   'suv',       'C', 2017, null],
-            ['mazda', 'CX-3',       null,   'suv',       'B', 2015, null],
+            ['mazda', 'CX-3',       'DK',   'suv',       'B', 2015, null],
             ['mazda', 'BT-50',      null,   'pick-up',   'D', 2011, null],
 
             // Ajoutes apres un blocage : un CX-9 ne pouvait pas etre
@@ -250,12 +250,15 @@ class VehicleModelsSeeder extends Seeder
             // borne large chevauchait la seconde, et un Tribute de 2008 aurait
             // remonte sur les deux fiches.
             ['mazda', 'Tribute',    'EP',   'suv',       'C', 2000, 2006],
-            ['mazda', 'Tribute',    null,   'suv',       'C', 2007, 2011],
+            ['mazda', 'Tribute',    'II (marché NA)', 'suv', 'C', 2007, 2011],
 
             // ─── SUBARU ────────────────────────────────────────────────
             ['subaru', 'Forester',  'SK',   'suv',       'C', 2018, null],
             ['subaru', 'Outback',   'BT',   'break',     'D', 2020, null],
             ['subaru', 'XV',        'GT',   'suv',       'C', 2017, null],
+            // Le Crosstrek succede au XV et en reprend le nom de marche nord-americain.
+            // Ligne separee : le XV GT reste la ligne des vehicules deja en circulation.
+            ['subaru', 'Crosstrek', 'GU / III', 'suv', 'C', 2023, null],
             ['subaru', 'Impreza',   'GK',   'berline',   'C', 2016, null],
 
             // ─── DAIHATSU ──────────────────────────────────────────────
@@ -293,9 +296,9 @@ class VehicleModelsSeeder extends Seeder
             ['lexus', 'GX',  'J120',  'suv',      'E', 2002, 2009],
             ['lexus', 'NX',  'AZ20',  'suv',      'C', 2021, null],
             ['lexus', 'NX',  'AZ10',  'suv',      'C', 2014, 2021],
-            ['lexus', 'UX',  null,    'suv',      'B', 2018, null],
-            ['lexus', 'CT',  null,    'compacte', 'C', 2010, 2022],
-            ['lexus', 'RC',  null,    'coupe',    'D', 2014, null],
+            ['lexus', 'UX',  'ZA10',    'suv',      'B', 2018, null],
+            ['lexus', 'CT',  'ZWA10',    'compacte', 'C', 2010, 2022],
+            ['lexus', 'RC',  'XC10',    'coupe',    'D', 2014, null],
 
             // ─── CITROËN ───────────────────────────────────────────────
             ['citroen', 'C3',          'III', 'citadine',  'B', 2016, 2024],
@@ -319,13 +322,20 @@ class VehicleModelsSeeder extends Seeder
             ['opel', 'Mokka',  'A',   'suv',      'B', 2012, 2019],
             ['opel', 'Zafira', 'C',   'monospace','C', 2011, 2019],
             ['opel', 'Zafira', 'B',   'monospace','C', 2005, 2011],
+            // Le Zafira Life est un utilitaire derive du Vivaro, sans rapport de
+            // pieces avec le monospace Zafira : deux lignes distinctes.
+            ['opel', 'Zafira Life', 'K0', 'monospace','C', 2019, null],
 
             // ─── FIAT ──────────────────────────────────────────────────
-            ['fiat', '500',    null,  'citadine',  'A', 2007, null],
-            ['fiat', '500X',   null,  'suv',       'B', 2014, null],
+            ['fiat', '500',    'Type 312',  'citadine',  'A', 2007, null],
+            ['fiat', '500X',   'Type 334',  'suv',       'B', 2014, null],
             ['fiat', 'Panda',  'III', 'citadine',  'A', 2011, null],
             ['fiat', 'Punto',  null,  'citadine',  'B', 2005, 2018],
-            ['fiat', 'Tipo',   null,  'compacte',  'C', 2015, null],
+            ['fiat', 'Tipo',   '356',  'compacte',  'C', 2015, null],
+            // La 500e est un modele a part, pas une version de la 500 : plateforme
+            // differente, pieces differentes. La ranger sous la 500 ferait proposer
+            // des references thermiques a une electrique.
+            ['fiat', '500e',   '332',  'citadine',  'A', 2020, null],
             ['fiat', 'Doblo',  'II',  'monospace', 'C', 2010, 2022],
             ['fiat', 'Ducato', null,  'utilitaire','—', 2006, null],
 
@@ -334,8 +344,11 @@ class VehicleModelsSeeder extends Seeder
             ['ssangyong', 'Korando', 'C200', 'suv',     'C', 2010, 2019],
             ['ssangyong', 'Rexton',  'Y400', 'suv',     'E', 2017, null],
             ['ssangyong', 'Rexton',  'Y200', 'suv',     'E', 2001, 2017],
-            ['ssangyong', 'Musso',   null,   'pick-up', 'D', 2018, null],
-            ['ssangyong', 'Actyon',  null,   'pick-up', 'D', 2006, 2012],
+            ['ssangyong', 'Musso',   'Q200/Q250',   'pick-up', 'D', 2018, null],
+            ['ssangyong', 'Actyon',  'C100', 'suv',  'D', 2006, 2012],
+            // L'Actyon Sports est le pick-up ; l'Actyon tout court est le SUV.
+            // Les deux etaient confondus sur une seule ligne classee pick-up.
+            ['ssangyong', 'Actyon Sports', 'Q100', 'pick-up', 'D', 2006, 2012],
         ];
 
         foreach ($models as [$brandSlug, $name, $generation, $bodyType, $segment, $yearStart, $yearEnd]) {
