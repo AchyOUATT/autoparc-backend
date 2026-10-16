@@ -63,7 +63,19 @@ class StoreOwnedVehicleRequest extends FormRequest
             'engine_code'        => ['nullable', 'string', 'max:20'],
             'plate_number'       => ['nullable', 'string', 'max:30'],
             'nickname'           => ['nullable', 'string', 'max:80'],
-            'mileage_km'         => ['nullable', 'integer', 'min:0'],
+            // Le plafond vient de StoreVehicleCheckRequest, qui le posait deja
+            // sur le meme nombre. Il attrape le zero de trop, pas un vehicule
+            // reellement tres use.
+            //
+            // Le RECUL, lui, n'est pas refuse ici, et ce n'est pas un oubli :
+            // un compteur remplace existe sur un parc importe, et une saisie
+            // trop haute doit pouvoir etre corrigee a la baisse. Ce qui a ete
+            // supprime, c'est le recul SILENCIEUX — le dialogue de saisie
+            // nomme desormais les deux chiffres et demande un second appui.
+            // Voir le commentaire de _MileageDialogState::_valider() cote
+            // application : un 9 600 tape pour 96 000 repoussait le rappel de
+            // vidange de 80 000 km, sans la moindre erreur pour le signaler.
+            'mileage_km'         => ['nullable', 'integer', 'min:0', 'max:2000000'],
 
             // Echeances d'entretien. Les deux dates d'expiration peuvent etre
             // passees : un proprietaire qui saisit une visite technique deja

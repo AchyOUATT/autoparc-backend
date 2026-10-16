@@ -65,6 +65,13 @@ class StoreVehicleRequest extends FormRequest
             'co2_g_km'                 => ['nullable', 'integer', 'min:0'],
             'fuel_tank_liters'         => ['nullable', 'integer', 'min:0'],
 
+            // location_id etait `fillable` sur le modele et rendu par la
+            // ressource, mais absent d'ici. Le controleur partant de
+            // validated(), la cle etait retiree avant create() : le lieu
+            // choisi dans le formulaire n'arrivait jamais en base, sans
+            // erreur ni champ refuse. Mesure : un POST portant location_id
+            // rendait 201 et un vehicule a location_id null.
+            'location_id'  => ['nullable', 'exists:locations,id'],
             'partner_id'   => ['nullable', 'exists:partners,id'],
             'condition'    => ['nullable', Rule::in(VehicleCondition::values())],
             'status'       => ['nullable', Rule::in(VehicleStatus::values())],
