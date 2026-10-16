@@ -85,6 +85,41 @@ class OwnedVehicleResource extends JsonResource
                 ];
             }),
 
+            // La consommation REELLE, mesuree aux passages a la pompe, a cote
+            // de la cote constructeur ci-dessus. Les deux ne disent pas la meme
+            // chose et ne doivent jamais etre confondues : les cycles
+            // d'homologation s'ecartent de 20 a 30 % de la conduite reelle ici,
+            // entre les pistes, les embouteillages de Ouaga et la climatisation
+            // permanente. C'est pourquoi l'alerte se compare a l'histoire du
+            // vehicule et jamais a 'consumption'.
+            //
+            // TOUJOURS presente, contrairement a 'consumption' et 'last_check'
+            // qui disparaissent sous whenLoaded : l'application doit pouvoir
+            // distinguer « ce vehicule n'a aucun passage » — champs nuls,
+            // compteurs a zero — de « le serveur n'a rien dit sur ce point ».
+            // Une cle absente ne dit ni l'un ni l'autre, et l'ecran afficherait
+            // un tiret la ou il doit proposer d'enregistrer un premier passage.
+            //
+            // Le calcul depend de la relation fuelFills : elle est chargee dans
+            // OwnedVehicleController::$relations, donc sur index, show, store et
+            // update a la fois. Si elle venait a manquer a un seul de ces
+            // endroits, la cle resterait juste ailleurs et le defaut ne se
+            // verrait qu'a la lenteur de la liste.
+            //
+            // DEUX TAUX, et ils ne se remplacent pas. 'l_100km' est le chiffre
+            // de l'ecran : les cinq derniers intervalles. 'alerte_l_100km' est
+            // celui du verdict : les deux derniers, ceux sur lesquels
+            // 'abnormal' s'est prononce, nul quand il n'y a pas eu de verdict.
+            // Sur la serie 8 8 8 8 11 11 ils valent 9,2 et 11,0 — afficher le
+            // premier a cote du titre « Consommation en hausse » annoncait un
+            // ecart que les seuils publies ne justifient pas.
+            //
+            // 'series_rompue' dit qu'un compteur a ete remplace : l'histoire
+            // d'avant existe toujours en base mais n'entre plus dans aucun de
+            // ces chiffres. Sans l'afficher, le proprietaire voit total_fills
+            // et ses totaux fondre sans explication.
+            'fuel_tracking' => $this->suiviConsommation(),
+
             // Le dernier controle avant voyage, en resume.
             //
             // Sous whenLoaded, comme la consommation : la cle disparait quand la

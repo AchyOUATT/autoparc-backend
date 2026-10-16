@@ -2,27 +2,27 @@
     "data": [
         {
             "id": 1,
-            "reference": "VH-UUFTUMPD",
+            "reference": "VH-WHVQKVHM",
             "vin": null,
-            "designation": "Nissan Qashqai Base 2023",
+            "designation": "Hyundai Tucson Base 2023",
             "vehicle_type": "passenger",
-            "body_style": "suv",
+            "body_style": "estate",
             "registration_status": {
                 "value": "registered",
                 "label": "Deja immatricule"
             },
             "identity": {
-                "brand": "Nissan",
-                "brand_slug": "nissan",
+                "brand": "Hyundai",
+                "brand_slug": "hyundai",
                 "brand_logo_path": null,
-                "model": "Qashqai",
+                "model": "Tucson",
                 "generation": null,
                 "trim": "Base",
                 "engine_type": "Électrique",
-                "drivetrain": "RWD",
-                "color": "Rouge",
-                "color_hex": "#C0392B",
-                "color_finish": "opaque",
+                "drivetrain": "4WD",
+                "color": "Argent",
+                "color_hex": "#C0C0C0",
+                "color_finish": "metallise",
                 "year": 2023
             },
             "technical": {
@@ -73,8 +73,8 @@
             "faults_count": 0,
             "media": [],
             "description": null,
-            "published_at": "2026-09-12T22:03:51+00:00",
-            "created_at": "2026-09-28T22:03:51+00:00"
+            "published_at": "2026-09-30T18:42:43+00:00",
+            "created_at": "2026-10-16T18:42:43+00:00"
         }
     ],
     "links": {

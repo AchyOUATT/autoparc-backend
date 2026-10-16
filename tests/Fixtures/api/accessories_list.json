@@ -2,15 +2,15 @@
     "data": [
         {
             "id": 1,
-            "sku": "ACC-KAWN3QB",
+            "sku": "ACC-YUCTRYG",
             "name": "Coffre de toit 350L",
             "description": null,
             "category": {
                 "value": "utilitaire",
                 "label": "Utilitaire"
             },
-            "manufacturer": "Bosch",
-            "manufacturer_id": 1,
+            "manufacturer": "Brembo",
+            "manufacturer_id": 5,
             "weight_kg": null,
             "dimensions": null,
             "warranty_months": 24,

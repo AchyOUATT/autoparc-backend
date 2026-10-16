@@ -1,0 +1,103 @@
+{
+    "data": [
+        {
+            "id": 4,
+            "is_full": true,
+            "filled_at": "2026-10-12",
+            "mileage_km": 96000,
+            "litres": "49.20",
+            "amount_fcfa": 35900,
+            "price_per_litre": null,
+            "note": null,
+            "created_at": "2026-10-16T18:42:43+00:00",
+            "l_100km": 8.2,
+            "distance_km": 600,
+            "retenu": true,
+            "motif_ecart": null,
+            "bornes_intervalles": 1
+        },
+        {
+            "id": 3,
+            "is_full": true,
+            "filled_at": "2026-10-04",
+            "mileage_km": 95400,
+            "litres": "38.00",
+            "amount_fcfa": 27700,
+            "price_per_litre": "728.95",
+            "note": null,
+            "created_at": "2026-10-16T18:42:43+00:00",
+            "l_100km": 8,
+            "distance_km": 600,
+            "retenu": true,
+            "motif_ecart": null,
+            "bornes_intervalles": 2
+        },
+        {
+            "id": 2,
+            "is_full": false,
+            "filled_at": "2026-09-28",
+            "mileage_km": 95100,
+            "litres": "10.00",
+            "amount_fcfa": 7300,
+            "price_per_litre": "730.00",
+            "note": null,
+            "created_at": "2026-10-16T18:42:43+00:00",
+            "l_100km": null,
+            "distance_km": null,
+            "retenu": false,
+            "motif_ecart": null,
+            "bornes_intervalles": 0
+        },
+        {
+            "id": 1,
+            "is_full": true,
+            "filled_at": "2026-09-20",
+            "mileage_km": 94800,
+            "litres": "42.00",
+            "amount_fcfa": 30000,
+            "price_per_litre": "714.29",
+            "note": null,
+            "created_at": "2026-10-16T18:42:43+00:00",
+            "l_100km": null,
+            "distance_km": null,
+            "retenu": false,
+            "motif_ecart": null,
+            "bornes_intervalles": 1
+        }
+    ],
+    "links": {
+        "first": "http://localhost:8000/api/my/vehicles/1/fuel-fills?page=1",
+        "last": "http://localhost:8000/api/my/vehicles/1/fuel-fills?page=1",
+        "prev": null,
+        "next": null
+    },
+    "meta": {
+        "current_page": 1,
+        "from": 1,
+        "last_page": 1,
+        "links": [
+            {
+                "url": null,
+                "label": "&laquo; Previous",
+                "page": null,
+                "active": false
+            },
+            {
+                "url": "http://localhost:8000/api/my/vehicles/1/fuel-fills?page=1",
+                "label": "1",
+                "page": 1,
+                "active": true
+            },
+            {
+                "url": null,
+                "label": "Next &raquo;",
+                "page": null,
+                "active": false
+            }
+        ],
+        "path": "http://localhost:8000/api/my/vehicles/1/fuel-fills",
+        "per_page": 20,
+        "to": 4,
+        "total": 4
+    }
+}

@@ -181,6 +181,36 @@ class OwnedVehicle extends Model
         return $this->hasOne(VehicleCheck::class)->latestOfMany('performed_at');
     }
 
+    /**
+     * Les passages a la pompe, dans l'ordre du compteur.
+     *
+     * L'ordre fait partie de la relation parce qu'il fait partie du sens : la
+     * chaine des pleins se lit en kilometres, jamais en dates ni en
+     * identifiants. Un passage saisi le lendemain porte un created_at
+     * posterieur et un compteur intermediaire — trie par identifiant, il
+     * couperait le mauvais intervalle et le l/100 de deux mesures deviendrait
+     * faux sans qu'aucune erreur ne le dise.
+     */
+    public function fuelFills()
+    {
+        return $this->hasMany(FuelFill::class)->orderBy('mileage_km')->orderBy('id');
+    }
+
+    /**
+     * Consommation reelle, cout aux 100 km et etat de l'alerte.
+     *
+     * Simple delegation : le calcul vit dans SuiviConsommation et nulle part
+     * ailleurs, pour que la ressource API et la tache d'alerte lisent le meme
+     * nombre. Meme principe que deadlines(), et pour la meme raison — un chiffre
+     * recalcule ailleurs a deja eteint un rappel en silence dans ce projet.
+     *
+     * @return array<string, mixed>
+     */
+    public function suiviConsommation(): array
+    {
+        return app(\App\Services\SuiviConsommation::class)->resume($this);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

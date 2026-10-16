@@ -40,6 +40,7 @@ class ScheduledTaskController extends Controller
     /** Les taches declenchables, et la commande artisan de chacune. */
     private const TACHES = [
         'reminders' => 'reminders:maintenance',
+        'fuel'      => 'alerts:fuel-anomaly',
     ];
 
     public function run(Request $request, string $tache): JsonResponse

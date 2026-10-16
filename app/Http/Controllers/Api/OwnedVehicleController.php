@@ -18,7 +18,15 @@ class OwnedVehicleController extends Controller
 
     // dernierControle est charge par latestOfMany : une seule requete pour toute
     // la liste, au lieu d'une par vehicule pour trouver son dernier passage.
-    protected array $relations = ['brand', 'vehicleModel', 'trim', 'engineType', 'motorisation', 'drivetrain', 'color', 'dernierControle'];
+    //
+    // fuelFills est la seule relation chargee EN ENTIER, et il le faut : la cle
+    // 'fuel_tracking' de la ressource repose sur la chaine complete des
+    // passages — un intervalle se calcule de proche en proche depuis le premier
+    // plein, on ne peut pas n'en charger que les derniers. Elle doit figurer
+    // ici, c'est-a-dire sur index, show, store et update a la fois : omise d'un
+    // seul de ces quatre points, la cle resterait juste partout ailleurs et le
+    // garage ferait silencieusement une requete par vehicule.
+    protected array $relations = ['brand', 'vehicleModel', 'trim', 'engineType', 'motorisation', 'drivetrain', 'color', 'dernierControle', 'fuelFills'];
 
     public function index(Request $request)
     {

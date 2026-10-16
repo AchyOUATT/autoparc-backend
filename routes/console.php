@@ -16,3 +16,15 @@ Artisan::command('inspire', function () {
 Schedule::command('reminders:maintenance')
     ->dailyAt('08:00')
     ->withoutOverlapping();
+
+// Alerte de surconsommation, une fois par jour elle aussi.
+//
+// Un quart d'heure apres les rappels d'entretien, et non a la meme minute :
+// les deux taches balaient le parc entier, et les faire partir ensemble
+// doublerait la pointe de charge sans rien avancer. L'anti-repetition de
+// 30 jours vit dans la commande, donc une cadence quotidienne ne produit pas
+// une alerte quotidienne : elle garantit seulement qu'une derive est vue au
+// plus tard le lendemain du plein qui la revele.
+Schedule::command('alerts:fuel-anomaly')
+    ->dailyAt('08:15')
+    ->withoutOverlapping();

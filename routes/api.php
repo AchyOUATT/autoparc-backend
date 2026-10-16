@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AccountController;
+use App\Http\Controllers\Api\AppVersionController;
 use App\Http\Controllers\Api\AccessoryController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\MotorisationController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Api\CompatibilityController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\CustomerNeedController;
 use App\Http\Controllers\Api\FcmTokenController;
+use App\Http\Controllers\Api\FuelFillController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\OemNumberController;
@@ -43,6 +45,13 @@ use Illuminate\Support\Facades\Route;
 Route::post('login', [AuthController::class, 'login'])
     ->middleware('throttle:login'); // staff uniquement : les clients passent par Firebase Auth cote Flutter
 
+
+/* ------------------- Plancher de version de l'application --------------- */
+// Appelee a chaque ouverture, avant tout le reste. Elle doit etre joignable
+// par une application trop vieille pour s'authentifier — c'est precisement
+// celle-la qu'il s'agit d'avertir — donc jamais derriere 'firebase' ni
+// 'auth:sanctum' : un 401 la laisserait croire que tout va bien.
+Route::get('app/version', AppVersionController::class);
 
 /* ---------------------- Catalogue public (lecture) ---------------------- */
 Route::prefix('catalog')->group(function () {
@@ -167,6 +176,14 @@ Route::middleware('firebase')->prefix('my')->group(function () {
     Route::get('vehicles/{ownedVehicle}/checks',  [VehicleCheckController::class, 'index']);
     Route::post('vehicles/{ownedVehicle}/checks', [VehicleCheckController::class, 'store']);
     Route::get('checks/{vehicleCheck}',           [VehicleCheckController::class, 'show']);
+
+    // Passages a la pompe. Pas de PUT : corriger un passage deplacerait une
+    // borne de mesure et changerait deux intervalles a la fois. On supprime et
+    // on ressaisit, ce qui dit exactement ce qui s'est passe — d'ou le DELETE,
+    // qui porte sur le passage et non sur le vehicule.
+    Route::get('vehicles/{ownedVehicle}/fuel-fills',  [FuelFillController::class, 'index']);
+    Route::post('vehicles/{ownedVehicle}/fuel-fills', [FuelFillController::class, 'store']);
+    Route::delete('fuel-fills/{fuelFill}',            [FuelFillController::class, 'destroy']);
 
     // Compatibilité inverse : pour une pièce donnée, quels véhicules du garage sont compatibles ?
     Route::get('parts/{part}/garage-compatibility', [GarageCompatibilityController::class, 'checkPart']);

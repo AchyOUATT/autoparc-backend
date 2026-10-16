@@ -58,6 +58,30 @@ services:
         # la porte, pas l'ouvrir.
         generateValue: true
 
+      # ── Plancher de version de l'application mobile ─────────────────
+      #
+      # Au-dessous de MOBILE_MIN_VERSION_CODE, l'application exige la mise à
+      # jour. Tout l'intérêt de ces clés est d'être `sync: false` : on relève
+      # le plancher depuis le tableau de bord de Render, sans reconstruire
+      # l'image ni republier quoi que ce soit — et sans attendre le délai de
+      # propagation de Play, qui se compte en heures.
+      #
+      # Non renseignées, elles valent 0 et ne bloquent personne : un
+      # déploiement neuf ne doit pas mettre tout le parc à l'arrêt.
+      #
+      # Le texte affiché, lui, se pose au besoin en ajoutant
+      # MOBILE_UPDATE_MESSAGE depuis le tableau de bord : il explique POURQUOI
+      # la mise à jour est exigée, et il vient du serveur et non de
+      # l'application — qui, par construction, ne sera plus mise à jour chez
+      # ceux à qui le message s'adresse. Non renseigné, config/mobile.php sert
+      # une formulation française générique.
+      - key: MOBILE_MIN_VERSION_CODE
+        sync: false          # versionCode plancher ; 0 ou absent = personne n'est bloqué
+      - key: MOBILE_LATEST_VERSION_CODE
+        sync: false          # versionCode de la dernière version publiée sur Play
+      - key: MOBILE_STORE_URL
+        sync: false          # fiche Play ; défaut : bf.autoparc.app
+
       # ── Stockage des photos ─────────────────────────────────────────
       #
       # Le disque de Render est éphémère : tout fichier écrit sur place

@@ -1,0 +1,89 @@
+# Alerte de surconsommation, une fois par jour.
+#
+# Meme ordonnanceur que les rappels d'entretien, et pour la meme raison : le
+# `Schedule::command` de routes/console.php suppose un `schedule:run` toutes les
+# minutes, que le plan gratuit de Render ne fournit pas. La planification qui
+# compte vraiment est celle-ci — et elle est OBSERVABLE, chaque execution
+# laissant une trace datee dans l'onglet Actions.
+#
+# Un quart d'heure apres les rappels : les deux taches balaient le parc entier,
+# et les lancer a la meme minute doublerait la pointe sans rien avancer.
+name: Alerte de surconsommation
+
+on:
+  schedule:
+    # 8 h 15 UTC, soit 8 h 15 au Burkina Faso qui reste a UTC+0 toute l'annee.
+    - cron: '15 8 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "A blanc : calcule les alertes sans rien envoyer"
+        type: boolean
+        default: false
+
+concurrency:
+  group: alerte-surconsommation
+  cancel-in-progress: false
+
+jobs:
+  declencher:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Verifier la configuration
+        env:
+          URL: ${{ secrets.TASKS_URL }}
+          JETON: ${{ secrets.TASKS_SECRET }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$JETON" ]; then
+            echo "::error::Les secrets TASKS_URL et TASKS_SECRET doivent etre definis dans le depot."
+            exit 1
+          fi
+
+      - name: Lancer l'alerte
+        # TASKS_URL porte l'URL de la tache des rappels ; la racine s'en
+        # deduit comme dans le reveil d'instance du workflow voisin, plutot que
+        # d'ajouter un second secret a tenir en phase avec le premier.
+        env:
+          URL: ${{ secrets.TASKS_URL }}
+          JETON: ${{ secrets.TASKS_SECRET }}
+          A_BLANC: ${{ inputs.dry_run }}
+        run: |
+          base="${URL%/api/tasks/*}"
+          cible="${base}/api/tasks/fuel"
+
+          corps='{"dry_run": false}'
+          [ "$A_BLANC" = "true" ] && corps='{"dry_run": true}'
+
+          # Le plan gratuit de Render endort le service : on le reveille a part
+          # pour que l'appel qui compte ne se perde pas dans ce delai.
+          curl -s -o /dev/null --max-time 120 "${base}/api/catalog/part-categories" || true
+
+          echo "Appel de $cible"
+
+          code=$(curl -sS --max-time 300 \
+                   -o reponse.json -w '%{http_code}' \
+                   -X POST "$cible" \
+                   -H "X-Task-Token: $JETON" \
+                   -H 'Content-Type: application/json' \
+                   -H 'Accept: application/json' \
+                   -d "$corps")
+
+          echo "Code HTTP : $code"
+          echo "--- Reponse ---"
+          cat reponse.json || true
+          echo
+
+          resume=$(python3 -c "import json,sys; print(json.load(open('reponse.json')).get('output',''))" 2>/dev/null || true)
+          if [ -n "$resume" ]; then
+            echo "### Alerte de surconsommation" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "$resume" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ "$code" != "200" ]; then
+            echo "::error::Le declenchement a echoue (HTTP $code)."
+            exit 1
+          fi

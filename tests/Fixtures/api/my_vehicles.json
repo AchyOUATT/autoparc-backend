@@ -22,7 +22,7 @@
                     "kind": "insurance",
                     "label": "Assurance",
                     "due_on": "2027-01-15",
-                    "days_left": 104,
+                    "days_left": 91,
                     "km_left": null,
                     "overdue": false,
                     "detail": null
@@ -31,7 +31,7 @@
                     "kind": "technical_inspection",
                     "label": "Visite technique",
                     "due_on": "2027-03-01",
-                    "days_left": 149,
+                    "days_left": 136,
                     "km_left": null,
                     "overdue": false,
                     "detail": null
@@ -58,8 +58,27 @@
             "compatibility_ready": false,
             "motorisation_id": null,
             "consumption": null,
+            "fuel_tracking": {
+                "l_100km": 8.1,
+                "fcfa_100km": 5908,
+                "based_on_fills": 2,
+                "total_fills": 4,
+                "full_fills": 3,
+                "excluded_intervals": 0,
+                "last_filled_at": "2026-10-12",
+                "last_mileage_km": 96000,
+                "baseline_l_100km": null,
+                "abnormal": false,
+                "alerte_l_100km": null,
+                "series_rompue": false,
+                "totals": {
+                    "litres": 139.2,
+                    "amount_fcfa": 100900,
+                    "distance_km": 1200
+                }
+            },
             "last_check": null,
-            "created_at": "2026-10-03T09:03:07+00:00"
+            "created_at": "2026-10-16T18:42:43+00:00"
         }
     ],
     "links": {

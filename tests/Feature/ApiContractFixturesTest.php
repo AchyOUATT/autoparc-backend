@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Brand;
+use App\Models\FuelFill;
 use App\Models\Manufacturer;
 use App\Models\OwnedVehicle;
 use App\Models\Part;
@@ -151,7 +152,7 @@ class ApiContractFixturesTest extends TestCase
             'brand_id' => $brand->id, 'name' => 'Corolla', 'slug' => 'corolla-fixture', 'is_active' => true,
         ]);
 
-        OwnedVehicle::create([
+        $vehicule = OwnedVehicle::create([
             'user_id'                     => $user->id,
             'brand_id'                    => $brand->id,
             'vehicle_model_id'            => $model->id,
@@ -164,11 +165,65 @@ class ApiContractFixturesTest extends TestCase
             'service_interval_km'         => 10000,
         ]);
 
+        // Quatre passages a la pompe, dont un demi-plein, et des nombres poses
+        // a la main : 48 L sur 600 km font 8,0 l/100 km, puis 49,2 L sur 600 km
+        // font 8,2. Une fixture tiree au hasard aurait porte un 'fuel_tracking'
+        // a nul — c'est-a-dire la seule forme que le mobile n'a pas besoin
+        // qu'on lui prouve.
+        //
+        // Le demi-plein est la pour une raison precise : ses 10 litres doivent
+        // apparaitre dans le chiffre de l'intervalle sans ouvrir ni fermer le
+        // moindre intervalle, et c'est la regle que l'application est la plus
+        // susceptible de reimplementer de travers de son cote.
+        foreach ([
+            ['2026-09-20', 94800, '42.00', true,  30000, '714.29'],
+            ['2026-09-28', 95100, '10.00', false, 7300,  '730.00'],
+            ['2026-10-04', 95400, '38.00', true,  27700, '728.95'],
+
+            // Le dernier passage n'a pas de prix au litre : le ticket se perd,
+            // et la fixture doit porter le cas nul autant que le cas rempli.
+            ['2026-10-12', 96000, '49.20', true,  35900, null],
+        ] as [$date, $compteur, $litres, $plein, $montant, $prix]) {
+            FuelFill::create([
+                'owned_vehicle_id' => $vehicule->id,
+                'filled_at'        => $date,
+                'mileage_km'       => $compteur,
+                'litres'           => $litres,
+                'is_full'          => $plein,
+                'amount_fcfa'      => $montant,
+                'price_per_litre'  => $prix,
+            ]);
+        }
+
         $garage = $this->capture(
             'my_vehicles',
             $this->actingAsClient($user)->getJson('/api/my/vehicles'),
         );
 
         $this->assertArrayHasKey('deadlines', $garage['data'][0], 'Les echeances alimentent les rappels d\'entretien.');
+
+        // 97,2 litres sur 1 200 km : 8,1 l/100 km. Si ce nombre tombait a nul,
+        // la fixture cesserait de prouver que l'application sait lire un suivi
+        // renseigne — et c'est en silence qu'elle le cesserait.
+        $suivi = $garage['data'][0]['fuel_tracking'];
+        $this->assertSame(8.1, $suivi['l_100km'], 'Le suivi capture doit porter un chiffre, pas un nul.');
+        $this->assertSame(4, $suivi['total_fills']);
+        $this->assertSame(3, $suivi['full_fills'], 'Le quatrieme passage est un demi-plein.');
+
+        // La liste des passages, capturee a part : c'est elle qui porte les
+        // colonnes `decimal` — litres, price_per_litre — serialisees en
+        // CHAINES. Le defaut le plus couteux du projet etait exactement celui-la,
+        // et il n'a jamais ete attrape que par une fixture produite par le vrai
+        // serialiseur.
+        $pompe = $this->capture(
+            'my_fuel_fills',
+            $this->actingAsClient($user)->getJson("/api/my/vehicles/{$vehicule->id}/fuel-fills"),
+        );
+
+        $this->assertIsString($pompe['data'][0]['litres'], 'Une colonne decimal sort en chaine.');
+        $this->assertIsString($pompe['data'][1]['price_per_litre'], 'Le prix au litre aussi, et il est parfois nul.');
+        $this->assertSame(8.2, $pompe['data'][0]['l_100km'], 'Le dernier plein ferme un intervalle a 8,2 l/100 km.');
+        $this->assertFalse($pompe['data'][2]['is_full'], 'Le demi-plein doit figurer dans la fixture.');
+        $this->assertNull($pompe['data'][2]['l_100km'], 'Un demi-plein ne ferme aucun intervalle.');
     }
 }
