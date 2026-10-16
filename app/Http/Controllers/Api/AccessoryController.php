@@ -49,7 +49,14 @@ class AccessoryController extends Controller
     {
         abort_if(! $accessory->is_active, 404);
 
-        return new AccessoryResource($accessory->load(['manufacturer', 'location', 'fitments.vehicleModel', 'fitments.trim']));
+        // 'media' etait absent de cette liste, et de celle de show() plus
+        // bas, alors que catalog() le charge. whenLoaded() retire alors la
+        // cle au lieu de rendre un tableau vide : la fiche d'un accessoire
+        // n'avait aucune photo a afficher, pendant que la liste en montrait.
+        // PartController::show le chargeait depuis le debut — c'est cette
+        // asymetrie, et elle seule, qui faisait la difference entre les deux
+        // catalogues.
+        return new AccessoryResource($accessory->load(['manufacturer', 'location', 'media', 'fitments.vehicleModel', 'fitments.trim']));
     }
 
     /* ------------------------------------------------------------------ */
@@ -169,7 +176,7 @@ class AccessoryController extends Controller
     /** GET /api/accessories/{accessory} */
     public function show(Accessory $accessory): AccessoryResource
     {
-        return new AccessoryResource($accessory->load(['manufacturer', 'fitments.vehicleModel', 'fitments.trim']));
+        return new AccessoryResource($accessory->load(['manufacturer', 'location', 'media', 'fitments.vehicleModel', 'fitments.trim']));
     }
 
     /** PUT /api/accessories/{accessory} */
