@@ -33,8 +33,31 @@ RUN composer install --optimize-autoloader --no-dev --no-scripts --no-interactio
 # Code source
 COPY . .
 
-# Permissions Laravel
-RUN chown -R www-data:www-data storage bootstrap/cache \
+# Répertoires de travail de Laravel, puis permissions.
+#
+# Le mkdir n'est pas une précaution de style : .dockerignore exclut
+# storage/framework/{views,cache,sessions} — à juste titre, pour ne pas
+# embarquer les vues compilées du poste de développement. Mais l'exclusion
+# vaut aussi pour les dossiers eux-mêmes, qui n'existent donc pas dans
+# l'image.
+#
+# Conséquence, le 2026-10-16 : au démarrage, `php artisan config:cache`
+# évalue le défaut de Laravel pour view.compiled, soit
+# realpath(storage_path('framework/views')). Sur un dossier absent,
+# realpath() rend `false` — et ce `false` part dans le cache de
+# configuration. Le compilateur Blade recevait donc un chemin vide et levait
+# « Please provide a valid cache path » sur toute vue : la page d'accueil,
+# les pages d'erreur, et la route de santé /up, qui rend elle aussi une vue.
+# L'API, qui ne sert que du JSON, n'était pas touchée — d'où une panne
+# invisible côté application mobile.
+#
+# Les créer ici suffit, et reste correct quelle que soit l'évolution du
+# .dockerignore.
+RUN mkdir -p storage/framework/views \
+             storage/framework/cache/data \
+             storage/framework/sessions \
+             storage/logs \
+    && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 8000
