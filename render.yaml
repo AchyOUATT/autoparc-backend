@@ -9,6 +9,20 @@ services:
         value: production
       - key: APP_DEBUG
         value: false
+
+      # Les journaux vont sur la sortie d'erreur, donc dans le visualiseur de
+      # Render. Le canal par défaut (`stack` → `single`) écrit dans
+      # storage/logs/laravel.log, à l'intérieur d'un conteneur éphémère que le
+      # plan gratuit n'ouvre pas : le fichier était illisible et disparaissait
+      # au déploiement suivant.
+      #
+      # Sans cela, le `report => true` posé sur le disque s3 de
+      # config/filesystems.php ne servirait à rien — et c'est précisément
+      # l'absence de trace qui a laissé une panne de dépôt de photos passer
+      # pour un succès pendant des jours.
+      - key: LOG_CHANNEL
+        value: stderr
+
       - key: APP_URL
         sync: false          # à remplir manuellement avec l'URL Render
       - key: APP_KEY

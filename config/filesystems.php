@@ -56,8 +56,26 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+
+            // `report` passe à true le 2026-10-16, après une panne silencieuse.
+            //
+            // Avec les deux à false, Flysystem avalait toute erreur d'écriture :
+            // ni exception, ni ligne de journal. `storeAs()` rendait simplement
+            // `false`, que MediaController enregistrait tel quel — la base
+            // stockait `path = 0`, l'API construisait une URL en « .../0 », et
+            // l'application affichait « photo ajoutée » sur un 201 sincère.
+            // Deux photos ont été perdues ainsi, sans la moindre trace.
+            //
+            // `throw` reste à false : MediaController vérifie désormais le
+            // retour de storeAs() et rend un message clair. Une exception
+            // donnerait un 500 moins utile à l'utilisateur.
+            //
+            // Pour que ce `report` serve à quelque chose en ligne, LOG_CHANNEL
+            // doit valoir `stderr` (posé dans render.yaml) : le canal par défaut
+            // écrit dans storage/logs/, à l'intérieur d'un conteneur éphémère
+            // que le plan gratuit de Render n'ouvre pas.
             'throw' => false,
-            'report' => false,
+            'report' => true,
         ],
 
     ],

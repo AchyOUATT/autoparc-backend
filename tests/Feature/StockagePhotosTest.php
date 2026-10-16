@@ -129,4 +129,49 @@ class StockagePhotosTest extends TestCase
 
         $this->assertSame(['public', 's3'], $disques);
     }
+
+    /**
+     * Un disque qui refuse l'ecriture ne doit rien laisser en base.
+     *
+     * Ce test existe a cause d'une panne reelle, constatee le 2026-10-16. Le
+     * stockage R2 refusait les ecritures ; le disque s3 etant configure avec
+     * `throw => false` et `report => false`, rien ne remontait : ni exception,
+     * ni ligne de journal. `storeAs()` rendait `false`, le controleur l'ecrivait
+     * tel quel, et la base enregistrait `path = 0`. L'API construisait alors
+     * « <AWS_URL>/0 » — un 404 — tout en renvoyant un 201 que l'application
+     * affichait en « photo ajoutee ».
+     *
+     * Deux lignes fantomes ont ete creees ainsi, et le chemin heureux teste
+     * plus haut n'a rien pu signaler : il ne voit jamais un disque qui echoue.
+     * C'est l'absence de ce test-ci qui a laisse la panne passer pour un succes.
+     *
+     * On verifie les deux moities du contrat : l'appelant est averti, et la
+     * base reste propre.
+     */
+    public function test_un_disque_qui_refuse_l_ecriture_ne_cree_aucune_ligne(): void
+    {
+        config(['media.disk' => 's3']);
+
+        // putFileAs rend `false` quand l'ecriture echoue, et UploadedFile::storeAs
+        // propage ce `false` sans rien dire. C'est exactement ce que faisait R2.
+        $disque = \Mockery::mock(\Illuminate\Contracts\Filesystem\Filesystem::class);
+        $disque->shouldReceive('putFileAs')->once()->andReturn(false);
+
+        // `url()` doit repondre, sinon le test ne vaut rien. Sans elle, retirer
+        // le garde-fou fait echouer formatMedia() sur un appel inconnu du faux
+        // disque, et le test tombe sur un 500 — une erreur de montage, pas la
+        // panne. En production `url()` existe et rend « <AWS_URL>/0 » : la
+        // requete aboutit en 201 et c'est precisement ce qu'on veut interdire.
+        // Verifie en neutralisant le garde-fou : le test doit alors echouer sur
+        // le 201 et sur la ligne creee, pas sur une methode manquante.
+        $disque->shouldReceive('url')->andReturn('https://exemple.test/0');
+
+        Storage::shouldReceive('disk')->andReturn($disque);
+
+        $this->envoyer()
+            ->assertStatus(502)
+            ->assertJsonPath('data', []);
+
+        $this->assertDatabaseCount('media', 0);
+    }
 }

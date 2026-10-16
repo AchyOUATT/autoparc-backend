@@ -9,6 +9,7 @@ use App\Models\Part;
 use App\Models\Vehicle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -83,6 +84,32 @@ class MediaController extends Controller
             $ext  = $file->getClientOriginalExtension();
             $name = Str::uuid() . '.' . $ext;
             $path = $file->storeAs("{$folder}/{$model->id}", $name, $this->disque());
+
+            // storeAs() rend `false` quand le disque refuse l'écriture, et le
+            // disque s3 est configuré avec `throw => false` : aucune exception
+            // ne remonte. Sans ce garde-fou, `false` partait dans `path`, la
+            // base enregistrait `0`, l'URL devenait « <AWS_URL>/0 » — un 404 —
+            // et la réponse restait un 201 que l'application affichait en
+            // « photo ajoutée ». Deux lignes fantômes ont été créées ainsi.
+            //
+            // On s'arrête ici plutôt que de poursuivre la boucle : les photos
+            // déjà enregistrées sont rendues, celles qui suivent ne le seront
+            // pas, et l'appelant sait exactement où il en est.
+            if ($path === false) {
+                Log::error('Media : le disque a refusé l\'écriture', [
+                    'disque'   => $this->disque(),
+                    'dossier'  => "{$folder}/{$model->id}",
+                    'fichier'  => $name,
+                    'taille'   => $file->getSize(),
+                    'deja_cree' => count($created),
+                ]);
+
+                return response()->json([
+                    'message' => "La photo n'a pas pu être enregistrée sur le stockage. "
+                               . 'Réessayez ; si le problème persiste, le stockage est mal configuré.',
+                    'data'    => $created,
+                ], 502);
+            }
 
             // Position = dernier existant + 1
             $position = $model->media()
