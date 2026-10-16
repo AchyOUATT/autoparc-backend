@@ -55,7 +55,6 @@ return new class extends Migration
      */
     private const GENERATIONS = [
         ['mitsubishi',    'Eclipse Cross', 2017, 'GK/GL'],
-        ['suzuki',        'Alto',          2015, 'HA36'],
         ['kia',           'Stonic',        2017, 'YB CUV'],
         ['kia',           'Seltos',        2019, 'SP2'],
         ['peugeot',       '301',           2012, 'M33'],
