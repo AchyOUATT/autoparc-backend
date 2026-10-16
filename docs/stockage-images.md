@@ -85,7 +85,7 @@ Tableau de bord Render → service `autoparc-backend` → **Environment** :
 | `MEDIA_DISK` | `s3` |
 | `AWS_ACCESS_KEY_ID` | l'Access Key ID du jeton |
 | `AWS_SECRET_ACCESS_KEY` | la Secret Access Key |
-| `AWS_BUCKET` | `autoparc-media` |
+| `AWS_BUCKET` | **le nom exact du bucket créé à l'étape 1** (voir l'avertissement ci-dessous) |
 | `AWS_DEFAULT_REGION` | `auto` |
 | `AWS_ENDPOINT` | `https://<ID de compte>.r2.cloudflarestorage.com` |
 | `AWS_URL` | l'adresse publique de l'étape 4 |
@@ -95,6 +95,37 @@ Tableau de bord Render → service `autoparc-backend` → **Environment** :
 `render.yaml` ; les six autres sont en `sync: false` et se remplissent à la main.
 
 Enregistrer déclenche un redéploiement.
+
+> **Le nom du bucket doit être recopié, pas deviné.**
+>
+> Cette ligne indiquait `autoparc-media` alors que le bucket créé s'appelait
+> `autoparc`. L'écart a coûté une semaine, parce que le symptôme ne désigne pas
+> sa cause : R2 répond **`403 AccessDenied`**, et non « bucket introuvable ».
+> C'est normal — un service de stockage ne révèle pas à un appelant non
+> autorisé si un bucket existe. On cherche donc un problème de droits, et le
+> jeton est parfaitement configuré.
+>
+> Si une écriture est refusée, lire l'URL complète dans le message d'erreur
+> avant toute chose :
+>
+> ```
+> PUT https://<compte>.r2.cloudflarestorage.com/<bucket>/parts/207/<uuid>.jpg
+>                                                ^^^^^^^^
+> ```
+>
+> Ce segment est la valeur de `AWS_BUCKET` telle que l'application l'emploie.
+> S'il ne correspond pas au nom affiché dans Cloudflare, c'est la variable
+> qu'il faut corriger — jamais le bucket qu'il faut renommer.
+>
+> Les trois codes à distinguer : `InvalidAccessKeyId` (clé inexistante),
+> `SignatureDoesNotMatch` (secret erroné), `AccessDenied` (identité valide,
+> mais droits insuffisants **ou bucket hors de portée du jeton**).
+
+> **Vérifier aussi que l'adresse publique sert ce même bucket.**
+>
+> `AWS_URL` et `AWS_BUCKET` se règlent séparément et rien ne les relie. Un
+> domaine public rattaché à un autre bucket donnerait des envois réussis et des
+> images introuvables — un faux succès plus difficile à voir que celui-ci.
 
 ## 7. Vérifier
 

@@ -92,7 +92,23 @@ class AccessoryController extends Controller
             return $accessory;
         });
 
-        $accessory->load(['manufacturer', 'fitments']);
+        // refresh() avant load() : `create()` rend l'instance telle qu'on l'a
+        // construite, pas la ligne ecrite. Un champ absent de la requete y
+        // reste null alors que la base lui a applique son defaut — et c'est
+        // cette instance que la ressource serialise.
+        //
+        // Concretement, `stock_quantity` porte `->default(0)` depuis la
+        // migration 000600. Omis par le formulaire, il valait 0 en base et
+        // null dans la reponse de creation. L'application lisait
+        // `quantity as int`, levait un _TypeError, et affichait « Une erreur
+        // est survenue » sur un enregistrement pourtant reussi — puis
+        // l'utilisateur reessayait. Quatre accessoires identiques ont ete
+        // crees ainsi le 2026-10-16.
+        //
+        // Le client a ete rendu tolerant de son cote, mais c'est ici que le
+        // defaut se corrige : une reponse de creation doit decrire ce qui a
+        // ete ecrit, pas ce qu'on a demande d'ecrire.
+        $accessory->refresh()->load(['manufacturer', 'fitments']);
 
         $this->notifyAccessoryNeedMatch($accessory);
 

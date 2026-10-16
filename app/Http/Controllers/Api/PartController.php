@@ -79,7 +79,16 @@ class PartController extends Controller
             return $part;
         });
 
-        $part->load(['category', 'manufacturer', 'oemNumbers', 'fitments']);
+        // refresh() avant load() : meme defaut que dans AccessoryController,
+        // ou il est explique en detail. `create()` rend l'instance construite
+        // et non la ligne ecrite, donc un champ omis par la requete apparait
+        // null dans la reponse alors que la base lui a applique son defaut —
+        // `stock_quantity` porte `->default(0)` depuis la migration 000300.
+        //
+        // Le symptome ne s'est manifeste que sur les accessoires parce que les
+        // pieces du catalogue ont ete publiees par des migrations, jamais par
+        // le formulaire. Le chemin etait tout aussi casse ici.
+        $part->refresh()->load(['category', 'manufacturer', 'oemNumbers', 'fitments']);
 
         $this->notifyPartNeedMatch($part);
 
