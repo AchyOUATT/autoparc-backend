@@ -52,7 +52,35 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://localhost'),
+    /*
+     * `?:` et non le second argument d'env() : la valeur peut etre PRESENTE ET
+     * VIDE, et le defaut d'env() ne couvre que l'absence.
+     *
+     * C'est le cas que Render fabrique. Un champ declare `sync: false` dans
+     * render.yaml et laisse blanc dans le tableau de bord arrive comme une
+     * variable definie a la chaine vide. Mesure, serveur demarre avec APP_URL= :
+     *
+     *     env('APP_URL')    -> ''
+     *     config('app.url') -> ''   (var_export : '')
+     *
+     * Et les pages de partage composent leur adresse depuis cette valeur. La
+     * meme mesure sur GET /v/1 rendait HTTP 200 avec
+     * <meta property="og:url" content="/v/1">,
+     * <link rel="canonical" href="/v/1"> et surtout
+     * <meta property="og:image" content="/storage/vehicles/1/photo.jpg">.
+     * Un og:image RELATIF, c'est zero vignette pour toujours, sur une page qui
+     * rend 200, parait normale et n'ecrit rien dans aucun journal.
+     *
+     * Ce repli empeche la valeur vide. Il ne suffit pas : « http://localhost »
+     * en ligne ne vaut pas mieux qu'une adresse relative, il est seulement
+     * visible. C'est AppServiceProvider::exigerUneAdressePubliqueAbsolue() qui
+     * refuse de demarrer dans ce cas, et le couple des deux qui tient.
+     *
+     * Le disque `public` de config/filesystems.php repete le meme `?:` pour la
+     * meme raison : il compose son URL publique depuis env('APP_URL') et non
+     * depuis cette cle.
+     */
+    'url' => env('APP_URL') ?: 'http://localhost',
 
     /*
     |--------------------------------------------------------------------------

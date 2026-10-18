@@ -23,8 +23,49 @@ services:
       - key: LOG_CHANNEL
         value: stderr
 
+      # APP_URL est OBLIGATOIRE, et ne l'était pas avant les pages de partage.
+      #
+      # Ces pages composent leur propre adresse depuis cette valeur : og:url,
+      # <link rel="canonical">, et le lien WhatsApp pré-rempli que le visiteur
+      # renvoie. Elle ne peut pas être lue dans la requête — url()->current()
+      # suivait X-Forwarded-Host, auquel trustProxies(at: '*') fait confiance,
+      # et un en-tête fourni par le client plaçait donc l'adresse de son choix
+      # dans l'aperçu : mesure, « X-Forwarded-Host: pharmacie-cadeaux.example »
+      # sur GET /v/1 rendait og:url vers ce domaine, lien WhatsApp compris.
+      #
+      # À RENSEIGNER AVANT LE PREMIER DÉPLOIEMENT, pas après.
+      #
+      # Ce commentaire affirmait le contraire de la mesure. Il disait : « non
+      # renseignée, Laravel vaut http://localhost, donc l'oubli se voit au
+      # premier lien collé ». Un champ `sync: false` laissé blanc dans le
+      # tableau de bord n'est pas absent : Render le transmet DÉFINI ET VIDE,
+      # et le défaut du second argument d'env() ne couvre que l'absence.
+      #
+      # Mesure, serveur démarré avec APP_URL= :
+      #
+      #     config('app.url') -> ''      (var_export : '')
+      #     HTTP 200
+      #     <meta property="og:url" content="/v/1">
+      #     <link rel="canonical" href="/v/1">
+      #     <meta property="og:image" content="/storage/vehicles/1/photo.jpg">
+      #     lien WhatsApp = https://wa.me/226...?text=...%0A%2Fv%2F1
+      #
+      # Rien ne se voyait : la page rendait 200, paraissait normale, n'écrivait
+      # dans aucun journal, et sa vignette était morte pour toujours.
+      #
+      # Deux corrections tiennent désormais ce cas. config/app.php se replie par
+      # `?:` au lieu du défaut d'env(), et
+      # AppServiceProvider::exigerUneAdressePubliqueAbsolue() REFUSE de démarrer
+      # en production sur une adresse vide, relative ou locale : le
+      # `php artisan config:cache` du Dockerfile échoue, Render garde la version
+      # précédente en ligne et affiche le message dans son visualiseur. Un oubli
+      # coûte donc un déploiement refusé, et non un catalogue d'aperçus muets.
+      #
+      # Elle sert aussi d'URL publique au disque `public` de
+      # config/filesystems.php, donc aux photos tant que MEDIA_DISK vaut
+      # `public`.
       - key: APP_URL
-        sync: false          # à remplir manuellement avec l'URL Render
+        sync: false          # OBLIGATOIRE avant le 1er déploiement : l'URL Render du service, sans / final
       - key: APP_KEY
         sync: false          # à remplir avec la valeur de ton .env local
       - key: DB_CONNECTION
@@ -82,6 +123,29 @@ services:
       - key: MOBILE_STORE_URL
         sync: false          # fiche Play ; défaut : bf.autoparc.app
 
+      # ── Coordonnées de la boutique ──────────────────────────────────
+      #
+      # Affichées sur les pages de partage d'un article (/v, /p, /a), lues par
+      # des gens qui n'ont pas l'application : bouton WhatsApp et bouton
+      # d'appel.
+      #
+      # Ces valeurs vivent AUSSI en dur dans l'application mobile
+      # (lib/core/utils/contact_info.dart), et c'est volontaire — la page web
+      # doit répondre sans l'application, l'application doit pouvoir appeler
+      # sans le serveur. Elles doivent donc changer ENSEMBLE : un numéro
+      # modifié d'un seul côté laisse l'autre moitié des clients appeler
+      # l'ancien, et un bouton d'appel ne rend pas d'erreur.
+      #
+      # `sync: false` pour la même raison que le plancher de version : le
+      # numéro se corrige depuis le tableau de bord, sans reconstruire l'image.
+      # Non renseignées, config/boutique.php sert les coordonnées en service.
+      - key: BOUTIQUE_TELEPHONE
+        sync: false          # forme internationale du lien tel: ; défaut : +22675570484
+      - key: BOUTIQUE_WHATSAPP
+        sync: false          # format wa.me : indicatif collé, sans « + » ni espaces
+      - key: BOUTIQUE_NOM
+        sync: false          # nom affiché dans l'aperçu (og:site_name) ; défaut : AutoParc
+
       # ── Stockage des photos ─────────────────────────────────────────
       #
       # Le disque de Render est éphémère : tout fichier écrit sur place
@@ -111,6 +175,42 @@ services:
         sync: false          # l'adresse publique qui sert les images
       - key: AWS_USE_PATH_STYLE_ENDPOINT
         value: true          # R2 adresse les compartiments par le chemin
+
+      # ── Rattrapage des aperçus d'images ─────────────────────────────
+      #
+      # Combien de media `media:apercus` traite à chaque démarrage. La commande
+      # fabrique la variante 1200x630 que og:image sert ; sans elle, tout
+      # article déjà en base garde son original, que WhatsApp refuse dès
+      # quelques centaines de ko — donc pas de vignette, pour tout le catalogue
+      # actuel.
+      #
+      # « de 2 à 6 Mo » figurait ici et était impossible : PHP plafonnait le
+      # dépôt à 2M faute de php.ini dans l'image (mesure par HTTP réel,
+      # 2 255 773 o -> 422). Le stock à rattraper pèse au plus 2 Mo par photo.
+      #
+      # Le Dockerfile la lance APRÈS le démarrage et hors de la chaîne
+      # bloquante : le détail et les mesures sont commentés là-bas, avec le
+      # poids d'entrée qui détermine chaque pic — sans lui un pic ne veut rien
+      # dire. Deux chiffres ont déjà été faux ici : 104 Mo d'abord, puis 82,0 Mo
+      # sans son entrée. Mesure, 4032x3024 pour une entrée de 6 901 583 o,
+      # relevée sous une limite de 128M : pic 88,0 Mo, 0,761 s. Ce pic ne dépend
+      # pas de la limite — docker/php/depot-de-photos.ini pose 192M depuis, et
+      # la commande garde son `-d memory_limit=256M` ; c'est le verdict du
+      # garde-fou que la limite déplace, pas le besoin.
+      #
+      # Non renseignée, 60 — soit ~40 s de travail à la cadence mesurée sur le
+      # poste de développement, et davantage en ligne. Relever ce chiffre ici
+      # suffit à solder un stock plus gros, puisque modifier la valeur
+      # redéploie. C'est la seule façon d'y arriver sans Shell, que le plan
+      # gratuit n'offre pas.
+      #
+      # « Chaque démarrage reprend où le précédent s'est arrêté » : c'est vrai
+      # DEPUIS que les échecs sont marqués. Auparavant, une ligne irréparable
+      # sur un petit identifiant — ce que le disque éphémère décrit plus bas
+      # fabrique — reprenait tout le budget de chaque démarrage, et trois
+      # démarrages d'affilée ne généraient rien. Voir GenererApercusMedia.
+      - key: MEDIA_APERCUS_LIMIT
+        sync: false          # media traités par démarrage ; défaut 60
 
   # Les rappels d'entretien ne sont PLUS ici.
   #

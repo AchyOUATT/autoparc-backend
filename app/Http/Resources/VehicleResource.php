@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\PhotoPartage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -162,12 +163,41 @@ class VehicleResource extends JsonResource
             'optional_feature_count' => $this->whenLoaded('features', fn () => $this->optional_feature_count),
             'is_full_option'         => $this->whenLoaded('features', fn () => $this->is_full_option),
 
-            'media'    => $this->whenLoaded('media', fn () => $this->media->map(fn ($m) => [
-                'id'         => $m->id,
-                'url'        => $m->url,
-                'collection' => $m->collection,
-                'is_cover'   => $m->is_cover,
-            ])),
+            // Les media dont le CHEMIN est inexploitable sont ecartes ici, et
+            // non laisses a l'application.
+            //
+            // L'application ne recoit que des URL. Mesure sur une galerie dont
+            // la premiere ligne porte path='0' et dont la suivante est valable,
+            // avant correction :
+            //
+            //     "media":[{"id":1,"url":"http://localhost:8000/storage/0",...},
+            //              {"id":2,"url":".../storage/vehicles/1/ok.jpg",...}]
+            //
+            // Les trois modeles Dart filtrent sur `u.isNotEmpty` (voir
+            // Part.fromJson) : « .../storage/0 » n'est pas vide, il passe, et
+            // `coverUrl` designe un 404. Le filtre cote application ne PEUT pas
+            // faire mieux — rien dans une URL ne dit que le fichier derriere
+            // est absent. Le seul endroit qui connait le chemin, c'est ici.
+            //
+            // Le predicat est celui de PhotoPartage::cheminExploitable, et
+            // c'est voulu : la page de partage et l'API doivent designer la
+            // meme photo. Il rejette la chaine vide et '0' en clair, sans
+            // empty() — « 0 » est faux en PHP, et c'est cette conversion
+            // implicite qui a fabrique le defaut a l'origine.
+            //
+            // `values()` n'est pas cosmetique : apres un filter(), les cles de
+            // la collection ne sont plus 0..n et json_encode rend un OBJET la
+            // ou l'application attend un TABLEAU. `json['media'] as List?`
+            // leverait alors cote Dart.
+            'media'    => $this->whenLoaded('media', fn () => $this->media
+                ->filter(fn ($m) => PhotoPartage::cheminExploitable($m->path))
+                ->map(fn ($m) => [
+                    'id'         => $m->id,
+                    'url'        => $m->url,
+                    'collection' => $m->collection,
+                    'is_cover'   => $m->is_cover,
+                ])
+                ->values()),
 
             'description'  => $this->description,
             'published_at' => $this->published_at?->toIso8601String(),

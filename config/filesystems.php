@@ -41,7 +41,14 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            // `?:` et non le second argument d'env(), comme dans config/app.php :
+            // une variable PRESENTE ET VIDE ne declenche pas le defaut d'env().
+            // Mesure avec APP_URL= : cette cle valait « /storage », et og:image
+            // sortait en « /storage/vehicles/1/photo.jpg » — un chemin relatif,
+            // que le robot de WhatsApp ne resout pas. C'est cette ligne-ci qui
+            // produisait l'adresse, pas app.url : corriger l'une sans l'autre
+            // laissait la vignette muette.
+            'url' => rtrim(env('APP_URL') ?: 'http://localhost', '/').'/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

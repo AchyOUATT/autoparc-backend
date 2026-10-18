@@ -21,7 +21,55 @@ jobs:
         with:
           php-version: '8.4'
           # pdo_sqlite : la suite tourne sur SQLite en mémoire (phpunit.xml).
-          extensions: pdo_sqlite, sqlite3, mbstring, bcmath
+          #
+          # gd : SANS LUI, CINQ TESTS SONT SAUTÉS EN CI, dont tous ceux qui
+          # couvrent la génération de variante d'aperçu. C'est la pièce la plus
+          # fragile du lot — GD décompresse à quatre octets par pixel, et un
+          # dépassement de mémoire en PHP est une erreur FATALE qui tue la
+          # requête de dépôt sans message pour l'utilisateur. Le correctif
+          # central n'était donc vérifié par aucune exécution automatique : ce
+          # n'est pas un confort de développement, c'est l'absence de filet.
+          #
+          # Le Dockerfile de production l'installe (`docker-php-ext-install gd`)
+          # depuis le début ; c'est la CI qui ne suivait pas.
+          #
+          # MESURE, LES DEUX FOIS AVEC LES PLAFONDS DE L'IMAGE CI-DESSOUS :
+          #
+          #     sans gd -> 501 tests, 496 passés, 5 sautés
+          #     avec gd -> 501 tests, 501 passés, 0 sauté
+          #
+          # Le triplet écrit ici précédemment — « 481 tests, 476 passés et 5
+          # sautés » — ne correspondait à aucune exécution : il mariait le total
+          # d'AVANT le lot (481) au nombre de sauts d'APRÈS (5). Les deux lignes
+          # ci-dessus sont relevées sur la même révision, à la suite.
+          extensions: pdo_sqlite, sqlite3, mbstring, bcmath, gd
+          # LA MÉMOIRE DE L'IMAGE DE PRODUCTION, et non celle du coureur.
+          #
+          # Posée sur le php.ini plutôt qu'en `php -d` sur la commande :
+          # `artisan test` lance PHPUnit dans un PROCESSUS FILS, qui n'hérite
+          # PAS des `-d`. Mesure, un test qui imprime la limite qu'il voit,
+          # lancé par `php -d memory_limit=77M artisan test` :
+          #
+          #     LIMITE VUE PAR LE FILS : 128M
+          #
+          # La limite ne touchait que le père. Un `-d` ici n'aurait donc rien
+          # éprouvé du tout, en en donnant l'apparence.
+          #
+          # php:8.4-cli ne livre aucun php.ini, et le seul fichier que l'image
+          # pose dans conf.d est docker/php/depot-de-photos.ini. Les TROIS
+          # valeurs ci-dessous sont donc exactement les siennes — c'était 128M
+          # ici tant que ce fichier ne portait pas memory_limit, ce qui n'est
+          # plus le cas. Le Dockerfile ne relève la mémoire qu'une seconde fois,
+          # à 256M, et uniquement sur `media:apercus` ; le chemin du dépôt de
+          # photo garde les 192M, et c'est ce que la CI doit éprouver.
+          #
+          # Ce sont des directives PHP_INI_PERDIR ou PHP_INI_ALL qu'aucun test ne
+          # peut poser pour la requête qui le lit, si bien que ce qu'un dépôt de
+          # photo donne dépend entièrement de ce qui est écrit ici. Les laisser
+          # aux défauts du coureur ferait éprouver un serveur qui n'existe nulle
+          # part — et PlafondsDeDepotTest le dit bruyamment en se sautant. Le
+          # calcul de 9M, 24M et 192M est dans docker/php/depot-de-photos.ini.
+          ini-values: memory_limit=192M, upload_max_filesize=9M, post_max_size=24M
           coverage: none
 
       - name: Cache Composer

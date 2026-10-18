@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\PhotoPartage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -48,12 +49,20 @@ class AccessoryResource extends JsonResource
                 ] : null),
             ],
 
-            'media' => $this->whenLoaded('media', fn () => $this->media->map(fn ($m) => [
-                'id'       => $m->id,
-                'url'      => $m->url,
-                'is_cover' => $m->is_cover,
-                'position' => $m->position,
-            ])),
+            // Meme filtre que VehicleResource, et pour la meme raison : une
+            // entree dont le chemin est inexploitable ('' ou '0') sort une URL
+            // NON VIDE qui pointe un 404, que le filtre `u.isNotEmpty` des
+            // modeles Dart laisse donc passer. Le predicat et le `values()`
+            // sont expliques la-bas.
+            'media' => $this->whenLoaded('media', fn () => $this->media
+                ->filter(fn ($m) => PhotoPartage::cheminExploitable($m->path))
+                ->map(fn ($m) => [
+                    'id'       => $m->id,
+                    'url'      => $m->url,
+                    'is_cover' => $m->is_cover,
+                    'position' => $m->position,
+                ])
+                ->values()),
             'is_active' => $this->is_active,
 
             // Compatibilités : chargées uniquement sur le détail
