@@ -9,6 +9,14 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class AccessoryResource extends JsonResource
 {
+    /**
+     * Combien de vehicules le resume porte au plus.
+     *
+     * Trois, comme PartResource. Ce n'est pas la carte qui l'impose — elle
+     * tronque a deux lignes quoi qu'il arrive — mais le poids de la reponse.
+     */
+    private const VEHICULES_EN_VIGNETTE = 3;
+
     public function toArray(Request $request): array
     {
         return [
@@ -65,7 +73,21 @@ class AccessoryResource extends JsonResource
                 ->values()),
             'is_active' => $this->is_active,
 
-            // Compatibilités : chargées uniquement sur le détail
+            // Le RESUME, pour la carte du catalogue : « Toyota Corolla »,
+            // « Hyundai Tucson ». La carte n'a pas la place d'une liste de
+            // compatibilites, mais savoir a quoi un accessoire se destine est
+            // ce qui evite d'ouvrir une fiche pour rien.
+            //
+            // Jumeau de PartResource::resumeCompatibilite, et la ressemblance
+            // est voulue : les deux cartes affichent la meme ligne, et deux
+            // formes differentes se seraient mises a diverger.
+            'compatibility' => $this->whenLoaded(
+                'fitments',
+                fn () => $this->resumeCompatibilite(),
+            ),
+
+            // Compatibilités détaillées : chargées sur le détail et, depuis la
+            // ligne de compatibilite des cartes, sur la liste aussi.
             // Voir PartResource : les identifiants sont ce qui permet a
             // l'ecran d'edition de relire la liste et de la renvoyer sans
             // perte. Un accessoire n'a ni code moteur ni position.
@@ -84,6 +106,37 @@ class AccessoryResource extends JsonResource
                 'source'           => $f->source?->value,
             ])),
             'partners' => PartnerResource::collection($this->whenLoaded('partners')),
+        ];
+    }
+
+    /**
+     * Les vehicules auxquels cet accessoire se destine, pour la carte.
+     *
+     * Copie fidele de PartResource::resumeCompatibilite, meme plafond compris.
+     * Les deux cartes du catalogue affichent la meme ligne : deux resumes
+     * differents se seraient mis a diverger, et c'est l'ecran qui l'aurait
+     * montre.
+     *
+     * Le plafond ne sert pas la mise en page — la carte tronque elle-meme a
+     * deux lignes — mais le POIDS de la liste : une reponse de catalogue porte
+     * vingt articles, et un accessoire universel peut declarer des dizaines de
+     * modeles dont la carte ne montrera jamais le troisieme.
+     *
+     * @return array{count: int, vehicles: list<string>}
+     */
+    private function resumeCompatibilite(): array
+    {
+        $vehicules = $this->fitments
+            ->map(fn ($f) => trim(
+                ($f->vehicleModel?->brand?->name ?? '').' '.($f->vehicleModel?->name ?? '')
+            ))
+            ->filter()
+            ->unique()
+            ->values();
+
+        return [
+            'count' => $vehicules->count(),
+            'vehicles' => $vehicules->take(self::VEHICULES_EN_VIGNETTE)->all(),
         ];
     }
 }

@@ -27,7 +27,16 @@ class AccessoryController extends Controller
     public function catalog(Request $request)
     {
         $accessories = Accessory::query()
-            ->with(['manufacturer', 'location', 'media'])
+            ->with([
+                'manufacturer', 'location', 'media',
+                // La ligne de compatibilite des cartes lit la cle
+                // `compatibility`, que AccessoryResource rend sous
+                // whenLoaded : sans ce
+                // chargement la cle DISPARAIT du JSON et la ligne reste vide
+                // sur chaque carte, sans erreur. Ce depot a deja livre cinq
+                // fois ce defaut-la.
+                'fitments.vehicleModel.brand',
+            ])
             ->active()
             ->where('is_available', true)
             ->search($request->string('q')->toString() ?: null)
@@ -67,7 +76,7 @@ class AccessoryController extends Controller
     public function index(Request $request)
     {
         $accessories = Accessory::query()
-            ->with(['manufacturer', 'location'])
+            ->with(['manufacturer', 'location', 'fitments.vehicleModel.brand'])
             ->search($request->string('q')->toString() ?: null)
             ->when($request->filled('category'), fn ($q) => $q->ofCategory($request->category))
             ->when($request->filled('manufacturer_id'), fn ($q) => $q->where('manufacturer_id', $request->manufacturer_id))
