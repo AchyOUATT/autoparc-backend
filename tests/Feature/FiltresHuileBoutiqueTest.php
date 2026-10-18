@@ -137,7 +137,9 @@ class FiltresHuileBoutiqueTest extends TestCase
     {
         $this->semer();
 
-        $vides = ['90915-YZZF2', '90915-YZZE1', '90915-YZZD1', '90915-YZZN2', '04152-YZZA6'];
+        // La YZZA6 a quitte cette liste : le catalogue de correspondance lui a
+        // donne quatre lignes confirmees.
+        $vides = ['90915-YZZF2', '90915-YZZE1', '90915-YZZD1', '90915-YZZN2'];
 
         foreach ($vides as $sku) {
             $this->assertCount(0, Part::where('sku', $sku)->firstOrFail()->fitments);
@@ -174,8 +176,10 @@ class FiltresHuileBoutiqueTest extends TestCase
 
         $lignes = PartFitment::with('vehicleModel')->get();
 
-        $this->assertCount(16, $lignes,
-            "Des compatibilites ont ete perdues : un slug ne se resout plus.");
+        // 16 lignes du premier versement, 58 du catalogue de correspondance —
+        // dont 19 portees par les cinq modeles d'importation americaine.
+        $this->assertCount(74, $lignes,
+            'Des compatibilites ont ete perdues : un slug ne se resout plus.');
 
         foreach ($lignes as $ligne) {
             $this->assertNotNull($ligne->vehicleModel, "Compatibilite orpheline : {$ligne->id}");
@@ -185,12 +189,25 @@ class FiltresHuileBoutiqueTest extends TestCase
     /**
      * Un carter prend un filtre visse OU une cartouche.
      *
-     * On compare les periodes : une meme generation peut recevoir les deux si
-     * elle traverse le changement de moteur — la Corolla E140 est vissee
-     * jusqu'en 2008 et a cartouche ensuite. Ce qui est interdit, c'est le
-     * recouvrement.
+     * Le carter, c'est le code moteur — pas le modele, et pas la periode. La
+     * garde comparait les seules periodes, ce qui revenait a supposer qu'une
+     * generation n'offre qu'un moteur. C'est faux, et le catalogue de
+     * correspondance en fait sa phrase d'ouverture :
+     *
+     *     Le filtre depend du code moteur, pas du nom du modele : une meme
+     *     Camry peut prendre trois filtres differents selon l'annee et la
+     *     motorisation.
+     *
+     * La Camry XV70 en est l'illustration : de 2018 a 2024 elle prend la
+     * cartouche YZZA1 en 3.5 2GR-FKS et le filtre visse YZZN1 en 2.5 A25A, sur
+     * les memes millesimes. Deux familles de filtre, deux carters differents,
+     * aucune contradiction — et l'ancienne garde aurait refuse de publier la
+     * ligne correcte.
+     *
+     * Ce qui reste interdit, et que la garde cherche vraiment, c'est un MEME
+     * code moteur qui recevrait les deux familles sur une periode commune.
      */
-    public function test_aucun_modele_ne_recoit_un_visse_et_une_cartouche_la_meme_annee(): void
+    public function test_aucun_carter_ne_recoit_un_visse_et_une_cartouche_la_meme_annee(): void
     {
         $this->semer();
 
@@ -207,12 +224,13 @@ class FiltresHuileBoutiqueTest extends TestCase
 
             foreach ($visses as $v) {
                 foreach ($cartouches as $c) {
-                    if ($this->seChevauchent($v, $c)) {
+                    if ($this->enConflit($v, $c)) {
                         $conflits[] = sprintf(
-                            'Le modele %s recoit a la fois %s (visse) et %s (cartouche) sur une periode commune.',
+                            'Le modele %s recoit a la fois %s (visse) et %s (cartouche) en %s sur une periode commune.',
                             $v->vehicleModel?->slug ?? $modeleId,
                             $v->part->sku,
                             $c->part->sku,
+                            $v->engine_code ?? 'code moteur absent',
                         );
                     }
                 }
@@ -220,6 +238,32 @@ class FiltresHuileBoutiqueTest extends TestCase
         }
 
         $this->assertSame([], $conflits, implode(PHP_EOL, $conflits));
+    }
+
+    /**
+     * La garde croise bien deux familles sur un meme modele.
+     *
+     * Sans ce constat, le test precedent pourrait passer parce que ses boucles
+     * ne s'executent jamais. La Camry XV70 porte les deux familles : les
+     * boucles tournent, et c'est le code moteur qui tranche.
+     */
+    public function test_la_camry_xv70_porte_bien_les_deux_familles(): void
+    {
+        $this->semer();
+
+        $codes = PartFitment::with(['part', 'vehicleModel'])->get()
+            ->filter(fn ($f) => $f->vehicleModel?->slug === 'camry-xv70')
+            ->mapWithKeys(fn ($f) => [$f->part->sku.' / '.$f->engine_code => true])
+            ->keys()
+            ->sort()
+            ->values()
+            ->all();
+
+        $this->assertSame([
+            '04152-YZZA1 / 2GR-FKS',
+            '90915-YZZN1 / A25A-FKS',
+            '90915-YZZN1 / A25A-FXS',
+        ], $codes, 'La XV70 est l\'exemple du document : cartouche en 2GR, visse en A25A.');
     }
 
     /**
@@ -252,6 +296,52 @@ class FiltresHuileBoutiqueTest extends TestCase
 
         // Annees jointives : 2008 et 2009 ne se touchent pas.
         $this->assertFalse($chevauchent(2000, 2008, 2009, 2015));
+    }
+
+    /**
+     * Et le code moteur est bien ce qui tranche.
+     *
+     * C'est la partie neuve de la garde, celle qui autorise la Camry XV70 sans
+     * autoriser l'erreur qu'on cherche. Elle est eprouvee ici sur des objets
+     * fabriques, pour qu'elle tienne encore quand les donnees changeront.
+     */
+    public function test_le_detecteur_de_conflit_juge_par_code_moteur(): void
+    {
+        $conflit = fn (string $m1, ?int $d1, ?int $f1, string $m2, ?int $d2, ?int $f2) => $this->enConflit(
+            new PartFitment(['engine_code' => $m1, 'year_from' => $d1, 'year_to' => $f1]),
+            new PartFitment(['engine_code' => $m2, 'year_from' => $d2, 'year_to' => $f2]),
+        );
+
+        // Le cas qu'on refuse : un meme carter, les deux familles, en meme temps.
+        $this->assertTrue($conflit('2AR-FE', 2012, 2017, '2AR-FE', 2010, 2015));
+
+        // Le cas de la Camry XV70 : deux moteurs distincts sur les memes
+        // millesimes, deux filtres differents. Legitime.
+        $this->assertFalse($conflit('A25A-FKS', 2018, null, '2GR-FKS', 2018, 2024));
+
+        // Un meme carter dont les periodes sont disjointes : la transition
+        // cartouche -> visse de la Corolla E180. Legitime.
+        $this->assertFalse($conflit('2ZR-FE', 2017, 2019, '2ZR-FE', 2013, 2015));
+
+        // Un code moteur manquant ne doit pas servir de laissez-passer : deux
+        // lignes sans code sur une periode commune restent un conflit.
+        $this->assertTrue($conflit('', 2018, 2020, '', 2019, 2021));
+    }
+
+    /**
+     * Deux familles de filtre ne se disputent que le meme carter.
+     *
+     * Le code moteur est l'identite du carter : c'est la regle du document, et
+     * c'est la seule lecture qui laisse passer la Camry XV70 tout en refusant
+     * la contradiction physique.
+     */
+    private function enConflit(PartFitment $visse, PartFitment $cartouche): bool
+    {
+        if ($visse->engine_code !== $cartouche->engine_code) {
+            return false;
+        }
+
+        return $this->seChevauchent($visse, $cartouche);
     }
 
     private function seChevauchent(PartFitment $a, PartFitment $b): bool
@@ -291,20 +381,86 @@ class FiltresHuileBoutiqueTest extends TestCase
         }
     }
 
-    /** Rejoue a chaque deploiement : rien ne doit s'empiler ni se perdre. */
+    /**
+     * Rejoue a chaque deploiement : rien ne doit s'empiler ni se perdre.
+     *
+     * Les compteurs ne suffisent pas — ils resteraient identiques si une ligne
+     * disparaissait pendant qu'une autre se dupliquait. On compare donc le
+     * contenu : reference, modele, code moteur, bornes d'annees et provenance.
+     */
     public function test_rejouer_le_seeder_ne_change_rien(): void
     {
         $this->semer();
 
-        $pieces = Part::count();
-        $lignes = PartFitment::count();
+        $empreinte = fn () => PartFitment::with(['part', 'vehicleModel'])->get()
+            ->map(fn ($f) => implode('|', [
+                $f->part->sku,
+                $f->vehicleModel?->slug,
+                $f->engine_code,
+                $f->year_from ?? '-',
+                $f->year_to ?? '-',
+                $f->notes,
+            ]))
+            ->sort()
+            ->values()
+            ->all();
+
+        $pieces  = Part::count();
         $numeros = OemNumber::count();
+        $avant   = $empreinte();
 
         $this->semer();
 
         $this->assertSame($pieces, Part::count());
-        $this->assertSame($lignes, PartFitment::count());
         $this->assertSame($numeros, OemNumber::count());
+        $this->assertSame($avant, $empreinte(),
+            'La republication a modifie, perdu ou duplique des compatibilites.');
+    }
+
+    /**
+     * Chaque compatibilite dit d'ou elle vient.
+     *
+     * Une ligne sans provenance est invérifiable des que son auteur a oublie le
+     * detail. Le document, le tableau et le statut doivent donc rester
+     * attaches a la ligne, en base — pas seulement dans le fichier du seeder.
+     */
+    public function test_chaque_compatibilite_porte_sa_provenance(): void
+    {
+        $this->semer();
+
+        foreach (PartFitment::with(['part', 'vehicleModel'])->get() as $ligne) {
+            $this->assertNotEmpty($ligne->notes, sprintf(
+                '%s / %s est publiee sans provenance.',
+                $ligne->part->sku,
+                $ligne->vehicleModel?->slug,
+            ));
+        }
+    }
+
+    /**
+     * Les trois references du catalogue de correspondance portent bien leur
+     * compte.
+     *
+     * Reparti par reference, pour qu'une perte se localise au lieu de se
+     * diluer dans un total.
+     */
+    public function test_le_compte_par_reference_est_celui_du_versement(): void
+    {
+        $this->semer();
+
+        $attendus = [
+            '04152-YZZA1' => 33,
+            '04152-YZZA6' => 4,
+            '90915-YZZN1' => 25,
+        ];
+
+        foreach ($attendus as $sku => $compte) {
+            $this->assertCount(
+                $compte,
+                Part::where('sku', $sku)->firstOrFail()->fitments,
+                "Le compte de compatibilites de la {$sku} a change.",
+            );
+        }
     }
 
     /**
@@ -334,8 +490,8 @@ class FiltresHuileBoutiqueTest extends TestCase
 
         sort($marques);
 
-        $this->assertSame(['Toyota'], $marques,
-            'Les dix lignes confirmees ne concernent que des Toyota : les Lexus du document attendent une verification.');
+        $this->assertSame(['Lexus', 'Toyota'], $marques,
+            'Le catalogue de correspondance couvre les deux marques, et rien d\'autre : les lignes Scion, Pontiac et Lotus du document n\'ont aucune marque au referentiel.');
     }
 
     /**
@@ -374,6 +530,236 @@ class FiltresHuileBoutiqueTest extends TestCase
     }
 
     /**
+     * Une ligne « Non compatible » n'est pas une compatibilite : c'est son
+     * inverse.
+     *
+     * Le catalogue de correspondance porte, dans le tableau de chaque
+     * reference, des lignes qui disent que le vehicule prend une AUTRE
+     * reference — nommee dans la colonne Filtre. Lues de travers, elles
+     * fabriquent exactement la compatibilite que le document refuse : une
+     * cartouche sur un carter a filtre visse, ou le filtre d'un 4 cylindres
+     * sur un V6.
+     *
+     * Chaque paire ci-dessous est une ligne « Non compatible » du document dont
+     * le modele existe au referentiel — donc une erreur qu'un chargement
+     * distrait aurait pu commettre. Le couple (modele, code moteur) est la
+     * forme exacte de l'interdit : la Camry XV70 a le droit de porter la YZZN1,
+     * mais pas en 2GR-FKS.
+     */
+    public function test_aucune_ligne_non_compatible_n_est_devenue_une_compatibilite(): void
+    {
+        $this->semer();
+
+        $interdits = [
+            // Le tableau YZZA1 renvoie ces vehicules vers la YZZF1, la YZZA4
+            // ou la YZZN1.
+            '04152-YZZA1' => [
+                ['camry-xv50', '2AZ-FE'], ['rav4-xa40', '2AZ-FE'],
+                ['camry-xv70', 'A25A-FKS'], ['camry-xv70', 'A25A-FXS'],
+                ['rav4-xa50', 'A25A-FKS'], ['rav4-xa50', 'A25A-FXS'],
+                ['es-xv70', 'A25A-FKS'], ['es-xv70', 'A25A-FXS'],
+                ['nx-az20', 'A25A-FKS'], ['nx-az20', 'A25A-FXS'],
+                ['rx-al30', 'A25A-FXS'], ['land-cruiser-j200', '3UR-FE'],
+                // Les cinq modeles d'importation americaine portent chacun des
+                // lignes confirmees ET des lignes « Non compatible » dans le
+                // meme tableau. C'est le piege de ce versement : les memes
+                // Highlander, Sienna, Venza et Avalon prennent la cartouche en
+                // 2GR ou 1AR, et le filtre visse en A25A ou T24A.
+                ['highlander', '3MZ-FE'], ['highlander', 'A25A-FXS'],
+                ['highlander', 'T24A-FTS'], ['sienna', 'A25A-FXS'],
+                ['venza', 'A25A-FXS'], ['avalon', 'A25A-FXS'],
+            ],
+            // Le tableau YZZN1 renvoie ces vehicules vers la YZZA1 ou la
+            // YZZA6. Les V6 s'y ajoutent : « aucune application V6 ou V8 n'est
+            // repertoriee pour la YZZN1 dans le catalogue 2023 ».
+            '90915-YZZN1' => [
+                ['camry-xv50', '2AR-FE'], ['camry-xv50', '2AR-FXE'],
+                ['camry-xv50', '2GR-FE'], ['camry-xv70', '2GR-FKS'],
+                ['rav4-xa40', '2AR-FE'], ['rav4-xa40', '2AR-FXE'],
+                ['es-xv60', '2AR-FXE'], ['rx-al20', '2GR-FE'],
+                ['prius-xw30', '2ZR-FXE'], ['corolla-e140', '2ZR-FE'],
+                ['ct-zwa10', '2ZR-FXE'],
+                // Le revers du piege : sur ces modeles, les V6 et le 2.7 1AR
+                // relevent de la cartouche. Le document est formel, « aucune
+                // application V6 ou V8 n'est repertoriee pour la YZZN1 ».
+                ['highlander', '2GR-FE'], ['highlander', '2GR-FKS'],
+                ['highlander', '1AR-FE'], ['sienna', '2GR-FE'],
+                ['venza', '1AR-FE'], ['avalon', '2AR-FXE'],
+                ['tacoma', '2GR-FKS'], ['tacoma', '2TR-FE'],
+            ],
+            // Le tableau YZZA6 renvoie ces vehicules vers la YZZN1 ou la
+            // YZZF1.
+            '04152-YZZA6' => [
+                ['corolla-e210', '2ZR-FAE'], ['corolla-e210', 'M20A-FKS'],
+                ['corolla-e140', '2AZ-FE'], ['prius-xw50', '2ZR-FXE'],
+            ],
+        ];
+
+        foreach ($interdits as $sku => $paires) {
+            $piece = Part::where('sku', $sku)->with('fitments.vehicleModel')->firstOrFail();
+
+            $portees = $piece->fitments
+                ->map(fn ($f) => $f->vehicleModel?->slug.' / '.$f->engine_code)
+                ->all();
+
+            foreach ($paires as [$slug, $moteur]) {
+                // Sans ce controle, un slug mal orthographie rendrait
+                // l'interdiction vide : elle passerait en ne verifiant rien.
+                $this->assertNotNull(
+                    VehicleModel::where('slug', $slug)->first(),
+                    "Le modele {$slug} n'existe plus : cette interdiction ne verifie plus rien.",
+                );
+
+                $this->assertNotContains($slug.' / '.$moteur, $portees, sprintf(
+                    'Le document donne %s en %s comme « Non compatible » avec la %s : '
+                    .'cette ligne prescrit une autre reference, elle ne doit pas devenir une compatibilite.',
+                    $slug,
+                    $moteur,
+                    $sku,
+                ));
+            }
+        }
+    }
+
+    /**
+     * Les cinq modeles d'importation americaine, et ce qu'ils ont rapporte.
+     *
+     * Le proprietaire a leve l'absence de ces cinq modeles sur une estimation
+     * du nombre de compatibilites qu'ils debloqueraient. Ce test fixe le compte
+     * reel, modele par modele, pour que la decision reste verifiable.
+     */
+    public function test_les_modeles_d_importation_americaine_portent_leurs_lignes(): void
+    {
+        $this->semer();
+
+        $attendus = [
+            'highlander' => ['04152-YZZA1' => 5, '90915-YZZN1' => 2],
+            'sienna'     => ['04152-YZZA1' => 3, '90915-YZZN1' => 1],
+            'venza'      => ['04152-YZZA1' => 2, '90915-YZZN1' => 1],
+            'avalon'     => ['04152-YZZA1' => 3, '90915-YZZN1' => 1],
+            'tacoma'     => ['04152-YZZA1' => 1],
+        ];
+
+        $total = 0;
+
+        foreach ($attendus as $slug => $parReference) {
+            $modele = VehicleModel::where('slug', $slug)->first();
+
+            $this->assertNotNull($modele, "Le modele {$slug} n'a pas ete cree.");
+            $this->assertTrue((bool) $modele->is_active, "Le modele {$slug} est inactif.");
+            $this->assertSame('Toyota', $modele->brand->name, $slug);
+
+            $lignes = PartFitment::with('part')
+                ->where('vehicle_model_id', $modele->id)
+                ->get()
+                ->groupBy(fn ($f) => $f->part->sku)
+                ->map->count()
+                ->all();
+
+            $this->assertSame($parReference, $lignes, "Le compte de {$slug} a change.");
+
+            $total += array_sum($parReference);
+        }
+
+        $this->assertSame(19, $total,
+            'Les cinq modeles crees devaient debloquer dix-neuf compatibilites confirmees.');
+    }
+
+    /**
+     * Aucun des cinq n'a ete cree en double.
+     *
+     * Le referentiel porte deja « Land Cruiser » en trois generations et
+     * « Corolla » en trois : un doublon y passerait inapercu, et serait pire
+     * que l'absence — deux lignes pour un meme vehicule, dont une seule porte
+     * les compatibilites.
+     */
+    public function test_les_modeles_d_importation_americaine_ne_sont_pas_doubles(): void
+    {
+        $this->semer();
+
+        foreach (['Highlander', 'Sienna', 'Venza', 'Avalon', 'Tacoma'] as $nom) {
+            $this->assertCount(
+                1,
+                VehicleModel::where('name', $nom)->get(),
+                "Le modele {$nom} existe en plusieurs exemplaires.",
+            );
+        }
+
+        // Et les noms de marche de ces memes vehicules ne doivent pas avoir
+        // cree une seconde entree : le Highlander se vend « Kluger » hors
+        // Amerique du Nord, et le document le signale lui-meme.
+        foreach (['Kluger', 'Harrier', 'Previa', 'Estima'] as $autreNom) {
+            $this->assertCount(
+                0,
+                VehicleModel::where('name', $autreNom)->get(),
+                "Le modele {$autreNom} doublerait un des cinq modeles crees.",
+            );
+        }
+    }
+
+    /**
+     * Un cas lu de bout en bout, par l'API publique.
+     *
+     * La Camry 2.5 2AR-FE de 2015, c'est-a-dire la generation XV50 : le
+     * document la donne « Confirme » sur la cartouche YZZA1. Le reste du
+     * fichier verifie la base ; celui-ci verifie que le client la voit.
+     */
+    public function test_l_api_rend_la_cartouche_pour_la_camry_2_5_2ar_fe(): void
+    {
+        $this->semer();
+
+        $xv50 = VehicleModel::where('slug', 'camry-xv50')->firstOrFail();
+
+        $reponse = $this->getJson('/api/catalog/compatible-parts?'.http_build_query([
+            'vehicle_model_id' => $xv50->id,
+            'year'             => 2015,
+        ]))->assertOk();
+
+        $references = collect($reponse->json('data'))->pluck('sku')->all();
+
+        $this->assertContains('04152-YZZA1', $references,
+            'Un client avec une Camry XV50 de 2015 ne trouve pas sa cartouche.');
+
+        // Et l'inverse, qui compte autant : la XV50 ne prend aucun filtre
+        // visse, le document l'y donne « Non compatible ».
+        $this->assertNotContains('90915-YZZN1', $references,
+            'La Camry XV50 se voit proposer un filtre visse, que le document lui refuse.');
+    }
+
+    /**
+     * Le code moteur tranche bien, la ou il est branche.
+     *
+     * Le service sait filtrer sur le code moteur ; c'est la cle du document, et
+     * la Camry XV70 est le cas ou elle est indispensable — meme modele, memes
+     * millesimes, deux filtres. Ce test fixe ce comportement.
+     *
+     * A noter : la route publique `/api/catalog/compatible-parts` n'expose PAS
+     * ce parametre, et rend donc les deux filtres pour une XV70 de 2019. C'est
+     * au vendeur de lire le code moteur. Le jour ou la route l'acceptera, ce
+     * test dira si le filtrage est juste.
+     */
+    public function test_le_code_moteur_separe_les_deux_filtres_de_la_camry_xv70(): void
+    {
+        $this->semer();
+
+        $xv70 = VehicleModel::where('slug', 'camry-xv70')->firstOrFail();
+        $service = app(\App\Services\CompatibilityService::class);
+
+        $pour = fn (string $moteur) => $service
+            ->partsForCriteria($xv70->id, 2019, null, null, null, $moteur)
+            ->pluck('sku')
+            ->all();
+
+        $this->assertContains('90915-YZZN1', $pour('A25A-FKS'));
+        $this->assertNotContains('04152-YZZA1', $pour('A25A-FKS'),
+            'Le 2.5 A25A se voit proposer la cartouche du V6.');
+
+        $this->assertContains('04152-YZZA1', $pour('2GR-FKS'));
+        $this->assertNotContains('90915-YZZN1', $pour('2GR-FKS'),
+            'Le 3.5 2GR-FKS se voit proposer le filtre visse du 4 cylindres.');
+    }
+
+    /**
      * Une compatibilite sans code moteur n'a pas sa place au catalogue.
      *
      * C'est la regle que pose le document corrige du fournisseur, et c'est
@@ -409,7 +795,9 @@ class FiltresHuileBoutiqueTest extends TestCase
     {
         $this->semer();
 
-        $enAttente = ['90915-YZZF2', '90915-YZZE1', '90915-YZZD1', '90915-YZZN2', '04152-YZZA6', '90915-10001'];
+        // La YZZA6 n'attend plus : le catalogue de correspondance du 18/10/2026
+        // lui donne quatre generations entierement du cote cartouche.
+        $enAttente = ['90915-YZZF2', '90915-YZZE1', '90915-YZZD1', '90915-YZZN2', '90915-10001'];
 
         foreach ($enAttente as $sku) {
             $piece = Part::where('sku', $sku)->with('fitments')->firstOrFail();

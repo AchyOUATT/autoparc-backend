@@ -8,6 +8,44 @@ use Illuminate\Support\Str;
 
 class VehicleModelsSeeder extends Seeder
 {
+    /**
+     * Cinq Toyota nord-americaines, ajoutees sur decision du proprietaire.
+     *
+     * Elles detonnent, et c'est voulu : ce referentiel est choisi a la main
+     * pour le marche local, pas importe d'une base constructeur. La preuve en
+     * est qu'il porte Fortuner, Vios, Rush, Avensis et Auris — aucune n'est
+     * vendue en Amerique du Nord, donc aucune ne peut venir de l'API NHTSA
+     * d'`ImportNhtsaCatalog`, qui est une source du marche americain. Plusieurs
+     * entrees portent d'ailleurs des finitions du Golfe (« Land Cruiser GX VX
+     * VX-R », « Corolla J L GL GLi »).
+     *
+     * L'absence de ces cinq modeles etait donc coherente, pas un oubli. Le
+     * proprietaire la leve en connaissance de cause : ces vehicules arrivent en
+     * Afrique de l'Ouest par l'importation americaine, et le catalogue de
+     * correspondance des filtres a huile leur attribue dix-neuf compatibilites
+     * confirmees qui restaient sans destinataire.
+     *
+     * QUI LIT CECI AVANT DE SUPPRIMER CES LIGNES : elles ne sont pas une
+     * erreur d'import. Les retirer rendrait orphelines dix-neuf compatibilites
+     * de `FiltresHuileBoutiqueSeeder`, qui les designe par ces slugs.
+     *
+     * Une seule ligne par modele, sans generation — comme Vios, Alto ou Creta.
+     * Decouper leurs generations serait une decision de catalogue, et elle n'a
+     * pas ete prise. Les bornes de production sont celles que le document
+     * couvre lui-meme, faute d'autre source ici ; elles ne participent pas au
+     * calcul de compatibilite, qui lit les bornes portees par la ligne de
+     * compatibilite.
+     *
+     * @var list<array{0: string, 1: ?string, 2: string, 3: string, 4: int, 5: ?int}>
+     */
+    public const MODELES_IMPORT_AMERIQUE_DU_NORD = [
+        ['Highlander', null, 'suv',       'E', 2008, null],
+        ['Sienna',     null, 'monospace', 'E', 2007, null],
+        ['Venza',      null, 'suv',       'D', 2009, null],
+        ['Avalon',     null, 'berline',   'E', 2005, 2022],
+        ['Tacoma',     null, 'pick-up',   'D', 1995, null],
+    ];
+
     public function run(): void
     {
         $brandMap = DB::table('brands')->pluck('id', 'slug')->toArray();
@@ -350,6 +388,14 @@ class VehicleModelsSeeder extends Seeder
             // Les deux etaient confondus sur une seule ligne classee pick-up.
             ['ssangyong', 'Actyon Sports', 'Q100', 'pick-up', 'D', 2006, 2012],
         ];
+
+        // Les cinq modeles d'importation americaine rejoignent la liste par le
+        // meme chemin que les autres : meme upsert, meme slug, meme is_active.
+        // Ils sont declares a part pour que la migration qui les pose en
+        // production lise la meme definition, et qu'il n'y en ait qu'une.
+        foreach (self::MODELES_IMPORT_AMERIQUE_DU_NORD as [$nom, $gen, $carrosserie, $segment, $de, $a]) {
+            $models[] = ['toyota', $nom, $gen, $carrosserie, $segment, $de, $a];
+        }
 
         foreach ($models as [$brandSlug, $name, $generation, $bodyType, $segment, $yearStart, $yearEnd]) {
             $brandId = $brandMap[$brandSlug] ?? null;
