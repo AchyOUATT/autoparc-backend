@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\VehicleStatus;
 use App\Models\Accessory;
 use App\Models\Brand;
 use App\Models\Country;
@@ -467,10 +468,28 @@ class PagesProduitTest extends TestCase
     public function test_un_article_retire_du_catalogue_rend_404(): void
     {
         // Une page partagee ne doit pas survivre au retrait de l'article : le
-        // lien continue de circuler longtemps apres l'envoi du message. Pour un
-        // vehicule, le retrait s'appelle `published_at` (publish/unpublish de
-        // l'API) ; pour une piece et un accessoire, `is_active`.
-        $this->get('/v/'.$this->vehicule(['published_at' => null])->id)->assertNotFound();
+        // lien continue de circuler longtemps apres l'envoi du message.
+        //
+        // POUR UN VEHICULE, LE RETRAIT EST LE STATUT, ET NON `published_at`.
+        // Ce test exigeait l'inverse, et il avait tort : personne ne pose
+        // jamais `published_at`. L'action existe cote serveur
+        // (POST /staff/vehicles/{id}/publish) mais aucun ecran de
+        // l'application ne l'appelle, donc tout vehicule enregistre depuis
+        // l'application l'a a null. Mesure en production : la seule annonce du
+        // parc rendait 404 et son bouton de partage etait masque — la fonction
+        // etait morte pour tous les vehicules.
+        //
+        // Un vehicule NON PUBLIE garde donc sa page, parce que le catalogue le
+        // montre ; c'est la regle de catalogueMontre(), et le cas est epingle
+        // ici pour qu'on ne la reinverse pas sans le vouloir.
+        $this->get('/v/'.$this->vehicule(['published_at' => null])->id)->assertOk();
+
+        // VIN distinct : la fabrique en pose un fixe, et ce test est le seul a
+        // demander DEUX vehicules.
+        $this->get('/v/'.$this->vehicule([
+            'status' => VehicleStatus::Sold,
+            'vin' => 'JTDBR32E630XQ9999',
+        ])->id)->assertNotFound();
         $this->get('/p/'.$this->piece(['is_active' => false])->id)->assertNotFound();
         $this->get('/a/'.$this->accessoire(['is_active' => false])->id)->assertNotFound();
     }

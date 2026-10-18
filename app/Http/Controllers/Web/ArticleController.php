@@ -99,10 +99,28 @@ class ArticleController extends Controller
      * l'asymetrie est HERITEE DES CATALOGUES, et la regle la reproduit
      * fidelement.
      *
-     *   — Vehicule : `published_at` est le retrait, pose et retire par
-     *     publish()/unpublish() de l'API — une fiche existe en back-office bien
-     *     avant d'etre montrable. Le statut est l'AUTRE retrait, celui que
-     *     l'API pose sans y penser a la vente : voir STATUTS_RETIRES.
+     *   — Vehicule : SEUL le statut retire la page. Voir STATUTS_RETIRES.
+     *
+     *     `published_at` a d'abord servi de retrait ici, et c'etait une
+     *     ERREUR MESUREE EN PRODUCTION : personne ne pose jamais ce champ.
+     *     L'action existe cote serveur — POST /staff/vehicles/{id}/publish —
+     *     mais AUCUN ecran de l'application ne l'appelle (verifie : grep
+     *     publish sur lib/ ne rend que des commentaires). Tout vehicule
+     *     enregistre depuis l'application a donc published_at a null.
+     *
+     *     Consequence constatee sur la production : la seule annonce du parc,
+     *     une Mazda CX-9 in_stock et a vendre, rendait 404 sur /v/86 et
+     *     voyait son bouton de partage masque. La fonction entiere etait
+     *     morte, pour tous les vehicules, des le premier jour.
+     *
+     *     La regle de ce fichier — une page existe si et seulement si le
+     *     catalogue montre l'article — commande donc d'ignorer ce champ :
+     *     /api/catalog/vehicles ne le filtre pas, le catalogue montre ces
+     *     vehicules, la page doit exister. Aligner le catalogue sur
+     *     published_at serait l'autre reparation coherente, mais elle
+     *     retirerait du catalogue tout le parc existant tant que personne
+     *     n'aurait de quoi publier : c'est un choix de produit, pas un
+     *     correctif.
      *   — Piece : PartController::index filtre active() par defaut, mais
      *     `is_available` n'y est qu'un filtre OPTIONNEL (`in_stock`). Le
      *     catalogue des pieces MONTRE les ruptures de stock, donc la page
@@ -119,8 +137,11 @@ class ArticleController extends Controller
     private function catalogueMontre(Vehicle|Part|Accessory $article): bool
     {
         return match (true) {
-            $article instanceof Vehicle => $article->published_at !== null
-                && ! in_array($article->status, self::STATUTS_RETIRES, true),
+            $article instanceof Vehicle => ! in_array(
+                $article->status,
+                self::STATUTS_RETIRES,
+                true,
+            ),
 
             $article instanceof Part => (bool) $article->is_active,
 
