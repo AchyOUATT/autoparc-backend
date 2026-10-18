@@ -139,9 +139,17 @@ class PartResource extends JsonResource
     private function resumeCompatibilite(): array
     {
         $vehicules = $this->fitments
-            ->map(fn ($f) => trim(
-                ($f->vehicleModel?->brand?->name ?? '').' '.($f->vehicleModel?->name ?? '')
-            ))
+            // LE MODELE SEUL, SANS LA MARQUE. Le resume composait
+            // « Toyota Corolla » ; mesure sur la carte, trois noms de cette
+            // longueur ne tenaient que dans 3 cases sur 12, et la ligne
+            // affichait surtout « +N ». « Corolla » laisse la place a
+            // plusieurs modeles, ce qui est tout l'interet de la ligne.
+            //
+            // Le risque assume : deux marques peuvent nommer un modele
+            // pareillement, et `unique()` les confondrait alors en une seule
+            // entree — « +N » comprise. Sur ce referentiel le cas n'existe
+            // pas ; s'il apparaissait, c'est ici qu'il faudrait distinguer.
+            ->map(fn ($f) => trim($f->vehicleModel?->name ?? ''))
             ->filter()
             ->unique()
             ->values();

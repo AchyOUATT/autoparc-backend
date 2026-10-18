@@ -93,7 +93,7 @@ class CompatibiliteSurLesCartesTest extends TestCase
         );
 
         $this->assertSame(
-            ['Toyota Corolla'],
+            ['Corolla'],
             $article['compatibility']['vehicles'],
             'Le resume ne porte pas « Marque Modele ». C\'est exactement le '
             .'texte que la carte affiche.',
@@ -127,7 +127,7 @@ class CompatibiliteSurLesCartesTest extends TestCase
         );
 
         $this->assertSame(
-            ['Hyundai Tucson'],
+            ['Tucson'],
             $article['compatibility']['vehicles'],
         );
     }

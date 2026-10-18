@@ -127,9 +127,10 @@ class AccessoryResource extends JsonResource
     private function resumeCompatibilite(): array
     {
         $vehicules = $this->fitments
-            ->map(fn ($f) => trim(
-                ($f->vehicleModel?->brand?->name ?? '').' '.($f->vehicleModel?->name ?? '')
-            ))
+            // Le modele seul, sans la marque — voir PartResource pour la
+            // mesure qui l'a decide. Les deux cartes affichent la meme ligne ;
+            // deux formes differentes se seraient mises a diverger.
+            ->map(fn ($f) => trim($f->vehicleModel?->name ?? ''))
             ->filter()
             ->unique()
             ->values();
