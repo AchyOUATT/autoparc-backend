@@ -733,10 +733,10 @@ class FiltresHuileBoutiqueTest extends TestCase
      * la Camry XV70 est le cas ou elle est indispensable — meme modele, memes
      * millesimes, deux filtres. Ce test fixe ce comportement.
      *
-     * A noter : la route publique `/api/catalog/compatible-parts` n'expose PAS
-     * ce parametre, et rend donc les deux filtres pour une XV70 de 2019. C'est
-     * au vendeur de lire le code moteur. Le jour ou la route l'acceptera, ce
-     * test dira si le filtrage est juste.
+     * La route publique l'expose DESORMAIS — voir le test suivant, qui refait
+     * la meme mesure par HTTP. Celui-ci garde le niveau service : si les deux
+     * divergeaient un jour, c'est le branchement qu'il faudrait regarder, pas
+     * le filtrage.
      */
     public function test_le_code_moteur_separe_les_deux_filtres_de_la_camry_xv70(): void
     {
@@ -757,6 +757,86 @@ class FiltresHuileBoutiqueTest extends TestCase
         $this->assertContains('04152-YZZA1', $pour('2GR-FKS'));
         $this->assertNotContains('90915-YZZN1', $pour('2GR-FKS'),
             'Le 3.5 2GR-FKS se voit proposer le filtre visse du 4 cylindres.');
+    }
+
+    /**
+     * La ROUTE tranche aussi, et pas seulement le service.
+     *
+     * Le service savait filtrer par code moteur depuis le debut ; le
+     * controleur ne lui passait rien, et la requete validee n'acceptait meme
+     * pas le parametre. Mesure avant correction sur une Camry XV70 de 2019 :
+     * la route rendait LES DEUX filtres, et c'etait au vendeur de lire le code
+     * moteur sous le capot — alors que le document fourni par le proprietaire
+     * ouvre precisement la-dessus.
+     *
+     * Les trois cas comptent autant l'un que l'autre :
+     *   — avec le code, un seul filtre ;
+     *   — en minuscules, le meme resultat, parce que la comparaison est une
+     *     egalite exacte en base et que « 2ar-fe » ne rendrait sinon que les
+     *     lignes sans code moteur ;
+     *   — SANS le code, les deux, exactement comme avant. C'est la garde de
+     *     compatibilite ascendante : les versions deja installees de
+     *     l'application n'envoient pas ce parametre, et le feront encore
+     *     pendant des mois.
+     */
+    public function test_la_route_publique_filtre_par_code_moteur(): void
+    {
+        $this->semer();
+
+        $xv70 = VehicleModel::where('slug', 'camry-xv70')->firstOrFail();
+
+        $skus = function (array $criteres) use ($xv70) {
+            $reponse = $this->getJson('/api/catalog/compatible-parts?'.http_build_query(
+                ['vehicle_model_id' => $xv70->id, 'year' => 2019] + $criteres,
+            ))->assertOk();
+
+            return collect($reponse->json('data'))->pluck('sku')->all();
+        };
+
+        $v6 = $skus(['engine_code' => '2GR-FKS']);
+        $this->assertContains('04152-YZZA1', $v6);
+        $this->assertNotContains('90915-YZZN1', $v6,
+            'La route propose au V6 le filtre visse du 4 cylindres.');
+
+        $quatre = $skus(['engine_code' => 'A25A-FKS']);
+        $this->assertContains('90915-YZZN1', $quatre);
+        $this->assertNotContains('04152-YZZA1', $quatre,
+            'La route propose au 2.5 A25A la cartouche du V6.');
+
+        $this->assertSame($v6, $skus(['engine_code' => '  2gr-fks  ']),
+            'Un code saisi en minuscules ou entoure d\'espaces ne rend pas le '
+            .'meme resultat : la normalisation de la requete a saute, et le '
+            .'vendeur conclura qu\'il n\'y a aucune piece.');
+
+        $sansCode = $skus([]);
+        $this->assertContains('04152-YZZA1', $sansCode);
+        $this->assertContains('90915-YZZN1', $sansCode,
+            'Sans code moteur, la route ne rend plus les deux filtres : le '
+            .'parametre est devenu obligatoire de fait, et toutes les versions '
+            .'installees de l\'application cessent de trouver des pieces.');
+    }
+
+    /**
+     * Un code moteur inconnu ne rend pas 422, il rend ce qui vaut pour tout le
+     * modele.
+     *
+     * `engine_code` n'est pas une clef etrangere : c'est une chaine libre sur
+     * `part_fitments`. Le refuser par `exists:` aurait fait echouer la
+     * recherche d'un vendeur dont le moteur n'est pas encore au catalogue —
+     * alors que les compatibilites SANS code moteur, celles qui valent pour
+     * tout le modele, restent la bonne reponse a lui donner.
+     */
+    public function test_un_code_moteur_inconnu_ne_fait_pas_echouer_la_recherche(): void
+    {
+        $this->semer();
+
+        $xv70 = VehicleModel::where('slug', 'camry-xv70')->firstOrFail();
+
+        $this->getJson('/api/catalog/compatible-parts?'.http_build_query([
+            'vehicle_model_id' => $xv70->id,
+            'year'             => 2019,
+            'engine_code'      => 'MOTEUR-QUI-N-EXISTE-PAS',
+        ]))->assertOk();
     }
 
     /**

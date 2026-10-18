@@ -56,7 +56,13 @@ class CompatibilityController extends Controller
             $data['year'] ?? null,
             $data['trim_id'] ?? null,
             $data['engine_type_id'] ?? null,
-            $data['drivetrain_id'] ?? null
+            $data['drivetrain_id'] ?? null,
+            // Le sixieme argument existait depuis le debut et n'etait jamais
+            // passe : le service savait filtrer par code moteur, la route ne
+            // le lui demandait pas. Mesure avant correction, Camry XV70 de
+            // 2019 : les DEUX filtres rendus, la cartouche du 2GR-FKS et le
+            // visse de l'A25A. Voir CompatiblePartsCriteriaRequest.
+            $data['engine_code'] ?? null
         )->paginate($request->perPage())->withQueryString();
 
         return PartResource::collection($parts);
