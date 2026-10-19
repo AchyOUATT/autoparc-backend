@@ -45,6 +45,23 @@ class TrimsSeeder extends Seeder
             ['toyota', 'corolla-e180', 'L',        'L',    2, $petrol, $fwd, 132, 1798, 4, 'manual'],
             ['toyota', 'corolla-e180', 'GL',       'GL',   3, $petrol, $fwd, 132, 1798, 4, 'automatic'],
             ['toyota', 'corolla-e180', 'GLi',      'GLi',  4, $petrol, $fwd, 132, 1798, 4, 'automatic'],
+            // La S manquait, signalee par le proprietaire sur un cas reel.
+            //
+            // Les quatre au-dessus — J, GL, GLi — sont des noms de marche
+            // GOLFE / ASIE / AFRIQUE, alors que la E210 juste au-dessus porte
+            // LE, SE, XLE, XSE, qui sont nord-americains. Ce fichier melange
+            // donc deux nomenclatures selon la generation, et c'est ce melange
+            // qui laisse des trous : un vehicule importe d'Amerique du Nord ne
+            // trouve pas sa finition sur la E180, alors qu'il la trouverait sur
+            // la E210.
+            //
+            // La S est la finition sportive nord-americaine de cette
+            // generation : meme 1.8 2ZR-FE que la L et la GL, 132 ch, boite a
+            // variation continue. Le reste de la gamme nord-americaine — LE,
+            // LE Eco, XLE, XSE, SE — manque toujours et n'est pas pose ici :
+            // le proprietaire n'a demande que la S, et une finition inventee se
+            // retrouve sur une annonce.
+            ['toyota', 'corolla-e180', 'S',        'S',    5, $petrol, $fwd, 132, 1798, 4, 'cvt'],
 
             // ── TOYOTA HILUX AN120 ───────────────────────────────────────
             ['toyota', 'hilux-an120', 'J',         'J',    1, $diesel, $dwa, 110, 2393, 4, 'manual'],

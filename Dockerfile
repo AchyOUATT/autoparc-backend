@@ -298,6 +298,8 @@ CMD php artisan config:cache \
     && php artisan migrate --force \
     && (php artisan db:seed --class=VehicleModelsSeeder --force \
         || echo "ATTENTION : referentiel des modeles non mis a jour") \
+    && (php artisan db:seed --class=TrimsSeeder --force \
+        || echo "ATTENTION : referentiel des finitions non mis a jour") \
     && (php artisan db:seed --class=VehicleCheckItemsSeeder --force \
         || echo "ATTENTION : points de controle non mis a jour") \
     && (nohup sh -c ' \
