@@ -133,6 +133,13 @@ class VehicleModelsSeeder extends Seeder
             ['hyundai', 'Accent',       'RB',  'berline',   'B', 2011, null],
             ['hyundai', 'Elantra',      'CN7', 'berline',   'C', 2020, null],
             ['hyundai', 'Elantra',      'AD',  'berline',   'C', 2015, 2020],
+            // La LM manquait, et son absence se voyait au guichet : un
+            // proprietaire de Tucson 2014 ne pouvait pas enregistrer son
+            // vehicule, la TL ne commencant qu'en 2015 et la NX4 qu'en 2020.
+            // Vendue sous le nom ix35 en Europe, c'est le MEME vehicule — le
+            // nom retenu ici est celui des marches ou le parc burkinabe
+            // s'approvisionne.
+            ['hyundai', 'Tucson',       'LM',  'suv',       'C', 2009, 2015],
             ['hyundai', 'Tucson',       'TL',  'suv',       'C', 2015, 2020],
             ['hyundai', 'Tucson',       'NX4', 'suv',       'C', 2020, null],
             ['hyundai', 'Santa Fe',     'DM',  'suv',       'D', 2012, 2018],
