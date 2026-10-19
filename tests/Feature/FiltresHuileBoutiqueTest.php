@@ -44,6 +44,10 @@ class FiltresHuileBoutiqueTest extends TestCase
         '90915-YZZF2', '90915-YZZE1', '90915-YZZD1', '90915-YZZD2',
         '90915-YZZN1', '90915-YZZN2', '04152-YZZA1', '04152-YZZA6',
         '90915-YZZD4', '90915-10001',
+        // Troisieme versement : les six references de vente que le catalogue
+        // des neuf familles reclamait et que la boutique n'avait pas.
+        '90915-YZZF1', '90915-30002', '04152-YZZA3', '04152-YZZA5',
+        '04152-YZZA4', '04152-51010',
     ];
 
     protected function setUp(): void
@@ -63,7 +67,7 @@ class FiltresHuileBoutiqueTest extends TestCase
         $this->seed(FiltresHuileBoutiqueSeeder::class);
     }
 
-    public function test_les_huit_filtres_sont_ecrits(): void
+    public function test_toutes_les_references_sont_ecrites(): void
     {
         $this->semer();
 
@@ -75,6 +79,71 @@ class FiltresHuileBoutiqueTest extends TestCase
             $this->assertSame('aftermarket', $piece->type->value ?? $piece->type, $sku);
             $this->assertTrue((bool) $piece->is_active, $sku);
         }
+    }
+
+    /**
+     * Les six nouvelles references arrivent au prix du rayon, pas a celui du
+     * fichier.
+     *
+     * Consigne du proprietaire sur ce versement, textuellement : « conduis les
+     * memes prix et quantite je reajusterai apres ». Prise au pied de la
+     * lettre, elle interdit de recopier 3 000 en dur : s'il a monte son prix
+     * depuis l'application, les references nouvelles doivent arriver au prix
+     * du jour. Le test le met en scene — dix references deja en base a 5 000,
+     * puis le versement.
+     *
+     * Le pendant de ce test est `test_rejouer_le_seeder_ne_touche_ni_au_prix
+     * _ni_au_stock` : lire le prix du rayon ne doit pas devenir le reecrire.
+     */
+    public function test_les_references_nouvelles_prennent_le_prix_du_rayon(): void
+    {
+        $this->semer();
+
+        $anciennes = ['90915-YZZF2', '90915-YZZE1', '90915-YZZD1', '90915-YZZD2',
+            '90915-YZZN1', '90915-YZZN2', '04152-YZZA1', '04152-YZZA6',
+            '90915-YZZD4', '90915-10001'];
+
+        // Ce que ferait le proprietaire : il ajuste son rayon, puis on
+        // supprime les six nouvelles pour les faire renaitre au prix ajuste.
+        Part::whereIn('sku', $anciennes)->update(['selling_price' => 5000, 'stock_quantity' => 40]);
+
+        $nouvelles = array_values(array_diff(self::REFERENCES, $anciennes));
+
+        // `forceDelete` : `sku` est unique en base, corbeille comprise. Une
+        // suppression douce ne rendrait pas la place et le seeder refuserait
+        // de recreer — c'est le comportement que verifie
+        // `test_une_reference_mise_a_la_corbeille_y_reste`.
+        foreach (Part::whereIn('sku', $nouvelles)->get() as $piece) {
+            $piece->fitments()->delete();
+            $piece->oemNumbers()->detach();
+            $piece->forceDelete();
+        }
+
+        $this->semer();
+
+        foreach ($nouvelles as $sku) {
+            $piece = Part::where('sku', $sku)->firstOrFail();
+
+            $this->assertSame(5000.0, (float) $piece->selling_price,
+                "{$sku} est revenue au prix du fichier au lieu de celui du rayon.");
+            $this->assertSame(40, $piece->stock_quantity,
+                "{$sku} est revenue au stock du fichier au lieu de celui du rayon.");
+        }
+
+        // Et une seule reference ajustee a la main ne doit pas entrainer tout
+        // le rayon : c'est la valeur dominante qui fait foi, pas la premiere
+        // lue.
+        Part::where('sku', '90915-YZZD2')->update(['selling_price' => 99000]);
+
+        $piece = Part::where('sku', '04152-YZZA4')->firstOrFail();
+        $piece->fitments()->delete();
+        $piece->oemNumbers()->detach();
+        $piece->forceDelete();
+
+        $this->semer();
+
+        $this->assertSame(5000.0, (float) Part::where('sku', '04152-YZZA4')->firstOrFail()->selling_price,
+            'Une seule reference ajustee a la main a entraine le prix des autres.');
     }
 
     public function test_les_filtres_sont_ranges_dans_la_bonne_categorie(): void
@@ -177,8 +246,10 @@ class FiltresHuileBoutiqueTest extends TestCase
         $lignes = PartFitment::with('vehicleModel')->get();
 
         // 16 lignes du premier versement, 58 du catalogue de correspondance —
-        // dont 19 portees par les cinq modeles d'importation americaine.
-        $this->assertCount(74, $lignes,
+        // dont 19 portees par les cinq modeles d'importation americaine — et
+        // 20 du catalogue des neuf familles, reparties sur quatre des six
+        // references nouvelles.
+        $this->assertCount(94, $lignes,
             'Des compatibilites ont ete perdues : un slug ne se resout plus.');
 
         foreach ($lignes as $ligne) {
@@ -452,6 +523,16 @@ class FiltresHuileBoutiqueTest extends TestCase
             '04152-YZZA1' => 33,
             '04152-YZZA6' => 4,
             '90915-YZZN1' => 25,
+            // Catalogue des neuf familles. Les comptes sont bas et c'est le
+            // sujet : sur les six references nouvelles, deux n'ont aucune
+            // ligne au statut « Confirme » dans le document, et les quatre
+            // autres n'atteignent qu'une poignee de modeles du referentiel.
+            '90915-YZZF1' => 1,
+            '90915-30002' => 0,
+            '04152-YZZA3' => 8,
+            '04152-YZZA5' => 9,
+            '04152-YZZA4' => 2,
+            '04152-51010' => 0,
         ];
 
         foreach ($attendus as $sku => $compte) {
@@ -877,7 +958,16 @@ class FiltresHuileBoutiqueTest extends TestCase
 
         // La YZZA6 n'attend plus : le catalogue de correspondance du 18/10/2026
         // lui donne quatre generations entierement du cote cartouche.
-        $enAttente = ['90915-YZZF2', '90915-YZZE1', '90915-YZZD1', '90915-YZZN2', '90915-10001'];
+        //
+        // La 90915-30002 et la 04152-51010 rejoignent la liste, pour une
+        // raison differente des cinq autres : elles n'attendent pas une
+        // verification, le catalogue des neuf familles ne leur donne AUCUNE
+        // ligne au statut « Confirme ». La famille 5 n'a que du « Confirme
+        // Boshoku », du « Confirme moteur », du « Documente » et du
+        // « Probable » ; la 51010 n'a que du « Documente » et du
+        // « Probable », index par code moteur compris.
+        $enAttente = ['90915-YZZF2', '90915-YZZE1', '90915-YZZD1', '90915-YZZN2', '90915-10001',
+            '90915-30002', '04152-51010'];
 
         foreach ($enAttente as $sku) {
             $piece = Part::where('sku', $sku)->with('fitments')->firstOrFail();
@@ -923,6 +1013,247 @@ class FiltresHuileBoutiqueTest extends TestCase
 
         // Le libelle, lui, appartient au depot : il revient a sa valeur.
         $this->assertNotSame('Libelle modifie a la main', $apres->name);
+    }
+
+    /**
+     * Les deux cartouches longitudinales ne se confondent pas.
+     *
+     * C'est le seul endroit du catalogue ou deux references se disputent le
+     * MEME modele et le MEME code moteur. Le document les separe par le code
+     * chassis — GSE20 contre GSE25 pour une IS 250 — que le referentiel ne
+     * porte pas ; la motricite est la seule colonne qui sache le dire, et elle
+     * dit la meme chose : la YZZA3 est la propulsion, la YZZA5 les quatre
+     * roues motrices.
+     *
+     * Sans elle, une IS 250 de 2010 rendrait deux cartouches dont une seule
+     * convient, et le document previent que les joints du kit different.
+     */
+    public function test_la_motricite_separe_les_deux_cartouches_longitudinales(): void
+    {
+        $this->semer();
+
+        $motriciteDe = function (string $sku, string $slug, string $moteur): ?string {
+            $piece = Part::where('sku', $sku)->with('fitments.vehicleModel')->firstOrFail();
+
+            $ligne = $piece->fitments->first(
+                fn ($f) => $f->vehicleModel?->slug === $slug && $f->engine_code === $moteur
+            );
+
+            $this->assertNotNull($ligne, "{$sku} ne porte pas {$slug} en {$moteur}.");
+
+            return \App\Models\Drivetrain::find($ligne->drivetrain_id)?->code;
+        };
+
+        $this->assertSame('RWD', $motriciteDe('04152-YZZA3', 'is-xe20', '4GR-FSE'));
+        $this->assertSame('AWD', $motriciteDe('04152-YZZA5', 'is-xe20', '4GR-FSE'));
+        $this->assertSame('RWD', $motriciteDe('04152-YZZA3', 'gs-s190', '2GR-FSE'));
+        $this->assertSame('AWD', $motriciteDe('04152-YZZA5', 'gs-s190', '2GR-FSE'));
+
+        // Les trois lignes V8 de la YZZA5 n'en portent pas : ce n'est pas la
+        // transmission qui les range dans cette famille, c'est le moteur — et
+        // la GS 460 du document est une propulsion. Une motricite posee la
+        // ferait disparaitre d'une recherche faite en propulsion.
+        $this->assertNull($motriciteDe('04152-YZZA5', 'ls-xf40', '1UR-FSE'));
+        $this->assertNull($motriciteDe('04152-YZZA5', 'gs-s190', '1UR-FSE'));
+
+        // Et la preuve par la recherche : une IS 250 propulsion de 2010 ne
+        // doit voir qu'une cartouche.
+        $xe20 = VehicleModel::where('slug', 'is-xe20')->firstOrFail();
+        $rwd  = \App\Models\Drivetrain::where('code', 'RWD')->firstOrFail();
+
+        $trouvees = app(\App\Services\CompatibilityService::class)
+            ->partsForCriteria($xe20->id, 2010, null, null, $rwd->id, '4GR-FSE')
+            ->pluck('sku')
+            ->all();
+
+        $this->assertContains('04152-YZZA3', $trouvees);
+        $this->assertNotContains('04152-YZZA5', $trouvees,
+            'Une IS 250 propulsion se voit proposer la cartouche des quatre roues motrices.');
+
+        // LE BORD, verrouille ici parce qu'il est contre-intuitif : le filtre
+        // est une EGALITE EXACTE, `drivetrain_id IS NULL OR = X`. Le referentiel
+        // porte quatre motricites et ces lignes n'en citent que deux, donc un
+        // vehicule saisi en 4WD ne voit plus AUCUNE cartouche, la ou il en
+        // voyait deux sans motricite. C'est le seul endroit du catalogue ou
+        // renseigner un champ fait disparaitre la piece.
+        //
+        // Cette assertion n'est pas la pour celebrer le vide : elle est la pour
+        // que le jour ou quelqu'un elargit le filtre a « 4WD vaut AWD », le test
+        // en parle plutot que de laisser passer. Elargir serait un choix
+        // defendable ; poser les lignes en 4WD dans les donnees ne le serait
+        // pas, car aucune de ces Lexus n'a de 4x4 debrayable.
+        $quatreRoues = \App\Models\Drivetrain::where('code', '4WD')->first();
+
+        if ($quatreRoues !== null) {
+            $en4wd = app(\App\Services\CompatibilityService::class)
+                ->partsForCriteria($xe20->id, 2010, null, null, $quatreRoues->id, '4GR-FSE')
+                ->pluck('sku')
+                ->all();
+
+            $this->assertSame([], $en4wd,
+                'Le filtre de motricite s\'est elargi : une IS XE20 saisie en 4x4 debrayable '
+                .'voit maintenant des cartouches. Si c\'est voulu, dire laquelle est juste.');
+        }
+    }
+
+    /**
+     * Un numero de marche n'est pas un numero perime.
+     *
+     * Le 90915-YZZE2 est le numero asiatique du 90915-YZZF1 : il est VENDU
+     * aujourd'hui, au meme titre. L'ecrire en `is_superseded` afficherait au
+     * client « cette reference a ete remplacee », ce que Toyota n'a jamais
+     * prononce — et le document ouvre justement sur « un filtre physique,
+     * plusieurs numeros commerciaux selon le marche ».
+     *
+     * Les vrais anciens numeros, eux, doivent rester perimes et pointer sur
+     * le numero actuel.
+     */
+    public function test_les_numeros_de_marche_ne_sont_pas_marques_perimes(): void
+    {
+        $this->semer();
+
+        foreach (['90915-YZZE2', '04152-31080', '04152-38010', '04152-38020'] as $numero) {
+            $oem = OemNumber::where('number', $numero)->first();
+
+            $this->assertNotNull($oem, "Le numero de marche {$numero} n'a pas ete rattache.");
+            $this->assertFalse((bool) $oem->is_superseded,
+                "{$numero} est annonce comme remplace alors qu'il est toujours au catalogue.");
+        }
+
+        $perime = OemNumber::where('number', '90915-03006')->first();
+
+        $this->assertNotNull($perime);
+        $this->assertTrue((bool) $perime->is_superseded,
+            'Le 90915-03006 est bien un ancien numero : il doit mener au 90915-30002.');
+        $this->assertSame('90915-30002', OemNumber::find($perime->superseded_by_id)?->number);
+
+        // CE QUI PRECEDE NE COUVRAIT QUE LA CREATION. Le `is_superseded => false`
+        // d'un `firstOrCreate` ne s'applique pas a une ligne qui existe deja :
+        // un numero marque perime par un AUTRE chemin — `syncOemNumbers`,
+        // `OemNumberController`, `BackfillFitments` — y restait pour toujours,
+        // alors que ce seeder est declare seul auteur de ces liens.
+        //
+        // La mise en scene vaut mieux qu'une explication : la 04152-38010 est un
+        // numero d'origine TOUJOURS VENDU de la cartouche longitudinale YZZA5. Le
+        // faire pointer sur la YZZA1 annonce au client qu'une cartouche
+        // longitudinale a ete remplacee par une cartouche TRANSVERSALE — la
+        // confusion de familles que le document interdit nommement.
+        $toujoursVendu = OemNumber::where('number', '04152-38010')->firstOrFail();
+        $transversale  = OemNumber::where('number', '04152-YZZA1')->firstOrFail();
+
+        $toujoursVendu->update([
+            'is_superseded'    => true,
+            'superseded_by_id' => $transversale->id,
+        ]);
+
+        $this->semer();
+
+        $toujoursVendu->refresh();
+
+        $this->assertFalse((bool) $toujoursVendu->is_superseded,
+            'Le seeder ne sait pas defaire une supersession fausse : la 04152-38010 reste '
+            .'annoncee comme remplacee alors qu\'elle est toujours au catalogue.');
+        $this->assertNull($toujoursVendu->superseded_by_id,
+            'La 04152-38010 pointe encore sur une cartouche transversale.');
+    }
+
+    /**
+     * Un cas du parc local, lu de bout en bout par l'API, sur une famille
+     * nouvelle.
+     *
+     * Le Land Cruiser 200 est le seul vehicule du referentiel que la famille 9
+     * atteigne, et la ligne est triplement etablie : « Confirme » au tableau
+     * de la famille, « Confirme » a l'index par code moteur, et designee
+     * nommement par la ligne « Non compatible » du tableau YZZA1 du premier
+     * document — celle qui prescrit cette reference-ci.
+     *
+     * Le revers compte autant : le meme J200 porte deja la 90915-YZZD4 en
+     * 1GR-FE depuis le premier versement. Un V8 3UR-FE ne doit pas se voir
+     * proposer le filtre visse du V6, et reciproquement. C'est le code moteur
+     * qui tranche, et c'est tout l'objet du document.
+     */
+    public function test_l_api_rend_la_cartouche_v8_pour_le_land_cruiser_200(): void
+    {
+        $this->semer();
+
+        $j200 = VehicleModel::where('slug', 'land-cruiser-j200')->firstOrFail();
+
+        $skus = function (array $criteres) use ($j200) {
+            $reponse = $this->getJson('/api/catalog/compatible-parts?'.http_build_query(
+                ['vehicle_model_id' => $j200->id, 'year' => 2012] + $criteres,
+            ))->assertOk();
+
+            return collect($reponse->json('data'))->pluck('sku')->all();
+        };
+
+        $v8 = $skus(['engine_code' => '3UR-FE']);
+
+        $this->assertContains('04152-YZZA4', $v8,
+            'Un client avec un Land Cruiser 200 V8 5.7 ne trouve pas sa cartouche.');
+        $this->assertNotContains('90915-YZZD4', $v8,
+            'Le V8 3UR-FE se voit proposer le filtre visse du V6 4.0.');
+
+        $v6 = $skus(['engine_code' => '1GR-FE']);
+
+        $this->assertContains('90915-YZZD4', $v6);
+        $this->assertNotContains('04152-YZZA4', $v6,
+            'Le V6 1GR-FE se voit proposer la cartouche du V8.');
+    }
+
+    /**
+     * Une reference retiree de la vente ne revient pas, et n'emporte pas les
+     * autres.
+     *
+     * `Part` est en suppression douce, et `sku` est unique EN BASE, corbeille
+     * comprise. Le seeder lisait ses pieces sans `withTrashed()` : une
+     * reference mise a la corbeille depuis l'application lui semblait
+     * absente, il tentait de la recreer, et la base refusait sur l'unicite.
+     * L'exception sortait de la boucle — une seule reference supprimee
+     * privait donc les quinze autres de leur mise a jour, et la migration de
+     * deploiement n'en disait qu'un avertissement.
+     *
+     * Deux choses sont verrouillees ici : le passage se termine quand meme,
+     * et la reference retiree n'est pas ressuscitee.
+     */
+    public function test_une_reference_mise_a_la_corbeille_y_reste(): void
+    {
+        $this->semer();
+
+        Part::where('sku', '04152-YZZA4')->firstOrFail()->delete();
+
+        // DEUX temoins, et LEQUEL compte n'est pas indifferent. L'exception
+        // sortait de la boucle : elle ne privait de mise a jour que les
+        // references situees APRES celle mise a la corbeille. Dans l'ordre de
+        // `self::FILTRES`, la 04152-YZZA4 est la 15e sur 16 — la 04152-YZZA3
+        // (13e) la PRECEDE et serait donc repassee meme avec le bogue present,
+        // tandis que la 04152-51010 (16e) est la seule qui le suive.
+        //
+        // Le temoin d'avant reste quand meme : il distingue « la boucle s'est
+        // arretee a la corbeille » de « la boucle n'a jamais tourne ».
+        Part::where('sku', '04152-YZZA3')->firstOrFail()->update(['name' => 'Libelle modifie a la main']);
+        Part::where('sku', '04152-51010')->firstOrFail()->update(['name' => 'Libelle modifie a la main']);
+
+        $this->artisan('db:seed', ['--class' => FiltresHuileBoutiqueSeeder::class])
+            ->expectsOutputToContain('reference a la corbeille')
+            ->assertSuccessful();
+
+        $this->assertNull(Part::where('sku', '04152-YZZA4')->first(),
+            'Une reference retiree de la vente est revenue au prochain deploiement.');
+
+        $this->assertNotSame(
+            'Libelle modifie a la main',
+            Part::where('sku', '04152-YZZA3')->firstOrFail()->name,
+            'La boucle n\'a pas tourne du tout : meme les references posees AVANT la corbeille '
+            .'ont garde leur libelle modifie.',
+        );
+
+        // L'assertion qui porte vraiment le nom du test.
+        $this->assertNotSame(
+            'Libelle modifie a la main',
+            Part::where('sku', '04152-51010')->firstOrFail()->name,
+            'La reference a la corbeille a interrompu le passage : la 04152-51010, qui la suit '
+            .'dans self::FILTRES, n\'a pas ete mise a jour.',
+        );
     }
 
     /** Un modele introuvable doit se voir, pas se perdre. */

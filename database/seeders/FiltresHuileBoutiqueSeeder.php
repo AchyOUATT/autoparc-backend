@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\FitmentSource;
+use App\Models\Drivetrain;
 use App\Models\Manufacturer;
 use App\Models\OemNumber;
 use App\Models\Part;
@@ -59,6 +60,52 @@ use Illuminate\Support\Facades\DB;
  * ne sont pas posees : arbitrer entre son audit et son fournisseur lui
  * appartient, pas au chargement de donnees.
  *
+ * Troisieme versement, 19/10/2026 : le « Catalogue de compatibilite -- filtres
+ * a huile Toyota & Lexus » du 18/10/2026, qui range tout le programme en NEUF
+ * familles au lieu de proceder reference par reference, et ouvre sur la phrase
+ * qui commande sa lecture :
+ *
+ *     Un filtre physique, plusieurs numeros commerciaux selon le marche.
+ *
+ * D'ou la regle suivie ici : une piece par REFERENCE DE VENTE — la colonne que
+ * l'index des anciens numeros nomme ainsi — et non une par numero. Les numeros
+ * qui ne different que par le marche deviennent des `equivalents`, les numeros
+ * perimes des `remplace`. Six references manquaient, elles sont posees.
+ *
+ * Les familles 1, 3, 4, 6 et 7 ont deja des references au rayon et n'en
+ * recoivent aucune de plus — mais PAS une chacune, contrairement a ce que
+ * disait d'abord cet en-tete : la famille 1 en porte CINQ (90915-YZZN1,
+ * YZZN2, YZZE1, et 90915-YZZF2 + 90915-10001 qui sont des ANCIENS numeros de
+ * cette famille, en rayon comme articles a part entiere avec zero
+ * compatibilite), la famille 3 en porte DEUX (YZZD1 essence, YZZD2 diesel).
+ * Les fondre en une reference par famille supprimerait des articles en vente
+ * et releve du proprietaire, pas du chargement de donnees.
+ *
+ * Et la regle « une piece par reference de vente » n'est pas « une piece par
+ * famille » : les familles 7, 8 et 9 portent DEUX references de vente chacune,
+ * separees par le MOTEUR et non par le marche, et le document interdit de les
+ * confondre — « Toyota les distingue, stocker les deux » (famille 7),
+ * « proches mais pas identiques, joints du kit » (famille 8), « Toyota ne
+ * donne pas la YZZA4 comme remplacante de la 51010 » (famille 9). Les fondre
+ * serait l'erreur inverse de celle qu'on cherche a eviter : non pas un article
+ * en double, mais un mauvais kit vendu.
+ *
+ * Ce document recouvre le precedent sans le contredire sur les lignes deja
+ * posees, A DEUX EXCEPTIONS, qui sont rapportees au proprietaire et laissees
+ * telles quelles : le Prado 120 en 5L-E, que la 90915-YZZD4 porte depuis le
+ * premier versement et que celui-ci range en famille 5 (90915-30002), et les
+ * 1GR-FE de 2010 et apres, que la YZZD4 porte jusqu'en 2013 et que celui-ci
+ * renvoie en famille 8 a partir de 2010. Trancher entre deux documents du meme
+ * jour n'appartient pas au chargement de donnees.
+ *
+ * Les tableaux Lexus de ce document sortent decales a l'extraction `-layout` :
+ * le tableau de la famille 6 y donne « RX 350 » en 2.0 turbo, un moteur que ce
+ * modele n'a jamais eu. Toutes les lignes Lexus d'ici sont reconstituees sur
+ * l'extraction brute, qui rend chaque colonne en liste continue, et validees
+ * par trois controles : comptes de lignes identiques colonne par colonne, code
+ * chassis coherent avec le modele, et famille coherente avec l'index par code
+ * moteur.
+ *
  * Les modeles sont designes par leur SLUG, jamais par leur identifiant. Les
  * identifiants different d'une base a l'autre : un seeder qui les figerait
  * serait juste en production et faux partout ailleurs, tests compris. Un modele
@@ -73,15 +120,25 @@ use Illuminate\Support\Facades\DB;
  */
 class FiltresHuileBoutiqueSeeder extends Seeder
 {
-    /** Ce que le commercant facture, en francs CFA. */
+    /**
+     * Ce que le commercant facturait au premier versement, en francs CFA.
+     *
+     * N'est plus pose tel quel : `run()` lit le prix que porte deja le rayon
+     * et ne retombe sur cette constante que sur une base ou aucune de ces
+     * references n'existe encore. Consigne du proprietaire au troisieme
+     * versement, textuellement : « conduis les memes prix et quantite je
+     * reajusterai apres » — s'il a bouge son prix hier depuis l'application,
+     * les references d'aujourd'hui doivent le suivre et non rouvrir une ligne
+     * a l'ancien tarif.
+     */
     private const PRIX = 3000;
 
     /**
      * Le stock pose a la creation d une reference.
      *
-     * Uniforme au demarrage : le commercant ajustera depuis l application,
-     * arrivage par arrivage. Cette valeur ne sert donc qu aux references
-     * nouvelles — celles deja en base gardent le leur, voir run().
+     * Meme regle que le prix : `run()` lit d'abord le stock dominant du rayon.
+     * Cette valeur ne sert donc qu aux references nouvelles sur une base vide
+     * — celles deja en base gardent le leur, voir run().
      */
     private const STOCK_INITIAL = 15;
 
@@ -98,11 +155,13 @@ class FiltresHuileBoutiqueSeeder extends Seeder
     private const CATEGORIE = 'Filtre à huile';
 
     /**
-     * Les huit references en stock, et leurs compatibilites confirmees.
+     * Les references en stock, et leurs compatibilites confirmees.
      *
      * Chaque compatibilite est `[slug du modele, annee de debut, annee de fin,
-     * code moteur, provenance]`. Les annees nulles signifient « toute la
-     * generation ».
+     * code moteur, provenance]`, avec un sixieme element facultatif : le code
+     * de motricite (`RWD`, `AWD`) quand c'est lui, et lui seul, qui separe
+     * deux references sur un meme modele et un meme moteur. Les annees nulles
+     * signifient « toute la generation ».
      *
      * La provenance n'est pas decorative : elle cite le tableau et le statut
      * d'ou la ligne sort, et quand les bornes d'annees ne sont pas celles du
@@ -110,12 +169,14 @@ class FiltresHuileBoutiqueSeeder extends Seeder
      * invérifiable des que son auteur a oublie le detail — c'est-a-dire au
      * bout de quelques mois.
      *
-     * Cinq references n'en portent aucune : leurs lignes attendent une
-     * verification moteur par moteur. Elles restent trouvables par reference et
+     * Sept references n'en portent aucune : leurs lignes attendent une
+     * verification moteur par moteur, ou — pour les deux dernieres venues, la
+     * 90915-30002 et la 04152-51010 — n'existent tout simplement pas au statut
+     * « Confirme » dans le document. Elles restent trouvables par reference et
      * par numero constructeur, ce qui est honnete — le catalogue ne promet rien
      * qu'il ne puisse tenir.
      *
-     * @var list<array{sku: string, nom: string, description: string, remplace?: list<string>, compatibilites: list<array{0: string, 1: ?int, 2: ?int, 3: string, 4: string}>}>
+     * @var list<array{sku: string, nom: string, description: string, remplace?: list<string>, equivalents?: list<string>, compatibilites: list<array{0: string, 1: ?int, 2: ?int, 3: string, 4: string, 5?: string}>}>
      */
     private const FILTRES = [
         [
@@ -344,6 +405,153 @@ class FiltresHuileBoutiqueSeeder extends Seeder
             "compatibilites" => [
             ],
         ],
+
+        // ─── Second catalogue, 19/10/2026 : les familles sans reference ───
+        //
+        // Le « Catalogue de compatibilite — filtres a huile Toyota & Lexus »
+        // du 18/10/2026 range tout le programme en NEUF familles, et donne
+        // pour chacune ses numeros de vente. Rapportee a ce que la boutique
+        // porte deja, la lecture tient en une phrase : quatre familles n'y ont
+        // aucune reference — la 2 (visse AZ), la 5 (diesel ancien), la 8
+        // (cartouche longitudinale) et la 9 (cartouche V8).
+        //
+        // Les familles 8 et 9 recoivent DEUX pieces chacune, et ce n'est pas
+        // un doublon : l'index des anciens numeros du document donne, en
+        // colonne « References de vente », « YZZA3 (31020, 31080) / YZZA5
+        // (31060, 38010, YZZA2) » pour la 8 et deux lignes distinctes pour la
+        // 9. Ces couples ne sont pas des variantes de marche d'un meme filtre
+        // — ils se partagent les applications, et le document interdit de les
+        // confondre : « YZZA3 et YZZA5 sont proches mais pas identiques
+        // (joints du kit) : respecter la prescription » ; « Toyota ne donne
+        // pas la YZZA4 comme remplacante de la 51010 [...] Pour les 1VD-FTV,
+        // commander et stocker la 51010 ». Les fondre ferait vendre le mauvais
+        // kit, ce que six entrees evitent.
+        //
+        // Les vrais doublons, eux, sont ecartes : les numeros qui ne different
+        // que par le marche (YZZE2 pour la YZZF1) ou qui sont perimes passent
+        // en `equivalents` / `remplace`, pas en pieces.
+        [
+            "sku"           => "90915-YZZF1",
+            "nom"           => "Filtre a huile visse 90915-YZZF1",
+            "description"   => "Visse, meme filetage que le 90915-YZZN1 mais plus haut d'environ 13 mm. Moteurs 1AZ, 2AZ, 2ZZ-GE et 3S-GTE. Vendu sous le numero 90915-YZZE2 en Asie, Australie, Golfe et Europe.",
+            // Le document consacre un encadre a ce piege : « La 90915-YZZA1
+            // (visse) et la 04152-YZZA1 (cartouche) n'ont rien en commun. »
+            // L'ancien numero est quand meme rattache ici, mais la raison
+            // n'est pas celle qu'on croit, et elle est mesuree : sans lui, la
+            // recherche sur « 90915-YZZA1 » ne rendait RIEN — pas la cartouche.
+            // `Part::scopeSearch` compare `normalized_number LIKE '%90915YZZA1%'`,
+            // et la cartouche est normalisee « 04152YZZA1 », qui ne contient pas
+            // cette chaine. Le rattachement transforme donc zero resultat en le
+            // bon. C'est la recherche TRONQUEE qui est ambigue : « YZZA1 » seul
+            // rend les DEUX familles ensemble, et c'est la que le piege de
+            // l'encadre se joue.
+            "equivalents"   => ["90915-YZZE2"],
+            "remplace"      => ["90915-10004", "90915-10002", "90915-03004", "90915-TA002", "90915-YZZA1"],
+            "compatibilites" => [
+                // Seule ligne « Confirme » de la famille dont le modele existe
+                // au referentiel. Les Camry ACV30 / ACV40 et les RAV4 ACA2# /
+                // ACA3#, qui en portent le gros, relevent de generations que
+                // le referentiel n'a pas.
+                ["corolla-e140", 2009, 2013, "2AZ-FE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 2 « Filtre visse AZ », statut « Confirmé » : Corolla XRS, Matrix, Matrix XRS 2.4 2AZ-FE 2009-2013. Deux fois corroboree : l'index par code moteur donne 1AZ / 2AZ → famille 2, « YZZF1 / YZZE2 », statut « Confirmé », et le tableau YZZA6 du premier document donnait cette Corolla « Non compatible » en prescrivant justement la YZZF1."],
+            ],
+        ],
+        [
+            "sku"           => "90915-30002",
+            "nom"           => "Filtre a huile visse 90915-30002",
+            "description"   => "Visse, anciens diesels Toyota 2L, 2L-TE, 3L, 5L, 5L-E, 1KZ-TE, 1HZ et 1HD. Distinct des filtres visses des familles 3 et 4. Numero unique : ce filtre n'a pas de variante regionale.",
+            "remplace"      => ["90915-03006"],
+            "compatibilites" => [
+                // Aucune. La famille 5 est la seule du document dont AUCUNE
+                // ligne ne porte « Confirme » seul : ses dix applications sont
+                // « Confirme Boshoku », « Confirme moteur », « Documente » ou
+                // « Probable ». La reference est donc publiee trouvable par
+                // numero, et rien de plus.
+                //
+                // Deux d'entre elles visent des Prado du referentiel et
+                // contredisent une ligne deja posee sur la 90915-YZZD4 — le
+                // Prado 120 en 5L-E. La contradiction est rapportee au
+                // proprietaire ; elle ne se tranche pas ici.
+            ],
+        ],
+        [
+            "sku"           => "04152-YZZA3",
+            "nom"           => "Cartouche de filtre a huile 04152-YZZA3",
+            "description"   => "Element filtrant des V6 GR montes en longitudinal, Lexus a propulsion. A ne pas confondre avec la 04152-YZZA5 : le document les dit « proches mais pas identiques (joints du kit) ».",
+            "equivalents"   => ["04152-31080", "04152-31020"],
+            "compatibilites" => [
+                // La motricite n'est pas decorative sur ces sept lignes :
+                // c'est elle, et elle seule, qui separe la YZZA3 de la YZZA5
+                // sur un meme modele et un meme code moteur. Le document le
+                // fait par le code chassis, que le referentiel ne porte pas ;
+                // `drivetrain_id` est la seule colonne qui sache le dire, et
+                // `CompatibilityService` la lit.
+                ["is-xe20", 2006, 2013, "4GR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA3, statut « Confirmé Lexus » : Lexus IS 250 / IS 350 propulsion, chassis GSE20 / GSE21 / GSE30 / GSE31, 2.5 4GR-FSE et 3.5 2GR-FSE, 2006-2015. Plage bornee a la generation XE20, que le chassis GSE20 designe.", "RWD"],
+                ["is-xe20", 2006, 2013, "2GR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA3, statut « Confirmé Lexus » : Lexus IS 250 / IS 350 propulsion, chassis GSE20 / GSE21 / GSE30 / GSE31, 2006-2015. Plage bornee a la generation XE20, que le chassis GSE21 designe.", "RWD"],
+                ["is-xe30", 2013, 2015, "4GR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA3, statut « Confirmé Lexus » : Lexus IS 250 / IS 350 propulsion, chassis GSE30, 2006-2015. Plage bornee a l'intersection de la generation XE30 et de la plage du document.", "RWD"],
+                ["is-xe30", 2013, 2015, "2GR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA3, statut « Confirmé Lexus » : Lexus IS 250 / IS 350 propulsion, chassis GSE31, 2006-2015. Plage bornee a l'intersection de la generation XE30 et de la plage du document.", "RWD"],
+                ["gs-s190", 2006, 2012, "3GR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA3, statut « Confirmé Lexus » : Lexus GS 300 / GS 350 / GS 450h propulsion, chassis GRS190 / GRS191 / GRL10 / GRL11 / GWL10, 3.0 3GR-FSE et 3.5 2GR-FSE, 2006-2015. Plage bornee a la generation S190, que le chassis GRS190 designe.", "RWD"],
+                ["gs-s190", 2006, 2012, "2GR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA3, statut « Confirmé Lexus » : Lexus GS 300 / GS 350 / GS 450h propulsion, 2006-2015. Plage bornee a la generation S190, que le chassis GRS191 designe.", "RWD"],
+                ["gs-l10", 2012, 2015, "2GR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA3, statut « Confirmé Lexus » : Lexus GS 350 propulsion, chassis GRL10 / GRL11, 2006-2015. Plage bornee a l'intersection de la generation L10 et de la plage du document.", "RWD"],
+                // Le millesime 2017 est coupe : le tableau de la famille 6
+                // donne le meme chassis GSC10 en YZZA1 « apres 11/2017 ». La
+                // transition tombe en cours d'annee, elle releve du controle
+                // avant vente et pas du catalogue. Le 2GR-FKS longitudinal
+                // part pour une autre raison : l'index par code moteur le
+                // donne « Conditionnel » sur 2016-2020.
+                ["rc-xc10", 2015, 2016, "2GR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA3, statut « Confirmé Lexus » : Lexus RC 350 propulsion, chassis GSC10, 3.5 2GR-FSE / FKS, « 2015 – production 11/2017 ». Borne haute ramenee a 2016, le document donnant le meme chassis en YZZA1 a partir de 11/2017.", "RWD"],
+            ],
+        ],
+        [
+            "sku"           => "04152-YZZA5",
+            "nom"           => "Cartouche de filtre a huile 04152-YZZA5",
+            "description"   => "Element filtrant des GR longitudinaux a quatre roues motrices, des V8 UR-FSE et des 1GR-FE a boitier cartouche (2010 et apres). A ne pas confondre avec la 04152-YZZA3.",
+            "equivalents"   => ["04152-38010", "04152-31060", "04152-YZZA2"],
+            "compatibilites" => [
+                ["is-xe20", 2006, 2013, "4GR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA5, statut « Confirmé Lexus » : Lexus IS 250 / IS 350 a quatre roues motrices, chassis GSE25 / GSE35 / GSE36, 4GR-FSE et 2GR-FSE / FKS, 2006-2020. Plage bornee a la generation XE20, que le chassis GSE25 designe.", "AWD"],
+                ["is-xe20", 2006, 2013, "2GR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA5, statut « Confirmé Lexus » : Lexus IS 250 / IS 350 a quatre roues motrices, 2006-2020. Plage bornee a la generation XE20.", "AWD"],
+                ["is-xe30", 2013, 2020, "4GR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA5, statut « Confirmé Lexus » : Lexus IS 250 / IS 350 a quatre roues motrices, chassis GSE35, 2006-2020. Plage bornee a l'intersection de la generation XE30 et de la plage du document.", "AWD"],
+                ["is-xe30", 2013, 2020, "2GR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA5, statut « Confirmé Lexus » : Lexus IS 250 / IS 350 a quatre roues motrices, 2006-2020. Plage bornee a l'intersection de la generation XE30 et de la plage du document. Le 2GR-FKS est ecarte : l'index par code moteur le donne « Conditionnel » sur 2016-2020.", "AWD"],
+                ["gs-s190", 2007, 2012, "2GR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA5, statut « Confirmé Lexus » : Lexus GS 350 a quatre roues motrices, chassis GRS196 / GRL15 / GRL16, 2GR-FSE / FKS, 2007-2020. Plage bornee a la generation S190, que le chassis GRS196 designe.", "AWD"],
+                ["gs-l10", 2012, 2020, "2GR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA5, statut « Confirmé Lexus » : Lexus GS 350 a quatre roues motrices, chassis GRL15 / GRL16, 2007-2020. Plage bornee a la generation L10. Le 2GR-FKS est ecarte : l'index par code moteur le donne « Conditionnel » sur 2016-2020.", "AWD"],
+                // Les trois lignes V8 n'ont pas de motricite : ce n'est pas la
+                // transmission qui les range ici, c'est le moteur. Le titre de
+                // la famille le dit — « 4RM, V8 UR-FSE, 1GR-FE 2010+ » — et la
+                // GS 460 est une propulsion.
+                ["gs-s190", 2007, 2012, "1UR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA5, statut « Confirmé Lexus, Boshoku » : Lexus GS 460 / LS 460 / LS 600h, chassis URS190 / USF40 / UVF45, 4.6 1UR-FSE et 5.0 2UR-FSE, 2007-2017. Le chassis URS190 designe la GS 460 ; plage bornee a la generation S190. L'index par code moteur confirme : 1UR-FSE / 2UR-FSE → famille 8, « 04152-38010 / YZZA5 »."],
+                ["ls-xf40", 2007, 2017, "1UR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA5, statut « Confirmé Lexus, Boshoku » : Lexus GS 460 / LS 460 / LS 600h, chassis URS190 / USF40 / UVF45, 2007-2017. Le chassis USF40 designe la LS 460 de generation XF40. L'index par code moteur confirme."],
+                ["ls-xf40", 2007, 2017, "2UR-FSE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 8, applications YZZA5, statut « Confirmé Lexus, Boshoku » : Lexus GS 460 / LS 460 / LS 600h, chassis URS190 / USF40 / UVF45, 2007-2017. Le chassis UVF45 designe la LS 600h de generation XF40. L'index par code moteur confirme."],
+            ],
+        ],
+        [
+            "sku"           => "04152-YZZA4",
+            "nom"           => "Cartouche de filtre a huile 04152-YZZA4",
+            "description"   => "Element filtrant des V8 essence UR : 4.6 1UR-FE et 5.7 3UR-FE. Ne convient pas au V8 diesel 1VD-FTV, qui releve de la 04152-51010.",
+            "equivalents"   => ["04152-38020"],
+            "compatibilites" => [
+                // Le seul vehicule du referentiel que la famille 9 atteigne,
+                // et il est triplement etabli : « Confirme » au tableau de la
+                // famille, « Confirme » a l'index par code moteur, et designe
+                // nommement par la ligne « Non compatible » du tableau YZZA1
+                // du premier document — celle qui prescrit cette
+                // reference-ci. Le Tundra, le Sequoia et le LX 570 portent les
+                // autres lignes ; aucun n'est au referentiel, sauf le LX 570
+                // dont le statut est « Documente ».
+                ["land-cruiser-j200", 2008, 2021, "3UR-FE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 9, applications YZZA4, statut « Confirmé » : Land Cruiser 200, chassis URJ200, 5.7 3UR-FE et 4.6 1UR-FE, 2008-2021. L'index par code moteur confirme : 1UR-FE / 3UR-FE / FBE → famille 9, « 04152-38020 / YZZA4 », statut « Confirmé »."],
+                ["land-cruiser-j200", 2008, 2021, "1UR-FE", "Catalogue de compatibilite du 18/10/2026 (neuf familles), famille 9, applications YZZA4, statut « Confirmé » : Land Cruiser 200, chassis URJ200, 5.7 3UR-FE et 4.6 1UR-FE, 2008-2021. L'index par code moteur confirme."],
+            ],
+        ],
+        [
+            "sku"           => "04152-51010",
+            "nom"           => "Cartouche de filtre a huile 04152-51010",
+            "description"   => "Element filtrant du V8 diesel 1VD-FTV : Land Cruiser 200 et 70 V8, Lexus LX 450d. Le document refuse l'equivalence avec la 04152-YZZA4 et demande de stocker ce numero a part.",
+            "compatibilites" => [
+                // Aucune. Les trois applications du document sont
+                // « Documente » ou « Probable », et l'index par code moteur
+                // range le 1VD-FTV en « Documente — equivalence YZZA4
+                // equipementier ». Le Land Cruiser 200 diesel est pourtant du
+                // parc local : il est rapporte, pas devine.
+            ],
+        ],
     ];
 
     public function run(): void
@@ -360,12 +568,39 @@ class FiltresHuileBoutiqueSeeder extends Seeder
 
         $origine = Manufacturer::firstOrCreate(['name' => self::ORIGINE]);
 
+        // Le prix et le stock que porte deja le rayon, lus une fois avant la
+        // boucle. C'est la consigne du proprietaire sur le troisieme
+        // versement : « conduis les memes prix et quantite je reajusterai
+        // apres ». La lire
+        // en base plutot que de recopier self::PRIX fait que si le prix a
+        // bouge depuis l'application, les references nouvelles arrivent au
+        // prix du jour au lieu de rouvrir une ligne a 3 000.
+        //
+        // Lu avant la boucle, et pas dans la boucle : sinon la premiere piece
+        // creee se mettrait a peser sur le prix des suivantes du meme passage.
+        // Le troisieme argument n'est pas une symetrie manquee : un stock
+        // dominant de 0 est une information VRAIE — le rayon est vide — et doit
+        // etre suivi, tandis qu'un prix dominant de 0 n'est pas « le prix du
+        // jour » mais l'absence de prix. Voir `valeurDominante()`.
+        $prixCourant  = $this->valeurDominante('selling_price', self::PRIX, strictementPositif: true);
+        $stockCourant = (int) $this->valeurDominante('stock_quantity', self::STOCK_INITIAL);
+
+        // Les motricites qui separent la YZZA3 de la YZZA5. `firstOrCreate` et
+        // non une lecture simple : `DrivetrainsSeeder` ne tourne pas dans tous
+        // les contextes ou celui-ci tourne, et une ligne qui perdrait sa
+        // motricite rendrait les deux cartouches indiscernables.
+        $motricites = [
+            'RWD' => Drivetrain::firstOrCreate(['code' => 'RWD'], ['label' => 'Propulsion arrière'])->id,
+            'AWD' => Drivetrain::firstOrCreate(['code' => 'AWD'], ['label' => 'Transmission intégrale permanente'])->id,
+        ];
+
         $ecrits = 0;
         $lignes = 0;
         $absents = [];
+        $retirees = [];
 
         foreach (self::FILTRES as $filtre) {
-            DB::transaction(function () use ($filtre, $categorie, $origine, &$ecrits, &$lignes, &$absents) {
+            DB::transaction(function () use ($filtre, $categorie, $origine, $prixCourant, $stockCourant, $motricites, &$ecrits, &$lignes, &$absents, &$retirees) {
                 // Ce que le depot decrit, et qu'il a donc le droit de
                 // reecrire a chaque publication.
                 $description = [
@@ -391,13 +626,37 @@ class FiltresHuileBoutiqueSeeder extends Seeder
                 // plus. Pour les changer en masse, il faut les changer ici ET
                 // vider la colonne concernee — un geste explicite, pas un
                 // effet de bord.
+                //
+                // La valeur posee est celle du rayon, pas celle du fichier :
+                // voir `valeurDominante()`. Sur une base vide, les deux se
+                // confondent.
                 $commerce = [
-                    'selling_price'  => self::PRIX,
-                    'stock_quantity' => $filtre['stock'] ?? self::STOCK_INITIAL,
+                    'selling_price'  => $prixCourant,
+                    'stock_quantity' => $filtre['stock'] ?? $stockCourant,
                     'is_active'      => true,
                 ];
 
-                $piece = Part::where('sku', $filtre['sku'])->first();
+                // `withTrashed()`, et ce n'est pas une precaution de style.
+                // `Part` est en suppression douce et `sku` est unique EN BASE,
+                // corbeille comprise. La lecture ordinaire ne voyait pas une
+                // reference mise a la corbeille depuis l'application : le
+                // seeder la croyait absente, tentait de la creer, et la base
+                // refusait sur la contrainte d'unicite. L'exception remontait
+                // hors de la boucle, privant de leur mise a jour toutes les
+                // references SITUEES APRES celle mise a la corbeille dans
+                // `self::FILTRES` — jusqu'a quinze sur seize si c'est la
+                // premiere, une seule si c'est l'avant-derniere — et la
+                // migration de deploiement n'affichait qu'un avertissement.
+                $piece = Part::withTrashed()->where('sku', $filtre['sku'])->first();
+
+                // Une reference a la corbeille y reste. La ressusciter
+                // remettrait en vente ce que le commercant a retire, au
+                // prochain deploiement et sans qu'il le demande.
+                if ($piece !== null && $piece->trashed()) {
+                    $retirees[] = $filtre['sku'];
+
+                    return;
+                }
 
                 if ($piece === null) {
                     $piece = Part::create(
@@ -412,7 +671,15 @@ class FiltresHuileBoutiqueSeeder extends Seeder
                 // Remplacement plutot qu'empilement : le seeder se rejoue.
                 $piece->fitments()->delete();
 
-                foreach ($filtre['compatibilites'] as [$slug, $de, $a, $moteur, $provenance]) {
+                foreach ($filtre['compatibilites'] as $ligne) {
+                    [$slug, $de, $a, $moteur, $provenance] = $ligne;
+
+                    // Sixieme element facultatif, lu ainsi et non par
+                    // destructuration : les soixante-quatorze lignes du
+                    // premier versement n'en ont pas, et une destructuration
+                    // a six leur ferait lever un avertissement chacune.
+                    $motricite = $ligne[5] ?? null;
+
                     $modele = VehicleModel::where('slug', $slug)->first();
 
                     if ($modele === null) {
@@ -426,6 +693,33 @@ class FiltresHuileBoutiqueSeeder extends Seeder
                         'year_from'        => $de,
                         'year_to'          => $a,
                         'engine_code'      => $moteur,
+                        // Renseignee sur les seules lignes ou la motricite
+                        // fait la difference entre deux references. Laissee
+                        // nulle ailleurs, ou elle vaudrait « toutes » —
+                        // `CompatibilityService` lit une ligne sans motricite
+                        // comme valable pour toutes.
+                        //
+                        // LE BORD, et c'est le seul endroit du catalogue ou
+                        // renseigner un champ fait DISPARAITRE la piece : le
+                        // filtre est `drivetrain_id IS NULL OR = X`, une egalite
+                        // exacte. Le referentiel porte QUATRE motricites et ces
+                        // lignes n'en citent que deux, donc un vehicule saisi en
+                        // FWD ou en 4WD ne voit AUCUNE cartouche. Mesure sur une
+                        // IS XE20 de 2010 en 4GR-FSE : sans motricite les deux
+                        // cartouches, en RWD la YZZA3, en AWD la YZZA5, en 4WD
+                        // et en FWD rien du tout.
+                        //
+                        // Ce n'est pas une regression — ces modeles n'avaient
+                        // aucun filtre avant ce versement — et poser aussi les
+                        // lignes en 4WD serait PIRE : cela rendrait les deux
+                        // cartouches a un 4x4 debrayable qui n'existe sur aucune
+                        // de ces Lexus. Le risque reel est la saisie : ces
+                        // generations n'ont aucune finition au referentiel, donc
+                        // la motricite ne vient d'aucun defaut, seulement de ce
+                        // qu'un vendeur a coche — et « integrale permanente »
+                        // contre « 4x4 debrayable » n'est pas evident sur une
+                        // Lexus.
+                        'drivetrain_id'    => $motricite === null ? null : $motricites[$motricite],
                         // `source` ne peut pas porter la provenance : c'est une
                         // colonne de dix caracteres dont l'enum ne connait que
                         // `declared` et `generated`, et dont la seule question
@@ -443,16 +737,25 @@ class FiltresHuileBoutiqueSeeder extends Seeder
             });
         }
 
+        // Le prix annonce est celui qui a reellement ete pose, pas la
+        // constante du fichier : sur une base ou le proprietaire a deja
+        // ajuste, les deux different, et c'est le premier qui renseigne.
         $this->command?->info(sprintf(
-            '%d filtre(s), %d compatibilite(s) confirmee(s), %d F CFA piece.',
+            '%d filtre(s), %d compatibilite(s) confirmee(s), %s F CFA piece.',
             $ecrits,
             $lignes,
-            self::PRIX,
+            rtrim(rtrim(number_format((float) $prixCourant, 2, '.', ''), '0'), '.'),
         ));
 
         // Un modele absent est une compatibilite perdue en silence : on le dit.
         foreach (array_unique($absents) as $manquant) {
             $this->command?->warn("  modele introuvable, compatibilite ignoree : {$manquant}");
+        }
+
+        // Une reference a la corbeille n'est ni une erreur ni un silence : le
+        // commercant l'a retiree, le depot le constate et passe.
+        foreach (array_unique($retirees) as $retiree) {
+            $this->command?->warn("  reference a la corbeille, laissee telle quelle : {$retiree}");
         }
     }
 
@@ -463,7 +766,16 @@ class FiltresHuileBoutiqueSeeder extends Seeder
      * n'est plus celui du catalogue. Sans la chaine de remplacement, sa
      * recherche ne rend rien alors que la piece est en rayon.
      *
-     * @param  array{sku: string, nom: string, remplace?: list<string>}  $filtre
+     * Deux sortes de numeros secondaires, et la distinction n'est pas
+     * cosmetique. `remplace` designe un numero PERIME : il part en
+     * `is_superseded` et pointe sur le numero actuel, ce qui fait dire a
+     * l'application « cette reference a ete remplacee par celle-ci ».
+     * `equivalents` designe un numero TOUJOURS EN VIGUEUR, simplement sur un
+     * autre marche — le 90915-YZZE2 asiatique du 90915-YZZF1, les numeros
+     * d'origine 04152-31080 et 31020 de la YZZA3. Les marquer perimes
+     * afficherait une supersession que Toyota n'a jamais prononcee.
+     *
+     * @param  array{sku: string, nom: string, remplace?: list<string>, equivalents?: list<string>}  $filtre
      */
     private function rattacherNumeros(Part $piece, array $filtre): void
     {
@@ -473,6 +785,30 @@ class FiltresHuileBoutiqueSeeder extends Seeder
         );
 
         $piece->oemNumbers()->syncWithoutDetaching([$actuel->id => ['is_primary' => true]]);
+
+        foreach ($filtre['equivalents'] ?? [] as $equivalent) {
+            $autre = OemNumber::firstOrCreate(
+                ['normalized_number' => OemNumber::normalize($equivalent), 'brand_id' => null],
+                ['number' => $equivalent, 'label' => $filtre['nom'], 'is_superseded' => false],
+            );
+
+            // Le `is_superseded => false` du `firstOrCreate` ne s'applique qu'a
+            // la CREATION : il fallait donc le forcer ici, comme la branche
+            // `remplace` force l'etat inverse. Sans cela, un numero deja marque
+            // perime par un autre chemin — `PartController::syncOemNumbers`,
+            // `OemNumberController::store`, `BackfillFitments` — le restait pour
+            // toujours, alors que ce seeder est declare seul auteur de ces liens.
+            //
+            // Ce que cela produisait, mesure : la 04152-38010 marquee perime vers
+            // la 04152-YZZA1 survivait a la relance, et l'application annoncait
+            // qu'une cartouche LONGITUDINALE avait ete remplacee par une
+            // cartouche TRANSVERSALE — la confusion de familles que le document
+            // interdit nommement (2GR-FE transversal en famille 6 contre
+            // 2GR-FSE longitudinal en famille 8).
+            $autre->update(['is_superseded' => false, 'superseded_by_id' => null]);
+
+            $piece->oemNumbers()->syncWithoutDetaching([$autre->id => ['is_primary' => false]]);
+        }
 
         foreach ($filtre['remplace'] ?? [] as $ancien) {
             $perime = OemNumber::firstOrCreate(
@@ -484,5 +820,59 @@ class FiltresHuileBoutiqueSeeder extends Seeder
 
             $piece->oemNumbers()->syncWithoutDetaching([$perime->id => ['is_primary' => false]]);
         }
+    }
+
+    /**
+     * La valeur que porte deja le gros du rayon, ou le defaut sur base vide.
+     *
+     * La plus repandue, et non la premiere trouvee ni la moyenne : les dix
+     * references du premier versement sont toutes au meme prix, et le jour ou
+     * le proprietaire en ajuste une seule, c'est le prix des neuf autres qui
+     * reste le prix de la boutique. Egalite departagee par la plus basse, pour
+     * que le resultat ne depende pas de l'ordre de lecture — un seeder qui
+     * ecrirait tantot 3 000 tantot 4 500 selon l'ordre des lignes serait
+     * ingerable.
+     *
+     * Ne lit que les references de ce fichier : le prix d'un amortisseur n'a
+     * rien a dire sur celui d'un filtre.
+     *
+     * ── ZERO N'EST PAS UN PRIX, ET C'EST TOUT L'OBJET DU PLANCHER ───────────
+     *
+     * Le meme appel sert deux colonnes dont la semantique differe. Un stock
+     * dominant de 0 est une information vraie et doit etre suivi. Un prix
+     * dominant de 0 est l'ABSENCE de prix, et mettre a zero une ligne en
+     * rupture est un geste de boutique banal : rien n'empeche ces lignes
+     * d'etre majoritaires parmi les seize.
+     *
+     * Mesure qui a motive le plancher, sur base jetable : neuf des seize
+     * references a 0, une reference recreee ensuite naissait a 0,00 avec pour
+     * seule trace l'avertissement « 0 F CFA piece ». La cartouche V8 du Land
+     * Cruiser 200 — la seule ligne du parc local qu'apporte ce versement —
+     * serait partie en rayon a zero franc. La page publique s'en garde,
+     * `ArticlePartage::prixFormate` rendant « Prix sur demande » des que
+     * l'arrondi est <= 0 ; `PartResource` rend le zero brut au catalogue de
+     * l'application, qui le formate sans garde.
+     */
+    private function valeurDominante(string $colonne, int|float $defaut, bool $strictementPositif = false): int|float
+    {
+        $valeurs = Part::query()
+            ->whereIn('sku', array_column(self::FILTRES, 'sku'))
+            ->pluck($colonne)
+            ->filter(fn ($v) => $v !== null && (! $strictementPositif || (float) $v > 0))
+            ->map(fn ($v) => (float) $v)
+            ->all();
+
+        if ($valeurs === []) {
+            return $defaut;
+        }
+
+        $comptes = array_count_values(array_map('strval', $valeurs));
+
+        // Tri sur le couple (frequence decroissante, valeur croissante).
+        uksort($comptes, function (string $a, string $b) use ($comptes) {
+            return [$comptes[$b], (float) $a] <=> [$comptes[$a], (float) $b];
+        });
+
+        return (float) array_key_first($comptes);
     }
 }
