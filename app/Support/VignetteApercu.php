@@ -254,7 +254,34 @@ final class VignetteApercu
      */
     public static function generer(string $disque, string $original): ?array
     {
+        // ── POURQUOI CES QUATRE BRANCHES JOURNALISENT MAINTENANT ──────────
+        //
+        // Elles rendaient `null` EN SILENCE. Les six autres sorties de cette
+        // methode nomment leur cause depuis le debut ; ces quatre-la, non — et
+        // c'est exactement le trou dans lequel la production est tombee.
+        //
+        // Mesure du 20/10/2026, journal de deploiement Render : dix media sur
+        // dix abandonnes apres trois tentatives, sur des photos de vehicule ET
+        // d'accessoire, sans qu'une seule ligne ne dise pourquoi. Les six
+        // branches bavardes etaient toutes absentes du journal — donc la cause
+        // etait forcement ici, et il etait impossible de dire laquelle des
+        // quatre. Un diagnostic a distance sur une instance sans shell ne tient
+        // qu'a ce que le programme consent a raconter.
+        //
+        // Une hypothese seduisante est morte sur cette mesure, et elle merite
+        // d'etre ecrite pour que personne ne la reprenne : le Dockerfile
+        // installe `libpng-dev` et PAS `libjpeg-dev`, et appelle
+        // `docker-php-ext-install gd` sans `--with-jpeg`. GD sans decodeur
+        // JPEG expliquait tout — sauf que les photos d'accessoires sont des
+        // PNG et echouent aussi. La cause est donc ailleurs, ou plus large.
         if (! self::disponible()) {
+            Log::warning('Vignette : GD indisponible, original conserve', [
+                'disque'              => $disque,
+                'chemin'              => $original,
+                'gd_chargee'          => extension_loaded('gd'),
+                'imagecreatefromstring' => function_exists('imagecreatefromstring'),
+            ]);
+
             return null;
         }
 
@@ -262,18 +289,45 @@ final class VignetteApercu
             $stockage = Storage::disk($disque);
 
             if (! $stockage->exists($original)) {
+                // Le cas le plus perfide des quatre : sur un disque S3, `exists`
+                // est une requete reseau. Des identifiants qui permettent la
+                // LECTURE PUBLIQUE sans permettre le `HEAD` rendent `false`
+                // pour un fichier qui existe bel et bien — et la page, elle,
+                // sert son URL sans difficulte. D'ou le rappel du disque.
+                Log::warning('Vignette : original introuvable sur le disque, conserve', [
+                    'disque' => $disque,
+                    'chemin' => $original,
+                ]);
+
                 return null;
             }
 
             $source = (string) $stockage->get($original);
 
             if ($source === '') {
+                Log::warning('Vignette : lecture vide, original conserve', [
+                    'disque' => $disque,
+                    'chemin' => $original,
+                ]);
+
                 return null;
             }
 
             $taille = @getimagesizefromstring($source);
 
             if ($taille === false || ! in_array($taille[2] ?? null, self::TYPES, true)) {
+                // `octets` et `type` separent deux pannes tres differentes : un
+                // fichier tronque ou corrompu (taille lue nulle), et un format
+                // que cette classe refuse alors qu'il s'affiche tres bien dans
+                // un navigateur — un WebP, un AVIF, un HEIC venu d'un iPhone.
+                Log::warning('Vignette : format non reconnu ou non gere, original conserve', [
+                    'disque' => $disque,
+                    'chemin' => $original,
+                    'octets' => strlen($source),
+                    'type'   => $taille === false ? 'illisible' : ($taille[2] ?? null),
+                    'geres'  => self::TYPES,
+                ]);
+
                 return null;
             }
 
@@ -374,6 +428,25 @@ final class VignetteApercu
         $entree = @imagecreatefromstring($source);
 
         if ($entree === false) {
+            // LE DECODAGE A ECHOUE ALORS QUE `getimagesizefromstring` AVAIT
+            // RECONNU L'IMAGE. Les deux ne passent pas par le meme code :
+            // `getimagesizefromstring` lit l'en-tete et ne depend d'aucun codec,
+            // tandis qu'`imagecreatefromstring` a besoin du decodeur compile
+            // DANS GD. Une image parfaitement valide echoue donc ici quand GD a
+            // ete construit sans le format en question — le cas classique etant
+            // `docker-php-ext-install gd` sans `libjpeg-dev` : PNG accepte,
+            // JPEG refuse, et rien ne le dit.
+            //
+            // `gd_info()` est joint parce que c'est la SEULE chose qui tranche
+            // a distance : elle liste les formats que GD sait reellement lire,
+            // sur l'instance en cause, au moment de l'echec.
+            Log::warning('Vignette : GD n\'a pas su decoder l\'image, original conserve', [
+                'octets'   => strlen($source),
+                'largeur'  => $largeur,
+                'hauteur'  => $hauteur,
+                'gd_infos' => function_exists('gd_info') ? gd_info() : null,
+            ]);
+
             return null;
         }
 
@@ -399,7 +472,23 @@ final class VignetteApercu
             $ecrit = imagejpeg($sortie, null, self::QUALITE);
             $jpeg = (string) ob_get_clean();
 
-            return ($ecrit === false || $jpeg === '') ? null : $jpeg;
+            if ($ecrit === false || $jpeg === '') {
+                // L'ENCODEUR, et non le decodeur. GD peut savoir LIRE un format
+                // sans savoir l'ECRIRE : les deux supports sont compiles
+                // separement. Un GD bati sans JPEG en sortie arrive jusqu'ici,
+                // apres avoir decode et redimensionne, et ne rend rien.
+                Log::warning('Vignette : GD n\'a pas su encoder le JPEG, original conserve', [
+                    'largeur_cible' => $largeurCible,
+                    'hauteur_cible' => $hauteurCible,
+                    'imagejpeg'     => $ecrit,
+                    'octets_rendus' => strlen($jpeg),
+                    'gd_infos'      => function_exists('gd_info') ? gd_info() : null,
+                ]);
+
+                return null;
+            }
+
+            return $jpeg;
         } finally {
             imagedestroy($entree);
 

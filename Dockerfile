@@ -3,6 +3,8 @@ FROM php:8.4-cli
 # Extensions PHP nécessaires pour Laravel
 RUN apt-get update && apt-get install -y \
     libpng-dev \
+    libjpeg-dev \
+    libfreetype-dev \
     libonig-dev \
     libxml2-dev \
     libpq-dev \
@@ -10,6 +12,29 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
+    # GD SANS JPEG NE SERT A RIEN A CETTE APPLICATION, et c'est ce qui se
+    # passait : seul `libpng-dev` etait installe, et `docker-php-ext-install gd`
+    # sans `docker-php-ext-configure` construit GD avec les formats qu'il
+    # TROUVE. Le JPEG n'etait donc pas compile.
+    #
+    # Ce que ca cassait, mesure le 20/10/2026 sur le journal de deploiement :
+    # les dix media du catalogue abandonnes apres trois tentatives, « aucune
+    # variante n'a pu etre generee », sans une ligne de cause. Donc AUCUNE page
+    # de partage ne servait la variante 1200x630 que og:image attend — toutes
+    # servaient leur original, une photo de telephone en portrait, que WhatsApp
+    # et Facebook recadrent mal ou refusent.
+    #
+    # Et le defaut touchait les DEUX formats, ce qui a d'abord egare le
+    # diagnostic : les JPEG echouaient au DECODAGE (`imagecreatefromstring`),
+    # les PNG a l'ENCODAGE (`imagejpeg`), la variante etant toujours ecrite en
+    # JPEG quelle que soit l'entree. « Les PNG devraient donc marcher » etait un
+    # raisonnement faux, et il a fallu le mesurer pour le voir.
+    #
+    # `--with-freetype` n'est pas demande par l'application aujourd'hui ; il est
+    # pose parce que reconstruire GD plus tard pour l'ajouter couterait un
+    # deploiement entier, et que son absence ne se verrait qu'au premier texte
+    # dessine sur une image.
+    && docker-php-ext-configure gd --with-jpeg --with-freetype \
     && docker-php-ext-install \
         pdo \
         pdo_mysql \
