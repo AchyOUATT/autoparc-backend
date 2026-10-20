@@ -344,12 +344,60 @@ final class VignetteApercu
                 return null;
             }
 
-            // `min(1, ...)` : jamais d'agrandissement. Etirer une petite photo
-            // a 1200 de large ne lui ajoute aucun detail et multiplie son poids.
-            $facteur = min(1.0, self::LARGEUR_MAX / $largeur, self::HAUTEUR_MAX / $hauteur);
+            // ── ON RECADRE, ON NE FAIT PLUS TENIR ─────────────────────────
+            //
+            // Le calcul precedent faisait TENIR l'image entiere dans
+            // 1200x630 — `min(1, 1200/l, 630/h)`. Mathematiquement correct,
+            // commercialement inutile : une photo de telephone en PORTRAIT y
+            // devenait un ruban vertical.
+            //
+            // Mesure en production avant ce changement, sur les trois pages
+            // du catalogue : la Mazda CX-9, prise en 744x1233, sortait en
+            // 380x630. Facebook demande AU MOINS 600 points de large pour une
+            // grande carte — en dessous, le lien tombe en petite vignette
+            // carree ou l'image est ignoree. Le correctif de GD avait donc
+            // bien fabrique une variante, et cette variante etait inutilisable.
+            //
+            // Desormais on prend dans l'original la plus grande zone AU
+            // RAPPORT DU CADRE (1200/630, soit 1,905) et on la reduit. La
+            // CX-9 rend maintenant 744x390 : la pleine largeur de la photo,
+            // une bande horizontale prise au centre.
+            //
+            // CE QUE CELA COUTE, et il faut le dire parce que c'est visible :
+            // sur un portrait tres haut, le recadrage ne garde qu'environ un
+            // tiers de la hauteur. Un vehicule photographie au centre du cadre
+            // passe entier ; photographie en pied avec beaucoup de ciel, il
+            // peut perdre son toit ou ses roues. Le centrage est le choix par
+            // defaut defendable, et le biaiser vers le haut ou vers le bas est
+            // une ligne — `$ySource` — le jour ou les captures montreraient
+            // que les photos de la boutique sont cadrees autrement.
+            //
+            // L'alternative examinee et ECARTEE : completer par des bandes
+            // plutot que recadrer. Elle ne perd rien, mais une 744x1233
+            // centree dans 1200x630 laisserait plus de bandes que de photo.
+            $rapportCible = self::LARGEUR_MAX / self::HAUTEUR_MAX;
 
-            $largeurCible = max(1, (int) round($largeur * $facteur));
-            $hauteurCible = max(1, (int) round($hauteur * $facteur));
+            if ($largeur / $hauteur > $rapportCible) {
+                // Trop large pour le cadre : on rogne les cotes.
+                $hauteurSource = $hauteur;
+                $largeurSource = max(1, (int) round($hauteur * $rapportCible));
+            } else {
+                // Trop haute : on rogne le haut et le bas.
+                $largeurSource = $largeur;
+                $hauteurSource = max(1, (int) round($largeur / $rapportCible));
+            }
+
+            $xSource = (int) round(($largeur - $largeurSource) / 2);
+            $ySource = (int) round(($hauteur - $hauteurSource) / 2);
+
+            // `min(1, ...)` : jamais d'agrandissement. Etirer une petite photo
+            // a 1200 de large ne lui ajoute aucun detail et multiplie son
+            // poids. C'est ce plafond qui fait sortir la CX-9 en 744 et non en
+            // 1200 : sa zone recadree ne fait que 744 de large a la source.
+            $facteur = min(1.0, self::LARGEUR_MAX / $largeurSource);
+
+            $largeurCible = max(1, (int) round($largeurSource * $facteur));
+            $hauteurCible = max(1, (int) round($hauteurSource * $facteur));
 
             // LE garde-fou qui empeche le depot de mourir. Lu AVANT d'allouer,
             // parce qu'un depassement de memoire est une erreur FATALE : il ne
@@ -372,7 +420,10 @@ final class VignetteApercu
                 return null;
             }
 
-            $jpeg = self::recomprimer($source, $largeur, $hauteur, $largeurCible, $hauteurCible);
+            $jpeg = self::recomprimer(
+                $source, $largeur, $hauteur, $largeurCible, $hauteurCible,
+                $xSource, $ySource, $largeurSource, $hauteurSource,
+            );
 
             if ($jpeg === null) {
                 return null;
@@ -418,12 +469,22 @@ final class VignetteApercu
      * miettes de PHP suffirait en requete courte, pas dans la commande de
      * rattrapage qui en enchaine des centaines.
      */
+    /**
+     * Les quatre derniers parametres decrivent la ZONE A PRENDRE dans
+     * l'original, et non l'original entier : c'est par eux que passe le
+     * recadrage. Sur une source deja au bon rapport, ils valent (0, 0,
+     * largeur, hauteur) et le comportement est celui d'avant.
+     */
     private static function recomprimer(
         string $source,
         int $largeur,
         int $hauteur,
         int $largeurCible,
         int $hauteurCible,
+        int $xSource,
+        int $ySource,
+        int $largeurSource,
+        int $hauteurSource,
     ): ?string {
         $entree = @imagecreatefromstring($source);
 
@@ -463,9 +524,9 @@ final class VignetteApercu
 
             imagecopyresampled(
                 $sortie, $entree,
-                0, 0, 0, 0,
+                0, 0, $xSource, $ySource,
                 $largeurCible, $hauteurCible,
-                $largeur, $hauteur,
+                $largeurSource, $hauteurSource,
             );
 
             ob_start();
