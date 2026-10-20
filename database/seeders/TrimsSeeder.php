@@ -110,6 +110,384 @@ class TrimsSeeder extends Seeder
             ['toyota', 'yaris-xp210', 'G',         'G',    3, $petrol, $fwd, 116, 1490, 3, 'cvt'],
             ['toyota', 'yaris-xp210', 'GR Sport',  'GR',   4, $hybrid, $fwd, 115, 1490, 3, 'cvt'],
 
+            // ══ TOYOTA : SIX GENERATIONS NORD-AMERICAINES RESTEES VIDES ══
+            //
+            // MESURE AVANT CE LOT, sur base jetable (sqlite, pays et marques
+            // semes d'abord, puis VehicleModelsSeeder et TrimsSeeder) : la
+            // marque toyota porte 29 modeles, dont 21 SANS AUCUNE FINITION,
+            // pour 32 finitions au total. Les huit pourvues sont les plus
+            // recentes ; les vides sont justement les generations qui
+            // s'importent d'occasion. Ce lot en pose SIX et argumente les
+            // quinze autres, refus compris.
+            //
+            // ─── LA QUESTION TRANCHEE : QUELLE NOMENCLATURE ? ───────────
+            //
+            // Le fichier melangeait deja deux conventions sans le dire. La
+            // corolla-e180 porte J, L, GL, GLi — noms du Golfe, d'Asie et
+            // d'Afrique — plus une S nord-americaine ; la corolla-e210 juste
+            // au-dessus porte LE, SE, XLE, XSE, qui sont nord-americains.
+            //
+            // REGLE RETENUE : une generation recoit la nomenclature du marche
+            // dont la gamme est VERIFIABLE sur deux sources independantes pour
+            // CETTE generation-la. Quand deux marches le sont, on pose les
+            // deux, et le nom ou la description porte le marche.
+            //
+            // Ce n'est pas un choix de confort, c'est le resultat d'une
+            // recherche qui a reussi d'un cote et echoue de l'autre. La gamme
+            // nord-americaine se publie millesime par millesime, communiques
+            // constructeur a l'appui. La gamme du Golfe des generations
+            // anciennes, elle, ne se retrouve que sur des sites d'annonces
+            // entre particuliers. Le site officiel Toyota Emirats arabes unis,
+            // consulte pour ce lot le 20/10/2026, ne nomme AUCUNE finition
+            // pour le Land Cruiser : il vend un « Land Cruiser 3.5L » de
+            // 409 ch et un « Land Cruiser 4.0L » de 271 ch, deux cylindrees
+            // et pas un GXR.
+            //   D'ou le resultat : les six generations posees ici sont toutes
+            //   nord-americaines. Les 4x4 et les pick-up du Golfe sont
+            //   RAPPORTES, pas devines.
+            //
+            // ─── CE QUI EST ECARTE, ET POURQUOI, EN UNE LIGNE ───────────
+            //
+            // hilux-an10, fortuner-an50, land-cruiser-j100,
+            //   land-cruiser-prado-j120, land-cruiser-j300 : les codes moteur
+            //   sont surs des deux cotes, la GAMME du Golfe ne l'est pas — un
+            //   GXR de 2007 ne se recoupe que sur des annonces.
+            // avensis-t270, auris-e180 : en Europe le nom de finition change
+            //   de PAYS en pays — Active / Icon / Sport / Excel au Royaume-Uni
+            //   d'apres le communique Toyota GB du 26/09/2012, Tendance /
+            //   Dynamic / Design / Executive en France — et le Royaume-Uni
+            //   roule a droite, donc ce n'est pas de la que vient le parc.
+            // yaris-xp150 : l'entree elle-meme est douteuse, voir ci-dessous.
+            // vios, rush-f800 : gammes d'Asie du Sud-Est, et le slug `vios`
+            //   est nu, voir ci-dessous.
+            // highlander, sienna, venza, avalon, tacoma : pas de generation,
+            //   voir ci-dessous. Rien pose, c'est une decision du proprietaire.
+            //
+            // ─── TROIS CHOSES A RAPPORTER, AUCUNE CORRIGEE ICI ──────────
+            //
+            // 1. `yaris-xp150` EST PROBABLEMENT UNE XP130. Le referentiel la
+            //    donne citadine, 2011-2020. Or Wikipedia anglais separe les
+            //    deux codes : la XP130 est la citadine a hayon de 2011, vendue
+            //    en Europe, au Japon, au Canada, en Afrique du Sud et aux
+            //    Etats-Unis jusqu'en 2018-2020 ; la XP150 est la Yaris d'Asie
+            //    de 2013 et la berline tricorps derivee de la Vios. Le
+            //    millesime 2011 et la carrosserie citadine designent donc la
+            //    XP130, pas la XP150. Le catalogue de filtres du depot porte
+            //    la meme lecture — sa ligne yaris-xp150 justifie sa borne
+            //    basse par « debut de la generation XP150 » en 2011. Les deux
+            //    se trompent ensemble, ou bien le slug veut dire XP130 et le
+            //    commentaire du catalogue est a reecrire. Poser des finitions
+            //    la-dessus figerait le malentendu : rien n'est pose.
+            //
+            // 2. `vios` A UN SLUG NU, et cela ne veut pas dire « une seule
+            //    generation ». Ses bornes 2013-ouvertes couvrent la XP150
+            //    (2013-2023) ET la XP180 lancee en 2022, qui ne portent pas la
+            //    meme gamme. Une finition posee sur ce slug vaudrait pour les
+            //    deux sans pouvoir le dire. S'y ajoute que la Vios construite
+            //    en Indonesie part au Golfe sous le nom de YARIS BERLINE : un
+            //    vehicule importe ici porterait un nom que le referentiel
+            //    range ailleurs.
+            //
+            // 3. LES CINQ IMPORTATIONS AMERICAINES N'ONT PAS DE GENERATION,
+            //    ET C'EST BLOQUANT. Highlander 2008-ouvert couvre XU40, XU50
+            //    et XU70 ; Sienna 2007-ouvert couvre XL20, XL30 et XL40 ;
+            //    Venza 2009-ouvert couvre AV10 et XU80 ; Avalon 2005-2022
+            //    couvre XX30, XX40 et XX50 ; Tacoma 1995-ouvert en couvre
+            //    quatre. Les gammes ne se recouvrent pas : la Highlander XU40
+            //    se vendait en Base, Sport puis SE, et Limited ; la XU70 se
+            //    vend en L, LE, XLE, XSE, Limited et Platinum. Deux jeux qui
+            //    ne se rejoignent que sur « Limited ». Poser « LE » sur ce
+            //    slug proposerait cette finition a une Highlander de 2010,
+            //    qui ne l'a jamais portee — exactement ce que le commentaire
+            //    de la corolla-e180 redoute plus haut dans ce fichier,
+            //    « une finition inventee se retrouve sur une annonce ».
+            //      Et la description ne rattraperait rien : une « Limited »
+            //      Venza est un V6 3,5 2GR-FE de 268 ch jusqu'en 2015 et une
+            //      hybride 2,5 A25A-FXS integrale a partir de 2021. Une
+            //      description qui nommerait un moteur serait fausse sur la
+            //      moitie de la plage ; une description qui les nommerait tous
+            //      les deux ne dirait plus rien.
+            //      DEUX SORTIES EXISTENT, et les deux sont des decisions de
+            //      catalogue qui reviennent au proprietaire : decouper les
+            //      generations — ce que `VehicleModelsSeeder` dit lui-meme ne
+            //      pas avoir ete decide — ou qualifier le nom, comme la
+            //      « 528i (4 cyl. 2011-2016) » du lot BMW le fait deja dans ce
+            //      fichier. Rien n'est pose tant que l'une des deux n'est pas
+            //      choisie.
+            //
+            // ─── LE CATALOGUE DE FILTRES DU DEPOT, SOURCE INTERNE ───────
+            //
+            // `FiltresHuileBoutiqueSeeder` nomme le code moteur des six
+            // generations posees ici, et il les CONFIRME toutes : 1ZZ-FE puis
+            // 2ZR-FE et 2AZ-FE sur corolla-e140, 2AR-FE / 2AR-FXE / 2GR-FE sur
+            // camry-xv50, A25A-FKS / A25A-FXS / 2GR-FKS sur camry-xv70, 2AR-FE
+            // et 2AR-FXE sur rav4-xa40, 2ZR-FXE sur les deux Prius. Aucune
+            // contradiction relevee ; les accords les plus utiles sont nommes
+            // generation par generation ci-dessous.
+            //   UN POINT QUI AURAIT PU PASSER POUR UNE CONTRADICTION : le
+            //   catalogue date le 2AZ-FE de la Corolla de 2009 a 2013, alors
+            //   que la XRS quitte le catalogue AMERICAIN apres le millesime
+            //   2010 — Wikipedia anglais le dit, et Toyota Canada la vend
+            //   encore au millesime 2011. Ce n'est pas un desaccord : la
+            //   ligne du catalogue nomme « Corolla XRS, Matrix, Matrix XRS »,
+            //   et c'est la Matrix qui tient jusqu'en 2013.
+            //
+            // LA MOTRICITE PAR DEFAUT NE CACHE AUCUN FILTRE ICI, et cela
+            // s'oppose a ce que le lot Lexus a mesure sur ses propres lignes.
+            // Compte refait pour ce lot sur `FiltresHuileBoutiqueSeeder` :
+            // QUATORZE des 94 compatibilites seulement portent un code de
+            // motricite, et les quatorze sont des Lexus : is-xe20, is-xe30,
+            // gs-s190, gs-l10 et rc-xc10. Toute ligne Toyota a son
+            // `drivetrain_id` nul, et `CompatibilityService` filtre sur
+            // « drivetrain_id IS NULL OR = X ». Poser FWD ou AWD sur ces
+            // finitions epargne donc une saisie au vendeur sans rien masquer.
+            //
+            // MESURE FAITE SUR BASE JETABLE, et elle vaut pour tout le lot :
+            // pour chacune des six finitions interrogees — camry-xv50 « LE »
+            // 2014, camry-xv70 « XLE V6 » 2020, rav4-xa40 « Hybrid XLE » 2017,
+            // corolla-e140 « XRS » 2011, prius-xw30 « Two » 2013 et
+            // prius-xw50 « XLE » 2020 — `partsForCriteria()` rend EXACTEMENT
+            // les memes references avec et sans la motricite. Le defaut pose
+            // ici n'ouvre ni ne ferme aucune porte, il epargne une saisie.
+            //
+            // CE QUE LA MEME MESURE MONTRE EN REVANCHE, et qu'il faut savoir :
+            // une « XRS » de 2011 recoit la 90915-YZZF1, qui est la sienne —
+            // c'est la reference du 2AZ-FE — MAIS AUSSI la 04152-YZZA6, qui
+            // est la cartouche du 1,8. Une « XLE V6 » de Camry XV70 recoit de
+            // meme la 04152-YZZA1 de son V6 et la 90915-YZZN1 du quatre
+            // cylindres. La raison est celle que le lot Lexus a deja ecrite :
+            // une finition ne porte PAS de code moteur, et la motricite
+            // n'affine pas ici puisque les lignes Toyota n'en portent pas non
+            // plus. C'est une proposition, pas une prescription, et c'est la
+            // description qui dit au vendeur laquelle prendre.
+            //
+            // LE RANG va du plus modeste au plus puissant, comme ailleurs.
+            // Deux endroits ou la puissance ne departage pas : les quatre
+            // Prius d'une meme generation partagent la chaine hybride au
+            // cheval pres, et la Camry XV70 « XLE V6 » et « TRD » rendent les
+            // memes 301 ch. Le rang y suit le niveau d'equipement, et c'est
+            // dit ici plutot que laisse deviner.
+            //
+            // SOURCES. Chaque designation, chaque code moteur et chaque
+            // motricite est recoupe sur deux sources independantes au moins,
+            // nommees generation par generation ci-dessous, plus le catalogue
+            // de filtres du depot partout ou il parle. Les divergences
+            // retenues sont nommees a l'endroit ou elles tombent.
+
+            // ── TOYOTA COROLLA E140 (Amerique du Nord 2009-2013) ─────────
+            // Sources : Wikipedia anglais « Toyota Corolla (E140) », qui donne
+            // la gamme americaine Base / S / LE / XLE / XRS et la gamme
+            // canadienne CE / LE / Sport ou S / XRS, le 2ZR-FE 1798 a 132 ch
+            // et le 2AZ-FE 2362 a 158 ch ; et le communique Toyota Canada
+            // « What's new: 2011 Toyota Corolla », qui donne les QUATRE memes
+            // finitions canadiennes, 1,8 l sur CE, LE et S, 2,4 l de 158 ch
+            // sur la seule XRS. Les quatre posees sont celles que les DEUX
+            // sources nomment.
+            //   La XLE americaine n'est pas posee : une seule source la nomme.
+            //   La base americaine non plus — elle s'appelle « Corolla » tout
+            //   court jusqu'en 2010 puis « L », et trancher demanderait une
+            //   source que je n'ai pas.
+            //
+            // DIVERGENCE DE PUISSANCE, ET ELLE EST REELLE : Toyota Canada
+            // annonce 138 ch pour le 1,8, Wikipedia 132 ch pour l'Amerique du
+            // Nord. 132 est retenu — c'est la valeur que portent deja les
+            // lignes 2ZR-FE de la corolla-e180 dans ce fichier, et six chevaux
+            // d'ecart sur le meme moteur sentent la norme de mesure plutot que
+            // la mecanique. Valeur non stockee de toute facon.
+            //
+            // LE CATALOGUE DE FILTRES CONFIRME LA XRS NOMMEMENT : sa ligne
+            // 2AZ-FE dit « Corolla XRS, Matrix, Matrix XRS 2.4 2AZ-FE
+            // 2009-2013 », statut « Confirmé », doublement corroboree par
+            // l'index par code moteur. C'est la seule finition de ce lot que
+            // le depot nomme lui-meme.
+            ['toyota', 'corolla-e140', 'CE',  'CE',  1, $petrol, $fwd, 132, 1798, 4, 'manual',    '1,8 4 cylindres 2ZR-FE, 132 ch, traction — entrée de gamme canadienne'],
+            ['toyota', 'corolla-e140', 'LE',  'LE',  2, $petrol, $fwd, 132, 1798, 4, 'automatic', '1,8 4 cylindres 2ZR-FE, 132 ch, traction — gamme nord-américaine'],
+            ['toyota', 'corolla-e140', 'S',   'S',   3, $petrol, $fwd, 132, 1798, 4, 'automatic', '1,8 4 cylindres 2ZR-FE, 132 ch, traction — finition sportive, même moteur que la LE'],
+            ['toyota', 'corolla-e140', 'XRS', 'XRS', 4, $petrol, $fwd, 158, 2362, 4, 'manual',    '2,4 4 cylindres 2AZ-FE, 158 ch, traction — la seule E140 nord-américaine qui ne soit pas un 1,8'],
+
+            // ── TOYOTA CAMRY XV50 (2011-2017) ────────────────────────────
+            // Sources : Wikipedia anglais « Toyota Camry (XV50) », qui donne
+            // la gamme nord-americaine L / LE / SE / XLE, les versions V6 et
+            // les hybrides, le 2AR-FE a 177-181 ch, le 2GR-FE V6 a 268 ch et
+            // le 2AR-FXE hybride a 200 ch cumules ; et les fiches Cars.com
+            // « 2015 Toyota Camry » — LE, SE, XLE, XSE, XLE V6, XSE V6, 2,5 l
+            // de 178 ch, V6 de 268 ch, boite a six rapports, traction — et
+            // « 2016 Toyota Camry Hybrid » — LE, SE, XLE, 200 ch cumules,
+            // traction.
+            //
+            // DIVERGENCE TRANCHEE : Cars.com appelle l'hybride « 2.4-liter ».
+            // Deux sources disent le contraire — Wikipedia donne 2,5 l, et le
+            // catalogue de filtres du depot ecrit « Camry hybride 2.5 2AR-FXE
+            // 2012-2017 FWD », statut « Confirme ». Le 2,5 est retenu.
+            //
+            // LE CATALOGUE DE FILTRES COUVRE LES TROIS MOTEURS de cette
+            // generation : 2AR-FE 2010-2017 en traction, 2AR-FXE hybride
+            // 2012-2017 et 2GR-FE avec sa borne basse remontee a 2011, debut
+            // de la XV50. Aucune de ces lignes ne porte de motricite, donc la
+            // traction posee ici ne masque aucune reference.
+            //
+            // La XSE n'arrive qu'au restylage de 2015, et la description le
+            // dit : sans cela le nom laisserait croire a une version presente
+            // sur toute la generation.
+            ['toyota', 'camry-xv50', 'LE',        'LE',   1, $petrol, $fwd, 178, 2494, 4, 'automatic', '2,5 4 cylindres 2AR-FE, 178 ch, traction — gamme nord-américaine'],
+            ['toyota', 'camry-xv50', 'SE',        'SE',   2, $petrol, $fwd, 178, 2494, 4, 'automatic', '2,5 4 cylindres 2AR-FE, 178 ch, traction — finition sportive nord-américaine'],
+            ['toyota', 'camry-xv50', 'XLE',       'XLE',  3, $petrol, $fwd, 178, 2494, 4, 'automatic', '2,5 4 cylindres 2AR-FE, 178 ch, traction — finition haute nord-américaine'],
+            ['toyota', 'camry-xv50', 'XSE',       'XSE',  4, $petrol, $fwd, 178, 2494, 4, 'automatic', '2,5 4 cylindres 2AR-FE, 178 ch, traction — apparue au restylage de 2015, absente avant'],
+            ['toyota', 'camry-xv50', 'Hybrid LE', 'HLE',  5, $hybrid, $fwd, 200, 2494, 4, 'cvt',       '2,5 4 cylindres hybride 2AR-FXE, 200 ch cumulés, traction'],
+            ['toyota', 'camry-xv50', 'XLE V6',    'XLE6', 6, $petrol, $fwd, 268, 3456, 6, 'automatic', '3,5 V6 2GR-FE, 268 ch, traction — rien du 2,5 que porte la XLE quatre cylindres'],
+
+            // ── TOYOTA CAMRY XV70 (2017→) ────────────────────────────────
+            // Sources : Wikipedia anglais « Toyota Camry (XV70) », qui donne
+            // la gamme L / LE / SE / XLE / XSE, les versions V6, la TRD
+            // apparue au millesime 2020 et reservee au V6, l'A25A-FKS a 203 ou
+            // 206 ch selon la version et 202 ch en integrale, l'A25A-FXS
+            // hybride et le 2GR-FKS a 301 ch ; et la fiche Cars.com « 2020
+            // Toyota Camry » — L, LE, SE, XLE, XSE, XLE V6, XSE V6, TRD V6,
+            // integrale offerte sur les quatre cylindres et pas sur le V6, V6
+            // a 301 ch — doublee de « 2020 Toyota Camry Hybrid », qui donne LE,
+            // SE et XLE en traction et eCVT.
+            //
+            // LES 203 CONTRE 206 CH NE SONT PAS UNE RECOPIE DE LA LIGNE
+            // VOISINE : le meme A25A-FKS rend 203 ch sur LE et XLE et 206 ch
+            // sur la XSE, qui a la double sortie d'echappement. Les deux
+            // valeurs sont posees telles quelles, et c'est pour cela que la
+            // XSE passe devant la XLE au rang.
+            //
+            // L'INTEGRALE EXISTE SUR CETTE GENERATION depuis le millesime
+            // 2020, mais sur les quatre cylindres seulement. La traction reste
+            // le defaut ; la description nomme l'autre montage la ou il
+            // existe, comme le lot Lexus le fait.
+            //
+            // LA LIGNE HYBRIDE PORTE 208 CH EN COLONNE ET 176 EN DESCRIPTION,
+            // et ce n'est pas une incoherence : 176 ch est le thermique seul,
+            // donne par le tableau de Wikipedia et confirme par les fiches de
+            // millesime 2020 ; 208 ch est la puissance cumulee, que seul le
+            // corps du meme article donne. La description ne retient donc que
+            // le chiffre a deux sources, et la colonne — qui n'atteint pas la
+            // base — porte le cumul pour que le rang reste comparable.
+            //
+            // LE CATALOGUE DE FILTRES CONFIRME les trois moteurs : A25A-FKS et
+            // A25A-FXS a partir de 2018, 2GR-FKS 2018-2024 en traction. Le
+            // document s'en sert meme d'exemple, la meme XV70 prenant la
+            // cartouche avec le V6 et le filtre visse avec le quatre
+            // cylindres.
+            //
+            // LA TRD PARTAGE LES 301 CH DE LA XLE V6 : son rang la met apres,
+            // sur l'equipement et non sur la puissance, faute de pouvoir les
+            // departager autrement.
+            //
+            // LA CYLINDREE 2487 N'EST PAS CELLE DE WIKIPEDIA, qui arrondit
+            // l'A25A a 2500 cm3 : 2487 est la valeur que portent deja les
+            // lignes A25A-FXS posees par le lot Lexus dans ce fichier, et la
+            // coherence interne l'emporte sur un arrondi. Colonne non stockee.
+            //
+            // « HYBRID LE » PORTE UN NOM COMPOSE PARCE QUE LA BASE L'IMPOSE :
+            // `trims` est unique sur (vehicle_model_id, name), et « LE » est
+            // deja pris par la thermique. Les fiches de millesime 2020
+            // l'ecrivent d'ailleurs ainsi.
+            ['toyota', 'camry-xv70', 'LE',        'LE',   1, $petrol, $fwd, 203, 2487, 4, 'automatic', '2,5 4 cylindres A25A-FKS, 203 ch en traction et 202 en intégrale, intégrale offerte à partir du millésime 2020'],
+            ['toyota', 'camry-xv70', 'SE',        'SE',   2, $petrol, $fwd, 203, 2487, 4, 'automatic', '2,5 4 cylindres A25A-FKS, 203 ch en traction et 202 en intégrale, intégrale offerte à partir du millésime 2020'],
+            ['toyota', 'camry-xv70', 'XLE',       'XLE',  3, $petrol, $fwd, 203, 2487, 4, 'automatic', '2,5 4 cylindres A25A-FKS, 203 ch en traction et 202 en intégrale, intégrale offerte à partir du millésime 2020'],
+            ['toyota', 'camry-xv70', 'XSE',       'XSE',  4, $petrol, $fwd, 206, 2487, 4, 'automatic', '2,5 4 cylindres A25A-FKS, 206 ch grâce à la double sortie, traction ou intégrale à partir du millésime 2020'],
+            ['toyota', 'camry-xv70', 'Hybrid LE', 'HLE',  5, $hybrid, $fwd, 208, 2487, 4, 'cvt',       '2,5 4 cylindres hybride A25A-FXS, 176 ch pour le thermique seul, traction'],
+            ['toyota', 'camry-xv70', 'XLE V6',    'XLE6', 6, $petrol, $fwd, 301, 3456, 6, 'automatic', '3,5 V6 2GR-FKS, 301 ch, traction seule, jamais proposé en intégrale'],
+            ['toyota', 'camry-xv70', 'TRD',       'TRD',  7, $petrol, $fwd, 301, 3456, 6, 'automatic', '3,5 V6 2GR-FKS, 301 ch, traction — dérivée de la SE, V6 seulement, à partir du millésime 2020'],
+
+            // ── TOYOTA RAV4 XA40 (2012-2018) ─────────────────────────────
+            // Sources : Wikipedia anglais « Toyota RAV4 », section quatrieme
+            // generation, qui donne le 2AR-FE 2494 a 176 ch, l'hybride
+            // 2AR-FXE a 194 ch cumules avec son moteur arriere de 50 kW, et
+            // nomme LE, XLE et Limited pour l'hybride americaine ; et la fiche
+            // Cars.com « 2016 Toyota RAV4 » — LE, XLE, SE, Limited en 2,5 l de
+            // 176 ch, boite a six rapports, traction ou integrale ; hybrides
+            // XLE et Limited en INTEGRALE SEULE.
+            //
+            // L'HYBRIDE EST INTEGRALE ET RIEN D'AUTRE en Amerique du Nord, et
+            // c'est le catalogue de filtres du depot qui fait la troisieme
+            // source : sa ligne dit « RAV4 hybride 2.5 2AR-FXE 2016-2018 AWD »,
+            // statut « Confirme ». Les trois concordent.
+            //
+            // LA « HYBRID LE » N'EST PAS POSEE : Wikipedia la nomme au
+            // lancement americain, Cars.com ne donne que XLE et Limited au
+            // millesime 2016. Une source contre une ne suffit pas.
+            //
+            // Le catalogue donne aussi le 2AR-FE en 2009-2018 pour ce RAV4,
+            // borne large qui deborde la generation des deux cotes parce
+            // qu'elle vient du document fournisseur ; il ne porte pas de
+            // motricite sur cette ligne, donc la traction posee sur les
+            // thermiques ne masque aucune reference.
+            ['toyota', 'rav4-xa40', 'LE',             'LE',  1, $petrol, $fwd, 176, 2494, 4, 'automatic', '2,5 4 cylindres 2AR-FE, 176 ch, traction ou intégrale — gamme nord-américaine'],
+            ['toyota', 'rav4-xa40', 'XLE',            'XLE', 2, $petrol, $fwd, 176, 2494, 4, 'automatic', '2,5 4 cylindres 2AR-FE, 176 ch, traction ou intégrale'],
+            ['toyota', 'rav4-xa40', 'SE',             'SE',  3, $petrol, $fwd, 176, 2494, 4, 'automatic', '2,5 4 cylindres 2AR-FE, 176 ch, traction ou intégrale — suspension sport, même moteur ; à partir du millésime 2016'],
+            ['toyota', 'rav4-xa40', 'Limited',        'LTD', 4, $petrol, $fwd, 176, 2494, 4, 'automatic', '2,5 4 cylindres 2AR-FE, 176 ch, traction ou intégrale — finition haute'],
+            ['toyota', 'rav4-xa40', 'Hybrid XLE',     'HXL', 5, $hybrid, $awd, 194, 2494, 4, 'cvt',       '2,5 4 cylindres hybride 2AR-FXE, 194 ch cumulés, intégrale seule par un moteur arrière électrique ; à partir du millésime 2016'],
+            ['toyota', 'rav4-xa40', 'Hybrid Limited', 'HLT', 6, $hybrid, $awd, 194, 2494, 4, 'cvt',       '2,5 4 cylindres hybride 2AR-FXE, 194 ch cumulés, intégrale seule par un moteur arrière électrique ; à partir du millésime 2016'],
+
+            // ── TOYOTA PRIUS XW30 (2009-2015) ────────────────────────────
+            // Sources : Wikipedia anglais « Toyota Prius (XW30) », qui donne
+            // les finitions americaines Two, Three, Four et Five, le 2ZR-FXE,
+            // 98 ch pour le thermique, 134 ch cumules et la traction ; et la
+            // fiche Cars.com « 2013 Toyota Prius », qui nomme One, Two, Three,
+            // Four, Five et Persona, toutes en traction.
+            //   One et Persona ne sont pas posees : une seule des deux sources
+            //   les nomme.
+            //
+            // LE NOM NE DIT RIEN DU MOTEUR, ET POUR UNE FOIS C'EST PARCE QU'IL
+            // N'Y EN A QU'UN : les quatre niveaux partagent le meme 2ZR-FXE et
+            // la meme chaine hybride, seul l'equipement change. La description
+            // le dit, sinon un vendeur chercherait une difference mecanique
+            // qui n'existe pas. Le rang suit donc l'equipement et non la
+            // puissance — c'est la premiere des deux exceptions annoncees en
+            // tete de lot.
+            //
+            // Le catalogue de filtres du depot pose cette generation en
+            // 2ZR-FXE de 2010 a 2015, tableau YZZA6, et dit explicitement
+            // avoir borne sa plage « a la generation XW30 » — un an apres le
+            // debut de la generation au referentiel, ce que le document ne
+            // s'explique pas et qui ne change rien a ce qui est pose ici.
+            ['toyota', 'prius-xw30', 'Two',   'TWO',  1, $hybrid, $fwd, 134, 1798, 4, 'cvt', '1,8 4 cylindres hybride 2ZR-FXE, 98 ch thermiques et 134 ch cumulés, traction'],
+            ['toyota', 'prius-xw30', 'Three', 'THR',  2, $hybrid, $fwd, 134, 1798, 4, 'cvt', '1,8 4 cylindres hybride 2ZR-FXE, 134 ch cumulés, traction — mécanique identique à la Two'],
+            ['toyota', 'prius-xw30', 'Four',  'FOUR', 3, $hybrid, $fwd, 134, 1798, 4, 'cvt', '1,8 4 cylindres hybride 2ZR-FXE, 134 ch cumulés, traction — mécanique identique à la Two'],
+            ['toyota', 'prius-xw30', 'Five',  'FIVE', 4, $hybrid, $fwd, 134, 1798, 4, 'cvt', '1,8 4 cylindres hybride 2ZR-FXE, 134 ch cumulés, traction — mécanique identique à la Two'],
+
+            // ── TOYOTA PRIUS XW50 (2015-2022) ────────────────────────────
+            // Sources : Wikipedia anglais « Toyota Prius (XW50) », qui ecrit
+            // textuellement qu'en 2019 les finitions americaines « One, Two,
+            // Three et Four » sont renommees « L, LE, XLE et Limited », et qui
+            // donne le 2ZR-FXE, la traction et l'AWD-e a moteur arriere de
+            // 5 kW ; et la fiche Cars.com « 2018 Toyota Prius » — One, Two,
+            // Two Eco, Three, Three Touring, Four, Four Touring, toutes en
+            // traction. La puissance cumulee de 121 ch vient de la fiche
+            // Kelley Blue Book du millesime 2018 et se recoupe avec les
+            // 89,5 kW de la fiche Carsales du meme millesime ; la cylindree de
+            // 1798 cm3 et le code 2ZR-FXE sont donnes par la fiche CarExpert.
+            //
+            // DEUX NOMENCLATURES SUR UNE SEULE GENERATION, ET C'EST POUR CELA
+            // QUE LES SIX LIGNES COEXISTENT. Ce n'est pas un melange de
+            // marches comme sur la Corolla, c'est une rupture de millesime :
+            // la meme voiture s'appelle « Three » en 2018 et « XLE » en 2020.
+            // Un vendeur qui a la voiture de 2020 ne trouverait pas « XLE »
+            // si seule « Three » etait posee. Les deux jeux sont donc poses,
+            // et chaque description porte sa periode — meme choix que les
+            // deux lignes « 528i » du lot BMW, pour une raison voisine.
+            //   Two Eco et L Eco ne sont pas posees : une source chacune.
+            //
+            // L'AWD-e N'EXISTE PAS AVANT LE MILLESIME 2019 aux Etats-Unis : la
+            // traction est le defaut partout, et la description ne nomme
+            // l'integrale que sur les lignes ou elle existe.
+            //
+            // Le catalogue de filtres du depot ne couvre cette generation que
+            // de 2018 a 2022, et il dit pourquoi : la XW50 traverse le passage
+            // de la cartouche au filtre visse, et le document ne confirme que
+            // la seconde moitie. Ce n'est pas une contradiction avec ce qui
+            // est pose ici, qui ne parle pas de filtres.
+            ['toyota', 'prius-xw50', 'Two',     'TWO',  1, $hybrid, $fwd, 121, 1798, 4, 'cvt', '1,8 4 cylindres hybride 2ZR-FXE, 121 ch cumulés, traction — nom des millésimes 2016 à 2018'],
+            ['toyota', 'prius-xw50', 'Three',   'THR',  2, $hybrid, $fwd, 121, 1798, 4, 'cvt', '1,8 4 cylindres hybride 2ZR-FXE, 121 ch cumulés, traction — nom des millésimes 2016 à 2018'],
+            ['toyota', 'prius-xw50', 'Four',    'FOUR', 3, $hybrid, $fwd, 121, 1798, 4, 'cvt', '1,8 4 cylindres hybride 2ZR-FXE, 121 ch cumulés, traction — nom des millésimes 2016 à 2018'],
+            ['toyota', 'prius-xw50', 'LE',      'LE',   4, $hybrid, $fwd, 121, 1798, 4, 'cvt', '1,8 4 cylindres hybride 2ZR-FXE, 121 ch cumulés, traction ou AWD-e — la Two renommée au millésime 2019'],
+            ['toyota', 'prius-xw50', 'XLE',     'XLE',  5, $hybrid, $fwd, 121, 1798, 4, 'cvt', '1,8 4 cylindres hybride 2ZR-FXE, 121 ch cumulés, traction ou AWD-e — la Three renommée au millésime 2019'],
+            ['toyota', 'prius-xw50', 'Limited', 'LTD',  6, $hybrid, $fwd, 121, 1798, 4, 'cvt', '1,8 4 cylindres hybride 2ZR-FXE, 121 ch cumulés, traction — la Four renommée au millésime 2019'],
+
             // ── NISSAN PATROL Y61 ────────────────────────────────────────
             ['nissan', 'patrol-y61', 'DX',         'DX',   1, $diesel, $dwa, 130, 2953, 6, 'manual'],
             ['nissan', 'patrol-y61', 'SE',         'SE',   2, $petrol, $dwa, 170, 2997, 6, 'automatic'],
