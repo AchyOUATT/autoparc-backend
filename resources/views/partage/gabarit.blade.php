@@ -168,6 +168,45 @@
     a.whatsapp { background: #25d366; color: #fff; }
     a.appel    { background: #0f766e; color: #fff; }
     a.magasin  { background: #fff; color: #15202b; border-color: #d1d5db; }
+
+    /*
+        LA BANDE D'INSTALLATION, EN HAUT ET AVANT LA PHOTO.
+        Voir le commentaire du corps, plus bas, pour la raison.
+
+        `position: sticky` est volontairement ABSENT : une bande qui suit le
+        defilement recouvrirait la photo, qui est ce que le visiteur est venu
+        voir, et sur un ecran de 320 points elle mangerait un sixieme de la
+        hauteur utile. Elle est en haut, visible a l'ouverture, et elle sort du
+        champ des qu'on descend vers le prix.
+    */
+    a.bandeau {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 11px 16px;
+        background: #0b4a9e;
+        color: #fff;
+        text-decoration: none;
+        font-size: .95rem;
+        line-height: 1.3;
+    }
+    /*
+        `strong` et non une seconde balise : le lecteur d'ecran annonce une
+        seule cible, et le bouton n'est pas un lien separe — toute la bande est
+        cliquable, ce qui donne une zone de frappe large sans multiplier les
+        liens vers la meme adresse.
+    */
+    a.bandeau strong { font-weight: 600; }
+    a.bandeau span.cta {
+        flex: none;
+        padding: 6px 12px;
+        border: 1px solid rgba(255, 255, 255, .55);
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: .85rem;
+        white-space: nowrap;
+    }
     footer {
         padding: 16px;
         text-align: center;
@@ -178,6 +217,41 @@
 </head>
 <body>
 <div class="feuille">
+    {{--
+        AVANT LA PHOTO, ET C'EST LE SUJET DE CE BLOC.
+
+        Le lien vers l'application existait deja, mais DERNIER : apres la
+        photo, le prix, les precisions et deux autres boutons. Un visiteur qui
+        ne defile pas ne savait pas qu'une application existait — releve du
+        proprietaire, « il est caché en bas de page et il faut scroller pour
+        savoir qu'il existe, pourtant je cherche de l'audience actuellement ».
+
+        CE QUE CE BLOC NE FAIT PAS, et c'est delibere : il ne retire ni ne
+        gene les deux boutons de contact. La premiere intention etait de
+        SUPPRIMER l'appel pour forcer l'installation ; le proprietaire y a
+        renonce de lui-meme, et c'est le meilleur arbitrage — une page de
+        partage dont on ne peut pas joindre le vendeur perd le client pressé,
+        qui est le plus interessant. La bande gagne l'audience sans rien couter
+        a la conversion.
+
+        Elle reste en revanche en CONTRADICTION ASSUMEE avec le commentaire du
+        bouton du bas, qui dit que « demander d'installer avant de pouvoir
+        ecrire est exactement ce que ces pages corrigent ». Les deux coexistent
+        parce que la bande ne demande rien : elle propose, en haut, et le
+        contact reste libre en bas. Si un jour elle devient bloquante, ce
+        commentaire-la redeviendra le bon.
+
+        LE TEXTE NE PROMET PAS UN NOMBRE. « D'autres offres » et non « des
+        centaines » : le catalogue en production compte deux vehicules au
+        moment ou ceci est ecrit, et une page publique qui annonce une
+        abondance qu'elle n'a pas se retourne contre la boutique au premier
+        clic.
+    --}}
+    <a class="bandeau" href="{{ $storeUrl }}">
+        <span><strong>Voir d'autres offres</strong> dans l'application AutoParc</span>
+        <span class="cta">Installer</span>
+    </a>
+
     @yield('contenu')
 
     <footer>{{ config('boutique.nom') }}</footer>

@@ -466,6 +466,60 @@ class PagesProduitTest extends TestCase
         $this->get('/a/'.$this->accessoire()->id)->assertOk();
     }
 
+    /**
+     * La bande d'installation precede la photo, sur les trois types.
+     *
+     * C'EST LA POSITION QUI EST TESTEE, pas la presence. Le lien vers
+     * l'application existait deja avant ce test — il etait simplement DERNIER,
+     * apres la photo, le prix, les precisions et deux boutons de contact, donc
+     * invisible pour qui ne defile pas. Un test de presence serait reste vert
+     * pendant tout le temps ou le defaut existait.
+     *
+     * La comparaison porte sur la position des deux chaines dans le HTML rendu
+     * et non sur une structure de noeuds : c'est l'ordre d'apparition qui
+     * decide ce que le visiteur voit en ouvrant la page, et c'est la seule
+     * chose qu'un remaniement de gabarit puisse casser sans le vouloir.
+     */
+    public function test_la_bande_d_installation_precede_la_photo(): void
+    {
+        foreach ([['v', $this->vehicule()], ['p', $this->piece()], ['a', $this->accessoire()]] as [$chemin, $article]) {
+            $html = $this->get("/{$chemin}/{$article->id}")->assertOk()->getContent();
+
+            $bande = strpos($html, 'class="bandeau"');
+
+            $this->assertNotFalse($bande, "La bande d'installation est absente de /{$chemin}.");
+
+            // L'ANCRE EST `class="corps"`, ET CE CHOIX EST LE FRUIT D'UN ECHEC.
+            //
+            // La premiere version comparait a `class="photo"`, sous un
+            // `if ($photo !== false)` — parce que la photo est conditionnelle.
+            // Or les articles de ce banc n'en ont pas : la branche ne
+            // s'executait JAMAIS et le test restait vert. Verifie par mutation,
+            // la seule facon de s'en apercevoir : bande deplacee APRES
+            // `@yield('contenu')`, test toujours au vert. Une garde inerte est
+            // pire qu'absente, elle fait croire que le defaut est couvert.
+            //
+            // `class="corps"` est rendu inconditionnellement et contient le
+            // titre, donc tout ce que le visiteur lit. La bande doit le
+            // preceder, photo ou pas.
+            $corps = strpos($html, 'class="corps"');
+
+            $this->assertNotFalse($corps, "Le corps de la page est absent de /{$chemin}.");
+
+            $this->assertLessThan(
+                $corps,
+                $bande,
+                "Sur /{$chemin}, la bande d'installation est passee APRES le contenu : ".
+                'un visiteur qui ne defile pas ne saura plus que l\'application existe.'
+            );
+
+            // Le bouton du bas reste : la bande ne le remplace pas, elle le
+            // double en haut. Les deux menent au magasin, et le contact reste
+            // libre entre les deux.
+            $this->assertStringContainsString('class="action magasin"', $html);
+        }
+    }
+
     public function test_un_article_retire_du_catalogue_rend_404(): void
     {
         // Une page partagee ne doit pas survivre au retrait de l'article : le
