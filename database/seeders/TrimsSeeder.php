@@ -31,8 +31,20 @@ class TrimsSeeder extends Seeder
         $awd = $driveMap['AWD'] ?? null;
         $dwa = $driveMap['4WD'] ?? null;
 
-        // Structure: [brand_slug, model_slug, name, code, rank, engine_type, drivetrain, power_hp, cc, cylinders, tx]
+        // Structure: [brand_slug, model_slug, name, code, rank, engine_type, drivetrain, power_hp, cc, cylinders, tx, description?]
         // tx: 'manual' | 'automatic' | 'cvt'
+        //
+        // SEULES SIX colonnes atteignent la base : name, code, rank,
+        // default_engine_type_id, default_drivetrain_id — et, depuis le lot
+        // Lexus, description. La puissance, la cylindree, le nombre de
+        // cylindres et la boite ne sont PAS stockes : ce sont des commentaires
+        // structures, qui disent d'ou vient la ligne et ce qu'elle designe.
+        //
+        // La douzieme colonne, `description`, est FACULTATIVE : les lignes
+        // ecrites avant le lot Lexus n'en portent pas et restent valides —
+        // la boucle en bas lit `$ligne[11] ?? null`. En base la colonne est
+        // `text` nullable depuis la migration de creation des tables, donc
+        // aucune de ces lignes n'a besoin d'etre touchee.
         $trims = [
             // ── TOYOTA COROLLA E210 ──────────────────────────────────────
             ['toyota', 'corolla-e210', 'LE',       'LE',   1, $petrol, $fwd, 139, 1987, 4, 'cvt'],
@@ -202,26 +214,34 @@ class TrimsSeeder extends Seeder
             // pas » : la Serie 5 F10 etait bien au referentiel, aucune de ses
             // versions ne l'etait.
             //
-            // CE QUE CE SEEDER ECRIT REELLEMENT. L'`insert` plus bas ne porte
-            // que name, code, rank, default_engine_type_id et
-            // default_drivetrain_id : la table `trims` n'a pas de colonne de
-            // puissance, de cylindree, de cylindres ni de boite. Les quatre
-            // dernieres valeurs de chaque ligne ne sont donc PAS stockees :
-            // elles documentent la version decrite. Corollaire a connaitre,
-            // `$txMap` plus bas est du code mort — declare, jamais lu.
+            // CE QUE CE SEEDER ECRIT REELLEMENT : voir l'en-tete de la methode,
+            // qui est la seule description a jour du contrat. En resume, la
+            // puissance, la cylindree, le nombre de cylindres et la boite ne
+            // sont PAS stockes — ce sont des commentaires structures — et
+            // `$txMap` est du code mort, declare et jamais lu.
             //
-            // Le nom est donc le porteur retenu pour toute distinction qu'un
-            // vendeur doit voir, et cela gouverne les deux dedoublements
-            // ci-dessous. MAIS IL N'EST PAS LE SEUL POSSIBLE, et le pretendre
-            // serait faux : `trims.description` existe en base, `TrimResource`
-            // l'expose, et elle est laissee NULL sur les 160 finitions de ce
-            // fichier. La distinction six contre quatre cylindres pourrait donc
-            // atteindre le vendeur SANS migration ni dedoublement de nom.
-            // Ce n'est pas fait ici parce que l'`insert` ne porte pas cette
-            // colonne et que l'ajouter demanderait une valeur pour chacune des
-            // 160 lignes — un lot a lui seul, et qui vaut d'etre fait : le nom
-            // « 528i (4 cyl. 2011-2016) » est explicite mais laid dans une
-            // liste deroulante, alors qu'une description le dirait proprement.
+            // CE PARAGRAPHE AFFIRMAIT LE CONTRAIRE, ET IL FAUT DIRE POURQUOI
+            // PLUTOT QUE D'EFFACER. Ecrit avec le lot BMW, il soutenait que le
+            // nom etait le seul porteur atteignant un vendeur, que
+            // `trims.description` valait NULL partout, et que la remplir
+            // « demanderait une valeur pour chacune des 160 lignes — un lot a
+            // lui seul ». Le lot Lexus, deux heures plus tard, l'a faite en
+            // TROIS retouches : une colonne facultative en douzieme position,
+            // le champ dans l'`insert`, et les lignes anterieures laissees
+            // telles quelles. Les quatre affirmations sont donc devenues
+            // fausses, et le fichier s'est contredit entre sa ligne 36 et
+            // celle-ci jusqu'a ce qu'une relecture le voie.
+            //
+            // La lecon n'est pas sur la colonne, elle est sur le cout : « un
+            // lot a lui seul » etait une estimation posee sans l'avoir tentee,
+            // et elle a servi de raison de ne pas faire. Un commentaire qui
+            // chiffre un effort engage autant qu'un commentaire qui decrit un
+            // comportement — et il se perime de la meme facon.
+            //
+            // Les dedoublements de nom ci-dessous RESTENT, et ce n'est pas par
+            // inertie : « 528i (4 cyl. 2011-2016) » distingue deux voitures
+            // dans la liste deroulante elle-meme, la ou une description ne se
+            // lit qu'une fois la ligne ouverte. Les deux se completent.
             //
             // LE PIEGE DU NOM QUI NE SUIT PLUS LA CYLINDREE. Depuis 2010 une
             // 528i n'a pas de 2,8 l. Trois voitures differentes portent ce
@@ -470,6 +490,590 @@ class TrimsSeeder extends Seeder
             ['bmw', 'x5-e70', 'xDrive35d',        '35dX', 3, $diesel, $awd, 286, 2993, 6, 'automatic'],
             ['bmw', 'x5-e70', 'xDrive35i',        '35iX', 4, $petrol, $awd, 306, 2979, 6, 'automatic'],
             ['bmw', 'x5-e70', 'xDrive48i',        '48iX', 5, $petrol, $awd, 355, 4799, 8, 'automatic'],
+
+            // ════════════════════════════════════════════════════════════════
+            // LEXUS — 23 generations, aucune finition jusqu'ici
+            // ════════════════════════════════════════════════════════════════
+            //
+            // POURQUOI CE LOT. Lexus etait la plus grosse marque du referentiel
+            // sans la moindre version : 23 lignes de `vehicle_models`, zero
+            // ligne de `trims`. Un vendeur qui saisissait une RX ne pouvait
+            // choisir AUCUNE finition. Meme blocage que « la BMW 528i n'existe
+            // pas », mais sur 23 generations d'un coup.
+            //
+            // LA MODELISATION, qui n'est PAS celle de Toyota. Ici le modele est
+            // la SERIE SEULE — RX, IS, ES, GS, LS, LX, GX, NX, UX, CT, RC — et
+            // le code chassis sert de generation (`VehicleModelsSeeder`). Donc
+            // « RX 350 » est une FINITION de la serie RX, exactement comme
+            // « 528i » est une finition de la Serie 5. Aucun modele n'est cree
+            // ici, et aucune generation ne manquait pour poser ces lignes.
+            //
+            // LE PIEGE, pire que celui de BMW : le nombre ne suit ni la
+            // cylindree ni une regle stable.
+            //   · NX 200t et NX 300 sont le MEME 2,0 turbo 8AR-FTS, renomme au
+            //     restylage de septembre 2017. Deux lignes, parce que le nom
+            //     est le seul porteur visible et qu'un vendeur tenant une 2016
+            //     cherchera « 200t ». Meme traitement pour IS 200t / IS 300,
+            //     GS 200t / GS 300 et RC 200t / RC 300.
+            //   · IS 300 et RC 300 designent DEUX voitures differentes dans LE
+            //     MEME marche : en propulsion c'est le 2,0 turbo 8AR-FTS de
+            //     241 ch avec boite a huit rapports ; en integrale c'est un
+            //     3,5 V6 atmospherique de 260 ch avec boite a six rapports.
+            //     Lexus Amerique du Nord les vend cote a cote sous « IS 300 »
+            //     et « IS 300 AWD » — c'est donc le nom qui porte la
+            //     distinction, et ces lignes le reprennent tel quel.
+            //   · Les hybrides portent « h » et leur nombre designe une
+            //     PUISSANCE CUMULEE, pas une cylindree. Le piege se voit d'une
+            //     generation a l'autre : la RX 450h de l'AL20 est un 3,5 V6,
+            //     tandis que la RX 450h+ de l'AL30, qui porte presque le meme
+            //     nom, est un 2,5 quatre cylindres. Et la RX 350h de l'AL30 est
+            //     un 2,5 quand la RX 350 de l'AL20 est un 3,5 — meme nombre,
+            //     deux cylindrees, deux generations. Les lignes ci-dessous
+            //     portent donc toutes leur cylindree et leur code moteur.
+            //
+            // LE PERIMETRE : ce qui s'importe au Burkina Faso depuis l'AMERIQUE
+            // DU NORD et le GOLFE. Quand deux marches donnent deux voitures
+            // sous un nom, c'est celle de ces marches-la qui est retenue, et
+            // l'autre est nommee dans le commentaire de la generation.
+            //
+            // LES SOURCES, par ligne, et il en faut deux :
+            //   (1) la fiche Wikipedia du modele (tableaux par generation :
+            //       designation, chassis, code moteur, marches) ;
+            //   (2) la fiche Wikipedia de la FAMILLE de moteur — « Toyota GR
+            //       engine », « Toyota AR engine », « Toyota UR engine »,
+            //       « Toyota Dynamic Force engine », « Toyota UZ engine »,
+            //       « Toyota MZ engine » — qui liste ses applications avec les
+            //       annees. C'est un recoupement reellement independant sur le
+            //       CODE MOTEUR, l'axe le plus facile a se tromper ;
+            //   (3) pour les designations du Golfe, les fiches pays de
+            //       DriveArabia (UAE / KSA / Oman / Bahrein) ;
+            //   (4) pour les puissances et les motricites nord-americaines,
+            //       Kelley Blue Book, Cars.com, Consumer Guide, Autoblog ;
+            //   (5) et surtout `FiltresHuileBoutiqueSeeder` DU DEPOT, qui porte
+            //       deja les codes moteur de ces generations, verifies par une
+            //       relecture adversariale. C'est la seule source dont on sait
+            //       ici qu'elle a ete controlee, et chaque bloc ci-dessous dit
+            //       si elle confirme, si elle est muette, ou si elle diverge.
+            //
+            // CE QUE LA MOTRICITE PAR DEFAUT COMMANDE REELLEMENT, et c'est
+            // mesure : `OwnedVehicle::getEffectiveDrivetrainIdAttribute()` rend
+            // `$this->drivetrain_id ?? $this->trim?->default_drivetrain_id`, et
+            // `CompatibilityService::partsForCriteria()` filtre les fitments sur
+            // `drivetrain_id IS NULL OR = X`. Les lignes YZZA3 du catalogue de
+            // filtres sont posees en RWD et les YZZA5 en AWD. Donc la motricite
+            // par defaut de CES finitions-ci decide quelle cartouche a huile un
+            // client voit sur une IS, une GS, une LS ou une RC.
+            //   C'est pourquoi les IS, GS, RC et LS sont en PROPULSION, qui est
+            //   leur architecture. Mesure sur une base jetable : une IS XE20 de
+            //   2010 en finition « IS 250 » rend la YZZA3 et elle seule — avant
+            //   ce lot, sans finition donc sans motricite, elle rendait les
+            //   deux cartouches. Une LS XF40 de 2010 en « LS 460 » rend la
+            //   YZZA5, qui est la sienne. Une CT 200h rend la YZZA6.
+            //   Les lignes RX, ES, NX, UX, CT, LX et GX du catalogue ne portent
+            //   AUCUNE motricite : pour elles le defaut ne cache ni ne revele
+            //   aucune piece, il ne fait qu'epargner une saisie.
+            //
+            // CE QUE LE DEFAUT NE SAIT PAS FAIRE, et il faut le savoir avant de
+            // s'y fier : une finition ne porte PAS de code moteur. La motricite
+            // affine, elle ne tranche pas. Mesure, toujours sur base jetable :
+            // une « IS 300 AWD » de 2019, qui est un 3,5 V6, se voit proposer
+            // la YZZA5 — la sienne — MAIS AUSSI la YZZA1, qui est la cartouche
+            // du 2,0 turbo, parce que la ligne YZZA1 de la XE30 ne porte pas de
+            // motricite et que rien ne dit a la requete quel moteur est sous le
+            // capot. De meme une « GS 460 » V8 de 2009 recoit la YZZA5, qui est
+            // juste, et la YZZA3 des V6, qui ne l'est pas.
+            //   Ce n'est pas une regression — ces generations n'avaient AUCUNE
+            //   finition avant ce lot, donc aucune de ces reponses n'existait —
+            //   et c'est une proposition, pas une prescription. Mais tant que
+            //   `trims` n'a pas de code moteur, c'est la description qui dit au
+            //   vendeur laquelle choisir, et c'est la sa deuxieme raison d'etre.
+            //
+            // CE QUE LA DESCRIPTION DIT DE LA MOTRICITE, et il faut le lire
+            // ainsi : quand DEUX motricites existent SOUS LE MEME NOM — ce qui
+            // est le cas de la plupart de ces Lexus, une RX 350 etant en
+            // traction en Amerique du Nord et en integrale au Golfe — la
+            // description les nomme TOUTES LES DEUX, la valeur par defaut en
+            // premier (« integrale ou traction »). Elle n'annonce une seule
+            // motricite que la ou il n'y en a qu'une.
+            //   Le vendeur garde la main de toute facon :
+            //   `OwnedVehicle::getEffectiveDrivetrainIdAttribute()` fait primer
+            //   `drivetrain_id` du vehicule sur le defaut de la finition.
+            //   Les deux SEULES lignes du lot ou la motricite est dans le NOM
+            //   sont « IS 300 AWD » et « RC 300 AWD », parce que Lexus Amerique
+            //   du Nord les nomme ainsi au configurateur, et parce que sans ce
+            //   suffixe il faudrait choisir un moteur pour l'autre voiture.
+            //
+            // LE RANG va du plus modeste au plus puissant, par PUISSANCE
+            // CUMULEE. Il y a donc des voisinages contre-intuitifs : la
+            // GS 430 V8 de 290 ch passe AVANT la GS 350 V6 de 303 ch, et la
+            // RX 400h de 268 ch avant la RX 350 de 270 ch — deux chevaux
+            // d'ecart. C'est la regle appliquee, pas une inversion.
+            //
+            // NOTE DE LECTURE SUR LES BOITES : toutes les hybrides a train
+            // epicycloidal sont notees 'cvt'. Deux exceptions assumees, la
+            // RX 500h et la LX 700h, qui sont des hybrides paralleles a boite
+            // mecanique (six et dix rapports) et sont notees 'automatic'.
+
+            // ── LEXUS RX AL30 (2022→) ────────────────────────────────────
+            // Plus aucun V6 : les quatre versions sont des quatre cylindres.
+            // Le catalogue de filtres du depot confirme la seule qu'il couvre,
+            // la RX 350h en A25A-FXS a partir de 2023 (tableau YZZN1 Lexus,
+            // « Confirme Lexus »). Il est MUET sur la RX 350, la 450h+ et la
+            // 500h ; ce n'est pas une contradiction, il ne couvre que les
+            // filtres a huile et le T24A-FTS n'y figure pour aucun vehicule.
+            // La RX 350 a la TRACTION pour defaut : c'est le montage de serie
+            // en Amerique du Nord, l'integrale y etant une option sauf sur la
+            // F Sport Handling — et les deux portent le meme nom, d'ou le
+            // « traction ou integrale ». Les trois hybrides sont en integrale
+            // seule. Une fiche Edmunds de millesime 2024 donne au contraire
+            // l'integrale de serie sur la RX 350 ; TrueCar et TrueDelta la
+            // donnent en traction sur 2023, et c'est cette lecture qui est
+            // retenue, deux sources contre une.
+            ['lexus', 'rx-al30', 'RX 350h',    '350h',  1, $hybrid, $awd, 246, 2487, 4, 'cvt',       '2,5 4 cylindres hybride A25A-FXS, 246 ch cumulés, intégrale'],
+            ['lexus', 'rx-al30', 'RX 350',     '350',   2, $petrol, $fwd, 275, 2393, 4, 'automatic', '2,4 4 cylindres turbo T24A-FTS, 275 ch, traction ou intégrale'],
+            ['lexus', 'rx-al30', 'RX 450h+',   '450h+', 3, $hybrid, $awd, 304, 2487, 4, 'cvt',       '2,5 4 cylindres hybride rechargeable A25A-FXS, 304 ch cumulés, intégrale'],
+            ['lexus', 'rx-al30', 'RX 500h',    '500h',  4, $hybrid, $awd, 366, 2393, 4, 'automatic', '2,4 4 cylindres turbo hybride T24A-FTS, 366 ch cumulés, intégrale'],
+
+            // ── LEXUS RX AL20 (2015-2022) ────────────────────────────────
+            // Les QUATRE codes moteur de cette generation sont tous poses par
+            // le catalogue de filtres sur `rx-al20` : 2GR-FE 2015-2022 et
+            // 2GR-FKS 2016-2022, 2GR-FXE 2015-2022 et 2GR-FXS 2017-2022. Le
+            // catalogue ne distingue pas les finitions, donc les « L » heritent
+            // des memes codes que les versions courtes, qu'elles partagent.
+            // La RX 350 traverse deux codes moteur sous un seul nom, et le
+            // catalogue date la bascule a 2016 ; la description porte les deux.
+            //
+            // LA RX 200t / RX 300 EST ECARTEE, et c'est le seul retrait de
+            // cette generation : le 2,0 turbo 8AR-FTS n'a jamais ete vendu en
+            // Amerique du Nord, et les listes de prix du Golfe de DriveArabia
+            // (UAE 2017 et 2018, KSA 2018) ne donnent que RX 350 et RX 450h.
+            // Une seule annonce UAE isolee la cite ; cela ne suffit pas.
+            //
+            // Les deux « L » a sept places sont posees : ce sont des
+            // designations distinctes au hayon et sur la carte grise, et la
+            // RX 350L n'a pas la meme puissance que la RX 350 — 290 ch contre
+            // 295, meme 2GR-FKS (Kelley Blue Book 2019).
+            //
+            // Motricites : les deux HYBRIDES de cette generation sont en
+            // integrale SEULE sur le marche nord-americain, verifie sur les
+            // fiches 2018 de Cars.com et d'iSeeCars pour la RX 450h et sur
+            // Carscoops pour la RX 450hL (« les deux finitions avec integrale
+            // de serie »). Les deux essence existent dans les deux motricites
+            // sous le meme nom, d'ou le « integrale ou traction ».
+            ['lexus', 'rx-al20', 'RX 350L',    '350L',  1, $petrol, $awd, 290, 3456, 6, 'automatic', '3,5 V6 2GR-FKS, 290 ch, intégrale ou traction, sept places'],
+            ['lexus', 'rx-al20', 'RX 350',     '350',   2, $petrol, $awd, 295, 3456, 6, 'automatic', '3,5 V6 2GR-FE, 295 ch, intégrale ou traction — 2GR-FKS sur les derniers millésimes, bascule non datée par le catalogue'],
+            ['lexus', 'rx-al20', 'RX 450h',    '450h',  3, $hybrid, $awd, 308, 3456, 6, 'cvt',       '3,5 V6 hybride 2GR-FXE puis 2GR-FXS, 308 ch cumulés, intégrale'],
+            ['lexus', 'rx-al20', 'RX 450hL',   '450hL', 4, $hybrid, $awd, 308, 3456, 6, 'cvt',       '3,5 V6 hybride 2GR-FXS, 308 ch cumulés, intégrale, sept places'],
+
+            // ── LEXUS RX AL10 (2009-2015) ────────────────────────────────
+            // Deux versions, toutes deux confirmees par le catalogue de
+            // filtres : 2GR-FE 2009-2015 (RX 350) et 2GR-FXE 2010-2015
+            // (RX 450h).
+            //   Une nuance sur la motricite : le document du depot qualifie sa
+            //   ligne RX 450h d'AWD, alors que la fiche du modele liste aussi
+            //   une RX 450h en traction (chassis GLV10) a cote de l'integrale
+            //   (GLV15). L'integrale est donc le defaut et la traction est
+            //   nommee a cote. Cela n'a aucun effet sur la piece rendue : la
+            //   ligne de compatibilite ne porte PAS de motricite, le mot
+            //   « AWD » n'est que dans sa provenance en clair.
+            //
+            // LA RX 270 EST ECARTEE : son 2,7 quatre cylindres 1AR-FE est un
+            // moteur du Japon, de la Chine, de la Russie et de l'Australie.
+            // Ni l'Amerique du Nord ni le Golfe ne l'ont recu.
+            ['lexus', 'rx-al10', 'RX 350',     '350',   1, $petrol, $awd, 275, 3456, 6, 'automatic', '3,5 V6 2GR-FE, 275 ch, intégrale ou traction'],
+            ['lexus', 'rx-al10', 'RX 450h',    '450h',  2, $hybrid, $awd, 295, 3456, 6, 'cvt',       '3,5 V6 hybride 2GR-FXE, 295 ch cumulés, intégrale ou traction'],
+
+            // ── LEXUS RX XU30 (2003-2009) ────────────────────────────────
+            // Le catalogue de filtres ne couvre que la RX 350 de cette
+            // generation (2GR-FE 2007-2009, chassis GSU35). Il est muet sur le
+            // 3MZ-FE de la RX 330 et de la RX 400h — c'est une famille MZ, que
+            // le document ne traite pas ; ce n'est pas une contradiction.
+            //
+            // LA RX 300 XU30 EST ECARTEE : son 1MZ-FE etait reserve a l'Europe,
+            // a Singapour, a la Coree du Sud et a Taiwan.
+            ['lexus', 'rx-xu30', 'RX 330',     '330',   1, $petrol, $awd, 230, 3310, 6, 'automatic', '3,3 V6 3MZ-FE, 230 ch, intégrale ou traction'],
+            ['lexus', 'rx-xu30', 'RX 400h',    '400h',  2, $hybrid, $awd, 268, 3310, 6, 'cvt',       '3,3 V6 hybride 3MZ-FE, 268 ch cumulés, intégrale ou traction'],
+            ['lexus', 'rx-xu30', 'RX 350',     '350',   3, $petrol, $awd, 270, 3456, 6, 'automatic', '3,5 V6 2GR-FE, 270 ch, intégrale ou traction'],
+
+            // ── LEXUS ES XV70 (2018→) ────────────────────────────────────
+            // Les trois versions du Golfe, lues sur la liste de prix UAE 2019
+            // de DriveArabia : ES 250 (2,5 de 204 ch), ES 300h (215 ch) et
+            // ES 350 (3,5 V6 de 301 ch). Ce sont aussi les trois d'Amerique du
+            // Nord, a une nuance pres : la ES 250 nord-americaine n'existe
+            // qu'en INTEGRALE et seulement a partir du millesime 2021, alors
+            // que celle du Golfe est en traction des 2019. La traction est
+            // retenue, parce que c'est la voiture du Golfe et que c'est aussi
+            // le montage des deux autres versions.
+            //
+            // Le catalogue de filtres confirme les deux quatre cylindres —
+            // A25A-FXS 2019+ et A25A-FKS 2021+ — et sa borne de 2021 sur la
+            // ES 250 est justement la borne nord-americaine. Sur la ES 350 il
+            // est MUET pour cette generation, alors que sa ligne « ES 350 »
+            // cite le chassis GSV70, qui EST la XV70 : la ligne du depot est
+            // bornee a es-xv40 et es-xv60. C'est un manque a rapporter, pas une
+            // contradiction, et ce n'est pas a ce lot-ci de le combler.
+            ['lexus', 'es-xv70', 'ES 250',     '250',   1, $petrol, $fwd, 204, 2487, 4, 'automatic', '2,5 4 cylindres A25A-FKS, 204 ch, traction ou intégrale'],
+            ['lexus', 'es-xv70', 'ES 300h',    '300h',  2, $hybrid, $fwd, 215, 2487, 4, 'cvt',       '2,5 4 cylindres hybride A25A-FXS, 215 ch cumulés, traction'],
+            ['lexus', 'es-xv70', 'ES 350',     '350',   3, $petrol, $fwd, 301, 3456, 6, 'automatic', '3,5 V6 2GR-FKS, 301 ch, traction'],
+
+            // ── LEXUS ES XV60 (2012-2018) ────────────────────────────────
+            // Les trois codes moteur sont confirmes un a un par le catalogue de
+            // filtres : 2GR-FE 2012-2018 et 2GR-FKS 2016-2018 pour la ES 350,
+            // 2AR-FXE 2013-2018 pour la ES 300h.
+            // La ES 250 est en revanche posee SANS que le catalogue la couvre :
+            // il cite le 2AR-FE dans son index par code moteur, mais ne le
+            // rattache pas a cette generation. Son existence au Golfe est
+            // etablie par DriveArabia (UAE et KSA 2015, « deux niveaux
+            // desormais, ES 250 et ES 350 »), et le code 2AR-FE par la fiche
+            // de la famille AR, qui donne « Lexus ES 250 (ASV60) ».
+            //
+            // La ES 240 est ECARTEE : 2AZ-FE de Chine et d'Asie seulement.
+            ['lexus', 'es-xv60', 'ES 250',     '250',   1, $petrol, $fwd, 181, 2494, 4, 'automatic', '2,5 4 cylindres 2AR-FE, 181 ch, traction'],
+            ['lexus', 'es-xv60', 'ES 300h',    '300h',  2, $hybrid, $fwd, 200, 2494, 4, 'cvt',       '2,5 4 cylindres hybride 2AR-FXE, 200 ch cumulés, traction'],
+            ['lexus', 'es-xv60', 'ES 350',     '350',   3, $petrol, $fwd, 268, 3456, 6, 'automatic', '3,5 V6 2GR-FE, 268 ch, traction — 2GR-FKS sur les derniers millésimes, bascule non datée par le catalogue'],
+
+            // ── LEXUS ES XV40 (2006-2012) ────────────────────────────────
+            // UNE SEULE version pour cette generation, et c'est deliberé : la
+            // XV40 n'a recu que la ES 350 en Amerique du Nord et au Golfe —
+            // Wikipedia nomme explicitement le Moyen-Orient parmi ses marches
+            // de lancement en 2007. La ES 240 (2AZ-FE) etait chinoise et
+            // asiatique. Le catalogue de filtres confirme : 2GR-FE 2007-2012.
+            ['lexus', 'es-xv40', 'ES 350',     '350',   1, $petrol, $fwd, 272, 3456, 6, 'automatic', '3,5 V6 2GR-FE, 272 ch, traction'],
+
+            // ── LEXUS IS XE30 (2013→) ────────────────────────────────────
+            // LA GENERATION OU LE NOM MENT, et six lignes pour le dire.
+            // « IS 300 » y designe DEUX voitures vendues cote a cote :
+            //   · en propulsion, le 2,0 turbo 8AR-FTS de 241 ch, boite a huit
+            //     rapports — c'est l'IS 200t de 2016-2017 renommee au
+            //     millesime 2018, et DriveArabia le dit mot pour mot sur sa
+            //     page UAE 2019 : « the IS200t, later renamed to IS300 » ;
+            //   · en integrale, un 3,5 V6 atmospherique de 260 ch, boite a six
+            //     rapports (Autoblog et Kelley Blue Book, millesimes 2018-2024).
+            // Les deux sont posees, sous les deux noms du configurateur
+            // nord-americain : « IS 300 » et « IS 300 AWD ». Un seul nom aurait
+            // force a choisir un moteur pour l'autre voiture.
+            //
+            // Le catalogue de filtres ne connait QUE la premiere : son tableau
+            // YZZA1 donne « IS 300 / RC 300 / IS 200t, chassis ASE30 / ASC10,
+            // 2.0 turbo 8AR-FTS 2016-2021 RWD ». La seconde releve de ses
+            // lignes YZZA5 en integrale (4GR-FSE et 2GR-FSE), ou le document
+            // ecarte justement le 2GR-FKS comme « Conditionnel » sur 2016-2020 —
+            // statut qui ne dit RIEN de l'existence du moteur, seulement de la
+            // confiance du document sur la cartouche a lui associer.
+            // D'ou la motricite portee ici : « IS 300 AWD » en integrale tombe
+            // sur la YZZA5, « IS 300 » en propulsion sur la YZZA1 et la YZZA3.
+            //
+            // L'IS 300h est ECARTEE : hybride 2AR-FSE d'Europe et du Japon,
+            // jamais vendue en Amerique du Nord ni au Golfe.
+            ['lexus', 'is-xe30', 'IS 250',     '250',   1, $petrol, $rwd, 204, 2499, 6, 'automatic', '2,5 V6 4GR-FSE, 204 ch, propulsion ou intégrale'],
+            ['lexus', 'is-xe30', 'IS 200t',    '200t',  2, $petrol, $rwd, 241, 1998, 4, 'automatic', '2,0 4 cylindres turbo 8AR-FTS, 241 ch, propulsion'],
+            ['lexus', 'is-xe30', 'IS 300',     '300',   3, $petrol, $rwd, 241, 1998, 4, 'automatic', '2,0 4 cylindres turbo 8AR-FTS, 241 ch, propulsion — l\'IS 200t renommée en 2018'],
+            ['lexus', 'is-xe30', 'IS 300 AWD', '300X',  4, $petrol, $awd, 260, 3456, 6, 'automatic', '3,5 V6 2GR-FSE puis 2GR-FKS, 260 ch, intégrale — rien du 2,0 turbo que porte l\'IS 300 propulsion'],
+            ['lexus', 'is-xe30', 'IS 350',     '350',   5, $petrol, $rwd, 311, 3456, 6, 'automatic', '3,5 V6 2GR-FSE puis 2GR-FKS en 2018, 311 ch, propulsion ou intégrale'],
+            ['lexus', 'is-xe30', 'IS 500',     '500',   6, $petrol, $rwd, 472, 4969, 8, 'automatic', '5,0 V8 2UR-GSE, 472 ch, propulsion'],
+
+            // ── LEXUS IS XE20 (2005-2013) ────────────────────────────────
+            // L'IS 300 de CETTE generation est une tout autre voiture que celle
+            // de la XE30 : un 3,0 V6 atmospherique 3GR-FE de 228 ch, chassis
+            // GSE22, et c'est la version DU GOLFE — DriveArabia le confirme sur
+            // ses pages 2008 d'Arabie saoudite, des Emirats, du Koweit, du
+            // Qatar et de Bahrein : « 3.0-litre V6, 228 hp, propulsion, seul
+            // moteur du marche local ». Le code 3GR-FE est donne par la fiche
+            // de la famille GR (« IS 300 (GSE22), 2007 »).
+            //   Autrement dit le meme nom couvre, sur deux generations
+            //   voisines, un 3,0 V6 et un 2,0 turbo. C'est pourquoi la
+            //   description est precieuse ici.
+            //
+            // Le catalogue de filtres confirme les deux autres : 4GR-FSE et
+            // 2GR-FSE, 2006-2013, en propulsion (YZZA3) comme en integrale
+            // (YZZA5). Il est muet sur le 3GR-FE et sur l'IS F.
+            //
+            // Les IS 220d et IS 200d sont ECARTEES : diesels 2AD europeens.
+            //
+            // LE BORD DE CETTE GENERATION, mesure : les QUATRE finitions
+            // ci-dessous rendent la meme YZZA3 sur un millesime 2010, parce
+            // qu'elles partagent la propulsion et que la ligne YZZA3 ne
+            // distingue pas les moteurs. C'est juste pour l'IS 250 et l'IS 350,
+            // que le document nomme ; ce ne l'est pas pour l'IS F, dont le V8
+            // 2UR-GSE n'est dans aucune famille du catalogue. Un vendeur
+            // d'IS F lira la description — « 5,0 V8 2UR-GSE » — et verra que
+            // la cartouche proposee n'est pas la sienne.
+            ['lexus', 'is-xe20', 'IS 250',     '250',   1, $petrol, $rwd, 204, 2499, 6, 'automatic', '2,5 V6 4GR-FSE, 204 ch, propulsion ou intégrale'],
+            ['lexus', 'is-xe20', 'IS 300',     '300',   2, $petrol, $rwd, 228, 2994, 6, 'automatic', '3,0 V6 3GR-FE, 228 ch, propulsion — version du Golfe'],
+            ['lexus', 'is-xe20', 'IS 350',     '350',   3, $petrol, $rwd, 306, 3456, 6, 'automatic', '3,5 V6 2GR-FSE, 306 ch, propulsion ou intégrale'],
+            ['lexus', 'is-xe20', 'IS F',       'F',     4, $petrol, $rwd, 416, 4969, 8, 'automatic', '5,0 V8 2UR-GSE, 416 ch, propulsion'],
+
+            // ── LEXUS GS L10 (2012-2020) ─────────────────────────────────
+            // Meme renommage que sur l'IS et la NX : la GS 200t devient GS 300
+            // au millesime 2018 nord-americain, meme 8AR-FTS de 241 ch. Les
+            // deux noms sont poses — les listes de prix du Golfe de DriveArabia
+            // portent encore « GS 200t » en 2017 et 2019.
+            //
+            // Le catalogue de filtres confirme le 2GR-FSE de la GS 350 sur les
+            // deux motricites, mais pas sur la meme plage : 2012-2015 en
+            // propulsion (YZZA3) et 2012-2020 en integrale (YZZA5) — l'ecart
+            // vient du document, qui s'arrete a 2015 sur une famille et va
+            // jusqu'a 2020 sur l'autre. Il ecarte le 2GR-FKS, donne
+            // « Conditionnel » — statut portant sur la cartouche a associer, non
+            // sur l'existence du moteur. Il est muet sur le 8AR-FTS de cette
+            // generation — alors qu'il le connait pour l'IS et la RC — et sur
+            // le 2UR-GSE de la GS F.
+            //
+            // La GS 250 est ECARTEE (Chine, Japon, Australie, Royaume-Uni ;
+            // jamais les Etats-Unis), la GS 300h aussi (hybride 2AR-FSE
+            // d'Europe et d'Asie).
+            ['lexus', 'gs-l10',  'GS 200t',    '200t',  1, $petrol, $rwd, 241, 1998, 4, 'automatic', '2,0 4 cylindres turbo 8AR-FTS, 241 ch, propulsion'],
+            ['lexus', 'gs-l10',  'GS 300',     '300',   2, $petrol, $rwd, 241, 1998, 4, 'automatic', '2,0 4 cylindres turbo 8AR-FTS, 241 ch, propulsion — la GS 200t renommée en 2018'],
+            ['lexus', 'gs-l10',  'GS 350',     '350',   3, $petrol, $rwd, 311, 3456, 6, 'automatic', '3,5 V6 2GR-FSE puis 2GR-FKS en 2016, 311 ch, propulsion ou intégrale'],
+            ['lexus', 'gs-l10',  'GS 450h',    '450h',  4, $hybrid, $rwd, 338, 3456, 6, 'cvt',       '3,5 V6 hybride 2GR-FXE, 338 ch cumulés, propulsion'],
+            ['lexus', 'gs-l10',  'GS F',       'F',     5, $petrol, $rwd, 467, 4969, 8, 'automatic', '5,0 V8 2UR-GSE, 467 ch, propulsion'],
+
+            // ── LEXUS GS S190 (2005-2012) ────────────────────────────────
+            // Cinq versions, et le rang par puissance met la GS 430 V8 de
+            // 290 ch AVANT la GS 350 V6 de 303 ch. C'est voulu.
+            //
+            // Le catalogue de filtres confirme trois des cinq codes moteur sur
+            // cette generation precise, chassis a l'appui : 3GR-FSE et 2GR-FSE
+            // (GRS190 / GRS191, YZZA3), et 1UR-FSE pour la GS 460 (URS190,
+            // YZZA5). Il est muet sur le 3UZ-FE de la GS 430, famille UZ qu'il
+            // ne traite pas.
+            //
+            // UNE DIVERGENCE A RAPPORTER, et elle ne se tranche pas ici : la
+            // fiche de la famille UR donne la GS 460 DU MOYEN-ORIENT en
+            // 1UR-FE — injection indirecte, 322 ch — et non en 1UR-FSE. Or le
+            // 1UR-FE releve, dans le catalogue du depot, de la famille 9 et de
+            // la cartouche 04152-YZZA4, pas de la YZZA5. Une GS 460 venue du
+            // Golfe se verrait donc proposer la mauvaise cartouche. La ligne de
+            // compatibilite existante n'est pas touchee : le document
+            // constructeur dit URS190 → 1UR-FSE, et c'est au proprietaire de
+            // decider si la variante du Golfe merite sa propre ligne.
+            ['lexus', 'gs-s190', 'GS 300',     '300',   1, $petrol, $rwd, 245, 2994, 6, 'automatic', '3,0 V6 3GR-FSE, 245 ch, propulsion ou intégrale'],
+            ['lexus', 'gs-s190', 'GS 430',     '430',   2, $petrol, $rwd, 290, 4292, 8, 'automatic', '4,3 V8 3UZ-FE, 290 ch, propulsion'],
+            ['lexus', 'gs-s190', 'GS 350',     '350',   3, $petrol, $rwd, 303, 3456, 6, 'automatic', '3,5 V6 2GR-FSE, 303 ch, propulsion ou intégrale'],
+            ['lexus', 'gs-s190', 'GS 450h',    '450h',  4, $hybrid, $rwd, 339, 3456, 6, 'cvt',       '3,5 V6 hybride 2GR-FSE, 339 ch cumulés, propulsion'],
+            ['lexus', 'gs-s190', 'GS 460',     '460',   5, $petrol, $rwd, 342, 4608, 8, 'automatic', '4,6 V8 1UR-FSE, 342 ch, propulsion — variante du Golfe en 1UR-FE, autre cartouche'],
+
+            // ── LEXUS LS XF50 (2017→) ────────────────────────────────────
+            // Deux versions, et le catalogue de filtres est MUET sur cette
+            // generation entiere : ni le V35A-FTS ni le 8GR-FXS n'y figurent
+            // pour aucun vehicule. Les deux codes sont donc recoupes hors
+            // depot — fiche Wikipedia du modele et fiches des familles
+            // « Dynamic Force » (V35A-FTS → LS 500, 2017→) et GR (8GR-FXS →
+            // LS 500h, 2017).
+            //
+            // La LS 350 est ECARTEE : 2GR-FKS de Chine et de Hong Kong.
+            //
+            // La LS 500h est notee 'cvt' par defaut de mieux : sa transmission
+            // « Multi Stage Hybrid » est un train epicycloidal suivi d'une
+            // boite a quatre rapports, et l'enum du depot ne connait que
+            // manual / automatic / cvt.
+            ['lexus', 'ls-xf50', 'LS 500h',    '500h',  1, $hybrid, $rwd, 354, 3456, 6, 'cvt',       '3,5 V6 hybride 8GR-FXS, 354 ch cumulés, propulsion ou intégrale'],
+            ['lexus', 'ls-xf50', 'LS 500',     '500',   2, $petrol, $rwd, 416, 3445, 6, 'automatic', '3,5 V6 biturbo V35A-FTS, 416 ch, propulsion ou intégrale'],
+
+            // ── LEXUS LS XF40 (2006-2017) ────────────────────────────────
+            // Le catalogue de filtres couvre les deux moteurs : 1UR-FSE pour la
+            // LS 460 (chassis USF40) et 2UR-FSE pour la LS 600h (chassis
+            // UVF45), 2007-2017, sans motricite — donc les trois lignes
+            // ci-dessous voient leur cartouche quelle que soit la motricite.
+            //
+            // MEME DIVERGENCE QUE SUR LA GS 460, et meme refus de trancher : la
+            // fiche de la famille UR donne la LS 460 DU MOYEN-ORIENT en
+            // 1UR-FE, qui releve d'une autre cartouche dans le document du
+            // depot. Rapporte, pas corrige.
+            //
+            // La LS 600h L est posee et pas la LS 600h courte : seule la longue
+            // a ete vendue en Amerique du Nord. La LS 460 L est posee parce que
+            // c'est une designation distincte sur la carte grise, pas un
+            // equipement.
+            ['lexus', 'ls-xf40', 'LS 460',     '460',   1, $petrol, $rwd, 380, 4608, 8, 'automatic', '4,6 V8 1UR-FSE, 380 ch, propulsion ou intégrale — variante du Golfe en 1UR-FE, autre cartouche'],
+            ['lexus', 'ls-xf40', 'LS 460 L',   '460L',  2, $petrol, $rwd, 380, 4608, 8, 'automatic', '4,6 V8 1UR-FSE, 380 ch, propulsion ou intégrale, empattement long — variante du Golfe en 1UR-FE, autre cartouche'],
+            ['lexus', 'ls-xf40', 'LS 600h L',  '600hL', 3, $hybrid, $awd, 438, 4969, 8, 'cvt',       '5,0 V8 hybride 2UR-FSE, 438 ch cumulés, intégrale, empattement long'],
+
+            // ── LEXUS LX J310 (2021→) ────────────────────────────────────
+            // La LX 500d EST ECARTEE, et c'est le retrait le plus discutable du
+            // lot : son 3,3 V6 diesel F33A-FTV est documente par la fiche du
+            // modele, mais la gamme officielle du Golfe n'en porte pas trace —
+            // Al-Futtaim aux Emirats annonce LX 700h et LX 600 Overtrail, et la
+            // gamme saoudienne tient en « cinq finitions, deux moteurs », le
+            // 3,4 essence et l'hybride. Les seules traces sont des annonces
+            // d'exportateurs de Dubai, dont plusieurs en CONDUITE A DROITE :
+            // des voitures du Japon ou d'Australie en transit, pas des
+            // importations pour le Burkina Faso, qui roule a droite.
+            //
+            // Motricite en 4WD, comme le Land Cruiser J200 et le Prado J150 de
+            // ce meme fichier — c'est la convention du depot pour ces chassis.
+            // Le catalogue de filtres ne pose AUCUNE compatibilite sur la LX,
+            // ni sur l'une ni sur l'autre generation, donc ce choix ne peut
+            // cacher aucune piece : il n'y en a aucune a cacher.
+            ['lexus', 'lx-j310', 'LX 600',     '600',   1, $petrol, $dwa, 409, 3445, 6, 'automatic', '3,4 V6 biturbo V35A-FTS, 409 ch, quatre roues motrices'],
+            ['lexus', 'lx-j310', 'LX 700h',    '700h',  2, $hybrid, $dwa, 457, 3445, 6, 'automatic', '3,4 V6 biturbo hybride V35A-FTS, 457 ch cumulés, quatre roues motrices'],
+
+            // ── LEXUS LX J200 (2007-2021) ────────────────────────────────
+            // Les deux moteurs sont nommes par le catalogue de filtres du
+            // depot, et c'est le seul endroit du referentiel ou il parle de la
+            // LX : le 3UR-FE de la LX 570 y est « Documente » sous la cartouche
+            // 04152-YZZA4, et la 04152-51010 est decrite comme « l'element
+            // filtrant du V8 diesel 1VD-FTV : Land Cruiser 200 et 70 V8, Lexus
+            // LX 450d ». Aucune compatibilite n'est posee pour autant — le
+            // document les classe « Documente » ou « Probable », pas
+            // « Confirme » — donc ces deux finitions ne feront apparaitre aucun
+            // filtre tant que le proprietaire n'en decide pas autrement. Ce
+            // n'est pas une regression : elles n'existaient pas avant.
+            //
+            // La LX 570 nord-americaine est donnee a 383 ch et celle du Golfe a
+            // 362 ch, meme moteur ; 383 est retenu, et la fiche de la famille
+            // UR donne 381 pour le 3UR-FE — trois sources, trois chiffres a
+            // deux chevaux pres.
+            //
+            // Les LX 460 et LX 470 de cette generation sont ECARTEES : vendues
+            // a Hong Kong seulement.
+            ['lexus', 'lx-j200', 'LX 450d',    '450d',  1, $diesel, $dwa, 268, 4461, 8, 'automatic', '4,5 V8 turbodiesel 1VD-FTV, 268 ch, quatre roues motrices'],
+            ['lexus', 'lx-j200', 'LX 570',     '570',   2, $petrol, $dwa, 383, 5663, 8, 'automatic', '5,7 V8 3UR-FE, 383 ch, quatre roues motrices'],
+
+            // ── LEXUS GX J250 (2023→) / J150 (2009-2023) / J120 (2002-2009)
+            // Une seule version par generation, et ce n'est pas un oubli : le
+            // GX n'a jamais eu qu'un moteur a la fois sur les marches qui nous
+            // concernent. Le GX 400 (1GR-FE) est ECARTE, chinois uniquement, et
+            // le GX 550h ne l'est pas moins faute de source : la fiche du
+            // modele le mentionne en T24A-FTS mais ne lui donne ni puissance ni
+            // marche, et aucune autre source consultee ne le confirme.
+            //
+            // LE GX 470 N'A JAMAIS ETE VENDU AU GOLFE — Gulf News l'ecrit
+            // noir sur blanc en presentant le GX 460 : « le GX 470 n'etait pas
+            // vendu sur notre marche ». Il reste pose parce qu'il tient sur
+            // l'autre jambe du perimetre : c'est un modele nord-americain.
+            //
+            // Le catalogue de filtres est muet sur les trois, mais son index
+            // par code moteur range le 1UR-FE du GX 460 en famille 9
+            // (04152-YZZA4) — ce qui le confirme indirectement.
+            //
+            // Puissance du GX 470 : 263 ch est la valeur d'apres le millesime
+            // 2006, quand la norme SAE a change. Les memes voitures etaient
+            // annoncees a 270 ch avant, et a 235 ch au lancement de 2003.
+            ['lexus', 'gx-j250', 'GX 550',     '550',   1, $petrol, $dwa, 349, 3445, 6, 'automatic', '3,4 V6 biturbo V35A-FTS, 349 ch, quatre roues motrices'],
+            ['lexus', 'gx-j150', 'GX 460',     '460',   1, $petrol, $dwa, 301, 4608, 8, 'automatic', '4,6 V8 1UR-FE, 301 ch, quatre roues motrices'],
+            ['lexus', 'gx-j120', 'GX 470',     '470',   1, $petrol, $dwa, 263, 4663, 8, 'automatic', '4,7 V8 2UZ-FE, 263 ch, quatre roues motrices'],
+
+            // ── LEXUS NX AZ20 (2021→) ────────────────────────────────────
+            // Le catalogue de filtres pose les deux codes A25A — FKS et FXS —
+            // sur cette generation a partir de 2022, mais sous un libelle qui
+            // GROUPE les trois versions sans les separer : « NX 250 / NX 350h /
+            // NX 450h+ ». La repartition portee par les descriptions ci-dessous
+            // — FKS a l'essence, FXS aux deux hybrides — vient de la fiche de
+            // la famille Dynamic Force, pas du catalogue. Celui-ci est muet sur
+            // le T24A-FTS de la NX 350.
+            // Motricites lues sur Consumer Guide : la NX 250 existe en traction
+            // et en integrale, les trois autres sont integrales seules.
+            // La NX 200 (M20A-FKS, Taiwan) et la NX 400h+ (Chine) sont ECARTEES.
+            ['lexus', 'nx-az20', 'NX 250',     '250',   1, $petrol, $fwd, 203, 2487, 4, 'automatic', '2,5 4 cylindres A25A-FKS, 203 ch, traction ou intégrale'],
+            ['lexus', 'nx-az20', 'NX 350h',    '350h',  2, $hybrid, $awd, 239, 2487, 4, 'cvt',       '2,5 4 cylindres hybride A25A-FXS, 239 ch cumulés, intégrale'],
+            ['lexus', 'nx-az20', 'NX 350',     '350',   3, $petrol, $awd, 275, 2393, 4, 'automatic', '2,4 4 cylindres turbo T24A-FTS, 275 ch, intégrale'],
+            ['lexus', 'nx-az20', 'NX 450h+',   '450h+', 4, $hybrid, $awd, 302, 2487, 4, 'cvt',       '2,5 4 cylindres hybride rechargeable A25A-FXS, 302 ch cumulés, intégrale'],
+
+            // ── LEXUS NX AZ10 (2014-2021) ────────────────────────────────
+            // LE RENOMMAGE LE PLUS PIEGEUX DU LOT, et le depot le savait deja :
+            // son index par code moteur range le 8AR-FTS sous « NX 200t /
+            // NX 300, IS 300, RC 300 » — deux noms, un moteur. La fiche du
+            // modele date la bascule du restylage de SEPTEMBRE 2017, et
+            // DriveArabia l'ecrit sur sa page UAE 2018 : « le nom est passe de
+            // NX 200t a NX 300 avec le restylage ». Deux lignes donc, meme
+            // moteur, meme puissance, parce qu'un vendeur tenant une 2016
+            // cherchera « 200t » et un autre tenant une 2019 cherchera « 300 ».
+            //
+            // La NX 300h est confirmee par le meme index — « 2AR-FE / 2AR-FXE →
+            // YZZA1, Camry, RAV4, ES 300h, NX 300h ».
+            //
+            // La NX 200 (3ZR-FAE de Russie et de Chine) est ECARTEE.
+            //
+            // Motricite par DEFAUT en integrale pour les trois : DriveArabia
+            // donne la NX 300 du Golfe en integrale de serie. En Amerique du
+            // Nord la traction existe aussi, sous le MEME nom — le referentiel
+            // ne peut donc pas les distinguer, d'ou le « integrale ou
+            // traction » des descriptions.
+            //   Et de toute facon rien n'est cache : le catalogue de filtres ne
+            //   pose AUCUNE compatibilite sur `nx-az10`. Mesure sur base
+            //   jetable : une NX 300 de 2019 ne rend AUCUNE cartouche. Le
+            //   8AR-FTS et le 2AR-FXE de cette generation ne sont nommes que
+            //   dans l'index par code moteur du document, jamais poses en
+            //   ligne. C'est un manque du catalogue de filtres, a rapporter au
+            //   proprietaire, et il est anterieur a ce lot.
+            ['lexus', 'nx-az10', 'NX 300h',    '300h',  1, $hybrid, $awd, 194, 2494, 4, 'cvt',       '2,5 4 cylindres hybride 2AR-FXE, 194 ch cumulés, intégrale ou traction'],
+            ['lexus', 'nx-az10', 'NX 200t',    '200t',  2, $petrol, $awd, 235, 1998, 4, 'automatic', '2,0 4 cylindres turbo 8AR-FTS, 235 ch, intégrale ou traction'],
+            ['lexus', 'nx-az10', 'NX 300',     '300',   3, $petrol, $awd, 235, 1998, 4, 'automatic', '2,0 4 cylindres turbo 8AR-FTS, 235 ch, intégrale ou traction — la NX 200t renommée en 2017'],
+
+            // ── LEXUS UX ZA10 (2018→) ────────────────────────────────────
+            // Le catalogue de filtres confirme les deux codes M20A — FKS pour
+            // la UX 200, FXS pour la UX 250h — a partir de 2019, et les nomme
+            // ensemble sur la meme ligne.
+            //
+            // TROISIEME RENOMMAGE, et le plus tardif : la UX 250h devient
+            // UX 300h au millesime 2025 nord-americain, avec un hybride plus
+            // puissant — 181 ch deviennent 196. Ce n'est donc PAS le meme
+            // groupe motopropulseur que les deux autres renommages de ce lot,
+            // ou le moteur ne changeait pas. Les deux noms sont poses.
+            //
+            // Motricites : la UX 250h nord-americaine etait en INTEGRALE de
+            // serie jusqu'au millesime 2022, la traction n'arrivant qu'en 2023
+            // (Cars.com) ; l'integrale est donc retenue pour elle. La UX 200
+            // n'a jamais existe qu'en traction, et la UX 300h est en traction
+            // de serie, integrale en option.
+            //
+            // La UX 300e electrique est ECARTEE : Europe, Chine et Japon.
+            //
+            // La puissance de la UX 200 est donnee a 168 ch par l'infobox de la
+            // fiche du modele et par la fiche de la famille Dynamic Force
+            // (125 kW), mais a 171 ch par le tableau de la meme fiche. 168 est
+            // retenu, deux sources contre une.
+            ['lexus', 'ux-za10', 'UX 200',     '200',   1, $petrol, $fwd, 168, 1987, 4, 'cvt',       '2,0 4 cylindres M20A-FKS, 168 ch, traction'],
+            ['lexus', 'ux-za10', 'UX 250h',    '250h',  2, $hybrid, $awd, 181, 1987, 4, 'cvt',       '2,0 4 cylindres hybride M20A-FXS, 181 ch cumulés, intégrale ou traction'],
+            ['lexus', 'ux-za10', 'UX 300h',    '300h',  3, $hybrid, $fwd, 196, 1987, 4, 'cvt',       '2,0 4 cylindres hybride M20A-FXS, 196 ch cumulés, traction ou intégrale — la UX 250h renommée en 2025'],
+
+            // ── LEXUS CT ZWA10 (2010-2022) ───────────────────────────────
+            // UNE SEULE version, et elle est triplement etablie : la CT n'a
+            // jamais existe qu'en CT 200h, le catalogue de filtres du depot la
+            // nomme explicitement — « Lexus CT 200h 1.8 2ZR-FXE 2011-2017 »,
+            // statut « Confirme Lexus » — et la fiche du modele donne le meme
+            // 2ZR-FXE. Lexus a bien depose les noms CT 300h et CT 400h, mais
+            // aucun n'a ete vendu.
+            //   Le millesime 2017 est le dernier d'Amerique du Nord ; la
+            //   generation court jusqu'en 2022 ailleurs, et c'est cette borne
+            //   que porte le referentiel.
+            ['lexus', 'ct-zwa10', 'CT 200h',   '200h',  1, $hybrid, $fwd, 134, 1798, 4, 'cvt',       '1,8 4 cylindres hybride 2ZR-FXE, 134 ch cumulés, traction'],
+
+            // ── LEXUS RC XC10 (2014→) ────────────────────────────────────
+            // Meme dedoublement que sur l'IS XE30, et pour la meme raison :
+            // « RC 300 » designe le 2,0 turbo 8AR-FTS de 241 ch en propulsion
+            // ET un 3,5 V6 de 260 ch en integrale, vendus cote a cote en
+            // Amerique du Nord (Kelley Blue Book, millesimes 2023 et 2024). Les
+            // deux noms du configurateur sont repris : « RC 300 » et
+            // « RC 300 AWD ».
+            //
+            // Le catalogue de filtres pose DEUX des lignes de cette
+            // generation : le 8AR-FTS 2016-2021 en propulsion (chassis ASC10,
+            // tableau YZZA1, qui nomme « IS 300 / RC 300 / IS 200t ») et le
+            // 2GR-FSE de la RC 350 propulsion 2015-2016 (chassis GSC10, YZZA3,
+            // borne haute ramenee a 2016 par le document lui-meme). Il ne pose
+            // RIEN pour le V6 d'apres 2016, ni en propulsion ni en integrale.
+            //   Consequence mesuree : une « RC 300 AWD » de 2019 ne recoit que
+            //   la YZZA1, celle du 2,0 turbo, faute d'une ligne pour son V6 —
+            //   et une « RC 350 » du meme millesime, idem. Le document dit
+            //   pourtant que le chassis GSC10 passe en YZZA1 a partir de
+            //   11/2017, donc la cartouche rendue est peut-etre la bonne, mais
+            //   elle est atteinte par la mauvaise ligne. A rapporter.
+            //
+            // La RC 300h est ECARTEE : hybride 2AR-FSE d'Europe et du Japon.
+            //
+            // Deux chiffres divergents, retenus comme suit : la RC 350 est a
+            // 311 ch pour la fiche de la famille GR et a 314 pour celle du
+            // modele — 311 retenu, c'est la valeur que la meme fiche GR donne a
+            // l'IS 350 et a la GS 350, qui partagent ce moteur. La RC F est a
+            // 467 ch jusqu'au restylage de 2019 et a 475 ensuite ; 467 est
+            // retenu, c'est la tranche la plus longue.
+            ['lexus', 'rc-xc10', 'RC 200t',    '200t',  1, $petrol, $rwd, 241, 1998, 4, 'automatic', '2,0 4 cylindres turbo 8AR-FTS, 241 ch, propulsion'],
+            ['lexus', 'rc-xc10', 'RC 300',     '300',   2, $petrol, $rwd, 241, 1998, 4, 'automatic', '2,0 4 cylindres turbo 8AR-FTS, 241 ch, propulsion — la RC 200t renommée'],
+            ['lexus', 'rc-xc10', 'RC 300 AWD', '300X',  3, $petrol, $awd, 260, 3456, 6, 'automatic', '3,5 V6 2GR-FSE puis 2GR-FKS, 260 ch, intégrale — rien du 2,0 turbo que porte la RC 300 propulsion'],
+            ['lexus', 'rc-xc10', 'RC 350',     '350',   4, $petrol, $rwd, 311, 3456, 6, 'automatic', '3,5 V6 2GR-FSE puis 2GR-FKS en 2018, 311 ch, propulsion ou intégrale'],
+            ['lexus', 'rc-xc10', 'RC F',       'F',     5, $petrol, $rwd, 467, 4969, 8, 'automatic', '5,0 V8 2UR-GSE, 467 ch, propulsion'],
         ];
 
         $txMap = [
@@ -478,7 +1082,19 @@ class TrimsSeeder extends Seeder
             'cvt'       => 'cvt',
         ];
 
-        foreach ($trims as [$brandSlug, $modelSlug, $name, $code, $rank, $engineId, $driveId, $hp, $cc, $cyl, $tx]) {
+        foreach ($trims as $ligne) {
+            [$brandSlug, $modelSlug, $name, $code, $rank, $engineId, $driveId, $hp, $cc, $cyl, $tx] = $ligne;
+
+            // La douzieme colonne est arrivee avec le lot Lexus, et les 157
+            // lignes anterieures n'en ont que onze. Le `?? null` est donc
+            // indispensable : une destructuration a douze elements emettrait
+            // « Undefined array key 11 » sur chacune de ces 157 lignes.
+            //
+            // Une description nulle est une description absente, pas une
+            // description vide : la colonne est nullable et `TrimResource`
+            // rend simplement `null`, comme avant ce lot.
+            $description = $ligne[11] ?? null;
+
             $modelId = $resolve($brandSlug, $modelSlug);
             if (! $modelId) {
                 continue;
@@ -495,6 +1111,10 @@ class TrimsSeeder extends Seeder
                     'vehicle_model_id'     => $modelId,
                     'name'                 => $name,
                     'code'                 => $code,
+                    // Ce que « RX 350 » ne dit pas : la cylindree, le code
+                    // moteur et la motricite. `TrimResource` l'expose deja,
+                    // et elle valait null sur les 157 finitions d'avant.
+                    'description'          => $description,
                     'rank'                 => $rank,
                     'default_engine_type_id' => $engineId,
                     'default_drivetrain_id'  => $driveId,
