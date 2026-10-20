@@ -27,15 +27,26 @@
 <meta property="og:title" content="{{ $article->titreAvecPrix() }}">
 <meta property="og:description" content="{{ $article->resume() }}">
 
-{{-- $url vient de la CONFIGURATION, jamais de la requete : url()->current()
-     suivait X-Forwarded-Host, auquel trustProxies(at: '*') fait confiance, et
-     un en-tete fourni par le client pouvait donc placer l'adresse de son choix
-     dans l'apercu. Voir ArticleController::adresse(). --}}
-<meta property="og:url" content="{{ $url }}">
-{{-- La MEME adresse construite : /v/1?utm_source=x et /v/1 etaient deux pages
-     pour l'indexation, alors qu'une page de partage n'en est qu'une — et les
-     liens colles dans les conversations gagnent des parametres de suivi en
-     route. --}}
+{{-- DEUX ADRESSES, ET ELLES NE SONT PAS LA MEME. Les deux viennent de la
+     CONFIGURATION et jamais de la requete : url()->current() suivait
+     X-Forwarded-Host, auquel trustProxies(at: '*') fait confiance, et un
+     en-tete fourni par le client pouvait donc placer l'adresse de son choix
+     dans l'apercu. Voir ArticleController::adresse().
+
+     og:url porte le MARQUEUR DE VERSION, c'est-a-dire l'adresse avec « ?m= ».
+     Facebook identifie un objet par cette balise : un vieux lien visite apres
+     une modification annonce le marqueur COURANT — jamais celui que l'appelant
+     a envoye —, ce qui fait re-cler l'objet au lieu de figer la vignette du
+     premier partage. Sans cela, un prix corrige en boutique reste faux dans
+     tous les apercus deja construits, et aucun en-tete HTTP n'y change rien.
+     Voir VersionPartage pour le format et pour la mesure. --}}
+<meta property="og:url" content="{{ $urlPartage }}">
+{{-- Le canonique, lui, reste NU — sans marqueur. Un moteur de recherche doit
+     voir UNE page par article, pas une par modification : l'adresse marquee
+     designe le meme contenu, et dix retouches feraient dix adresses indexables
+     identiques. C'est la meme raison qui ecarte les parametres de suivi :
+     /v/1?utm_source=x et /v/1 etaient deux pages pour l'indexation, alors
+     qu'une page de partage n'en est qu'une. --}}
 <link rel="canonical" href="{{ $url }}">
 
 @if ($article->photo)

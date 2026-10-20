@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Support\PhotoPartage;
+use App\Support\VersionPartage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -202,6 +203,43 @@ class VehicleResource extends JsonResource
             'description'  => $this->description,
             'published_at' => $this->published_at?->toIso8601String(),
             'created_at'   => $this->created_at?->toIso8601String(),
+
+            // Le marqueur que l'application colle dans l'adresse de partage :
+            // « /v/86?m=t3uwow ». Voir VersionPartage pour le format et pour
+            // la mesure qui l'a decide.
+            //
+            // POURQUOI L'APPLICATION EN A BESOIN, alors que le serveur pose
+            // deja le marqueur dans og:url. Facebook identifie un objet par
+            // og:url, donc le serveur lui suffirait. WhatsApp non : il cle sa
+            // vignette sur l'adresse qu'il a APPELEE. Tant que l'application
+            // partage « /v/86 », WhatsApp ressort la vignette construite au
+            // premier partage, quel que soit le contenu de la page. C'est le
+            // canal principal de cette boutique, d'ou cette cle.
+            //
+            // `updated_at` N'EST EXPOSE NULLE PART AILLEURS, ni ici ni dans les
+            // modeles Dart, et ce n'est pas lui qu'on expose : une chaine
+            // opaque que l'application recopie telle quelle, sans la lire ni
+            // la comparer. Exposer la date aurait demande a l'application de
+            // choisir un format — donc a deux depots de s'accorder sur un
+            // format, et de diverger un jour sans que rien ne le dise.
+            //
+            // SANS whenLoaded, ET C'EST LE POINT DE VIGILANCE. Ce depot a livre
+            // CINQ fois le defaut `whenLoaded` qui fait DISPARAITRE une cle du
+            // JSON quand la relation n'est pas chargee, et l'application lit
+            // alors un nul indistinguable d'une absence. Ici il n'y a aucune
+            // relation : `updated_at` est une COLONNE, toujours selectionnee.
+            // Verifie, parce que c'est la seule facon de la perdre : aucun
+            // chemin de ces trois ressources ne restreint les colonnes. Les
+            // trois ->select() du depot portent ailleurs — PartCategory pour
+            // son arbre, un agregat de tableau de bord, et la commande console
+            // BackfillFitments. La cle est donc presente sur la liste, sur la
+            // fiche et sur la recherche de compatibilite, et un test l'exige
+            // sur chacun de ces chemins (VersionDePartageTest).
+            //
+            // Null reste possible — `timestamps()` rend la colonne nullable, et
+            // une ligne inseree en SQL brut peut la laisser vide. Le contrat
+            // l'admet : l'application retombe alors sur l'adresse nue.
+            'share_version' => VersionPartage::pour($this->updated_at),
         ];
     }
 }

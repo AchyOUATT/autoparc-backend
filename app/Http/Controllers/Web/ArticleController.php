@@ -13,6 +13,7 @@ use App\Models\Part;
 use App\Models\Vehicle;
 use App\Support\ArticlePartage;
 use App\Support\PhotoPartage;
+use App\Support\VersionPartage;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 
@@ -168,7 +169,7 @@ class ArticleController extends Controller
             'registrationDetail', 'importDetail',
         ]);
 
-        return $this->page(chemin: '/v/'.$vehicle->id, article: new ArticlePartage(
+        return $this->page(chemin: '/v/'.$vehicle->id, source: $vehicle, article: new ArticlePartage(
             // Espaces resserres : Vehicle::getDesignationAttribute compose
             // « marque modele finition annee » par sprintf et ne retire que les
             // espaces de bord. Sans finition — la moitie du parc importe —, il
@@ -205,7 +206,7 @@ class ArticleController extends Controller
 
         $part->load(['media', 'category', 'manufacturer', 'location']);
 
-        return $this->page(chemin: '/p/'.$part->id, article: new ArticlePartage(
+        return $this->page(chemin: '/p/'.$part->id, source: $part, article: new ArticlePartage(
             titre:       $part->name,
             prix:        $part->selling_price !== null ? (float) $part->selling_price : null,
             description: $this->extrait($part->description),
@@ -246,7 +247,7 @@ class ArticleController extends Controller
 
         $accessory->load(['media', 'manufacturer', 'location']);
 
-        return $this->page(chemin: '/a/'.$accessory->id, article: new ArticlePartage(
+        return $this->page(chemin: '/a/'.$accessory->id, source: $accessory, article: new ArticlePartage(
             titre:       $accessory->name,
             prix:        $accessory->selling_price !== null ? (float) $accessory->selling_price : null,
             description: $this->extrait($accessory->description),
@@ -267,25 +268,84 @@ class ArticleController extends Controller
      * calculees ici et non dans la vue : le message pre-rempli nomme l'article
      * et porte l'adresse de la page, deux valeurs que la vue n'aurait pas a
      * recomposer.
+     *
+     * DEUX ADRESSES SORTENT D'ICI, ET LA DIFFERENCE EST TOUT LE SUJET.
+     *
+     * L'article est passe en plus de son chemin pour une seule raison : le
+     * marqueur doit etre calcule A LA VOLEE, ici, au moment du rendu. Le faire
+     * aux trois points d'appel aurait ete trois occasions de l'oublier, et une
+     * page muette ne se voit pas en relisant le code.
+     *
+     *   — `$url`, NUE, pour <link rel="canonical"> : un article est UNE page
+     *     pour un moteur de recherche, pas une par modification. Sans cela, un
+     *     vehicule retouche dix fois presenterait dix adresses indexables du
+     *     meme contenu, ce qui est du contenu duplique et se paie au
+     *     classement.
+     *
+     *   — `$urlPartage`, MARQUEE, pour og:url et pour le lien WhatsApp. Elle
+     *     porte TOUJOURS le marqueur COURANT, jamais celui que l'appelant a
+     *     envoye dans `m` : un vieux lien visite apres une modification annonce
+     *     donc le marqueur NEUF. C'est voulu, et c'est le mecanisme meme du
+     *     correctif — Facebook identifie un objet par son og:url, il relit
+     *     celui-la, et re-cle l'objet au lieu de figer l'ancien.
+     *
+     * Effet de bord utile, et il est reel : la cle primaire d'un cache HTTP est
+     * l'URI COMPLETE, chaine de requete comprise. Une adresse marquee a neuf ne
+     * peut donc pas etre servie depuis l'entree que CACHE_SECONDES a laissee
+     * pour l'ancienne, chez Cloudflare comme chez un mandataire d'operateur. Ce
+     * n'est pas la raison du marqueur, mais cela repare sur le chemin le
+     * compromis assume plus haut.
+     *
+     * Le parametre `m` n'est lu NULLE PART dans cette classe, et c'est
+     * deliberement qu'il n'est ni valide ni normalise. Il ne decide ni du
+     * routage — la liaison de modele se fait sur le segment de chemin — ni du
+     * contenu : la page rendue pour /v/86?m=nimporte-quoi est la MEME, au
+     * caractere, que celle de /v/86. Un marqueur recu ne peut donc rien
+     * empoisonner, puisque rien ne le relit.
      */
-    private function page(ArticlePartage $article, string $chemin): Response
-    {
+    private function page(
+        ArticlePartage $article,
+        string $chemin,
+        Vehicle|Part|Accessory $source,
+    ): Response {
         $url = $this->adresse($chemin);
 
+        $version = VersionPartage::pour($source->updated_at);
+
+        $urlPartage = $version === null ? $url : $url.'?m='.$version;
+
+        // L'adresse MARQUEE dans le message pre-rempli, et c'est un choix.
+        //
+        // Ce message part de la page vers la boutique, et WhatsApp cle la
+        // vignette qu'il affiche sur l'adresse qu'il a APPELEE — la raison
+        // meme pour laquelle l'application doit partager une adresse qui
+        // change. Un lien nu ferait voir au vendeur la vignette d'une version
+        // precedente de son propre article, c'est-a-dire le defaut qu'on
+        // corrige, retourne vers la boutique. Le texte circule par ailleurs :
+        // un destinataire le recopie, et il doit se comporter comme un partage
+        // fait depuis l'application.
+        //
+        // Le cout assume : routes/partage.php a choisi des chemins d'une lettre
+        // parce qu'ils « voyagent a la main », parfois lus au telephone, et six
+        // caracteres de marqueur se lisent mal a voix haute. Ce lien-ci est
+        // clique, pas dicte — et l'adresse nue reste celle du canonique, donc
+        // celle qu'on donne quand on en donne une a la voix.
+        //
         // rawurlencode et non urlencode : wa.me recoit le texte dans une
         // chaine de requete, ou le « + » que rend urlencode pour un espace
         // s'affiche tel quel dans la conversation.
         $message = rawurlencode(
-            "Bonjour, je suis intéressé par : {$article->titreAvecPrix()}\n{$url}"
+            "Bonjour, je suis intéressé par : {$article->titreAvecPrix()}\n{$urlPartage}"
         );
 
         return response()
             ->view('partage.article', [
-                'article'  => $article,
-                'url'      => $url,
-                'whatsapp' => 'https://wa.me/'.config('boutique.whatsapp').'?text='.$message,
-                'telephone' => config('boutique.telephone'),
-                'storeUrl' => config('mobile.store_url'),
+                'article'    => $article,
+                'url'        => $url,
+                'urlPartage' => $urlPartage,
+                'whatsapp'   => 'https://wa.me/'.config('boutique.whatsapp').'?text='.$message,
+                'telephone'  => config('boutique.telephone'),
+                'storeUrl'   => config('mobile.store_url'),
             ])
             ->header('Cache-Control', 'public, max-age='.self::CACHE_SECONDES);
     }

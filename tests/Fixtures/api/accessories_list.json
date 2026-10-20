@@ -2,15 +2,15 @@
     "data": [
         {
             "id": 1,
-            "sku": "ACC-YUCTRYG",
+            "sku": "ACC-RGOOTUW",
             "name": "Coffre de toit 350L",
             "description": null,
             "category": {
                 "value": "utilitaire",
                 "label": "Utilitaire"
             },
-            "manufacturer": "Brembo",
-            "manufacturer_id": 5,
+            "manufacturer": "Bosch fixture",
+            "manufacturer_id": 6,
             "weight_kg": null,
             "dimensions": null,
             "warranty_months": 24,
@@ -30,7 +30,13 @@
                 "location": null
             },
             "media": [],
-            "is_active": true
+            "is_active": true,
+            "compatibility": {
+                "count": 0,
+                "vehicles": []
+            },
+            "fitments": [],
+            "share_version": "tn6t5c"
         }
     ],
     "links": {

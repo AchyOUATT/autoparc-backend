@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Support\PhotoPartage;
+use App\Support\VersionPartage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -106,6 +107,21 @@ class AccessoryResource extends JsonResource
                 'source'           => $f->source?->value,
             ])),
             'partners' => PartnerResource::collection($this->whenLoaded('partners')),
+
+            // Le marqueur de l'adresse de partage : « /a/7?m=t3uwow ». Meme
+            // cle et meme raison que VehicleResource, ou tout est explique.
+            //
+            // Sans whenLoaded, et deliberement : `updated_at` est une colonne,
+            // pas une relation. Elle couvre les deux chemins de l'accessoire,
+            // catalogue et fiche.
+            //
+            // A noter pour ce type-la : `toggleAvailability` ecrit sur le
+            // modele, donc deplace `updated_at`, donc change le marqueur. Un
+            // accessoire retire du catalogue puis reapprovisionne se repartage
+            // ainsi a une adresse neuve — sa page etant redevenue 200, la
+            // vignette se reconstruit au lieu de ressortir celle d'avant la
+            // rupture.
+            'share_version' => VersionPartage::pour($this->updated_at),
         ];
     }
 

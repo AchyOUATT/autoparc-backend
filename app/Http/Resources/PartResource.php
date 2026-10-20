@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Support\PhotoPartage;
+use App\Support\VersionPartage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 // PartnerResource est dans le même namespace, résolu automatiquement par Laravel
@@ -113,6 +114,19 @@ class PartResource extends JsonResource
                 'source'           => $f->source?->value,
             ])),
             'partners'        => PartnerResource::collection($this->whenLoaded('partners')),
+
+            // Le marqueur de l'adresse de partage : « /p/12?m=t3uwow ». Meme
+            // cle et meme raison que VehicleResource, ou tout est explique —
+            // WhatsApp cle sa vignette sur l'adresse APPELEE, donc une piece
+            // modifiee doit se partager a une adresse differente.
+            //
+            // Sans whenLoaded, et deliberement : `updated_at` est une colonne,
+            // pas une relation. La cle doit etre presente aussi bien sur la
+            // liste du catalogue que sur la fiche ET sur la recherche de
+            // compatibilite — c'est la piece qui a le plus de chemins des
+            // trois, et c'est par un de ces chemins qu'une cle manquante
+            // passerait inapercue.
+            'share_version'   => VersionPartage::pour($this->updated_at),
         ];
     }
 

@@ -16,6 +16,7 @@ use App\Models\Vehicle;
 use App\Models\User;
 use App\Models\VehicleModel;
 use App\Providers\AppServiceProvider;
+use App\Support\VersionPartage;
 use App\Support\VignetteApercu;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -580,7 +581,14 @@ class PagesProduitTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $attendu = 'https://partage-essai.example/v/'.$vehicule->id;
+        // og:url porte desormais le marqueur de version — l'adresse marquee,
+        // pas l'adresse nue. Voir VersionDePartageTest pour le contrat ; ce
+        // test-ci ne regarde que l'HOTE, qui doit rester celui de la
+        // configuration quoi qu'arrive. Le marqueur est compose ici plutot
+        // qu'ecrit en dur : il depend de `updated_at`, que la fabrique pose a
+        // l'instant du test.
+        $attendu = 'https://partage-essai.example/v/'.$vehicule->id
+            .'?m='.VersionPartage::pour($vehicule->updated_at);
 
         $this->assertStringContainsString(
             '<meta property="og:url" content="'.$attendu.'">',
@@ -605,7 +613,19 @@ class PagesProduitTest extends TestCase
             ->getContent();
 
         $this->assertStringContainsString('<link rel="canonical" href="'.$attendu.'">', $html);
-        $this->assertStringContainsString('<meta property="og:url" content="'.$attendu.'">', $html);
+
+        // og:url, lui, porte le marqueur de version : c'est ce qui fait
+        // re-cler la vignette chez Facebook apres une modification. Le
+        // canonique au-dessus reste NU pour la raison inverse — un article est
+        // UNE page pour un moteur de recherche. La difference entre les deux
+        // balises est mesuree par VersionDePartageTest ; ici on verifie
+        // seulement que les parametres de SUIVI, eux, ne survivent ni dans
+        // l'une ni dans l'autre.
+        $this->assertStringContainsString(
+            '<meta property="og:url" content="'.$attendu
+                .'?m='.VersionPartage::pour($vehicule->updated_at).'">',
+            $html,
+        );
         $this->assertStringNotContainsString('utm_source', $html);
     }
 
