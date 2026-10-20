@@ -180,6 +180,37 @@ class VehicleModelsSeeder extends Seeder
             ['renault', 'Koleos',    'II',  'suv',       'D', 2016, null],
             ['renault', 'Symbol',    null,  'berline',   'B', 2008, null],
 
+            // Le Kangoo manquait entierement — aucune generation, sous aucun
+            // nom. Signale par le proprietaire sur un cas reel, et c'est un
+            // utilitaire leger tres repandu en Afrique de l'Ouest.
+            //
+            // CHIFFRES ROMAINS ET NON CODES D'USINE, et ce n'est pas un pis
+            // aller : c'est la convention de TOUTES les Renault de ce fichier
+            // — Clio IV, Clio V, Megane IV, Logan II, Koleos II. Elle tombe
+            // bien, parce que deux recherches n'ont corrobore AUCUN code pour
+            // la troisieme generation : les listes donnent KC/KW pour la
+            // premiere et FC/FW pour la deuxieme, se contredisent sur les
+            // bornes, et aucune source ne nomme le code de celle de 2021. Les
+            // poser de memoire aurait ete exactement ce qu'on refuse aux lots
+            // de referentiel.
+            //
+            // Ce qui EST corrobore : la premiere generation de 1997, la
+            // deuxieme commercialisee depuis 2007, et la troisieme produite a
+            // Maubeuge a partir de fevrier 2021 en remplacement de la
+            // deuxieme. Bornes jointives, comme Picanto TA/JA et Rio UB/YB.
+            //
+            // `utilitaire` DONNE `van` cote vehicule — c'est le choix du
+            // proprietaire (« ok pour van »), et la migration
+            // 2026_09_03_100000 fait la correspondance. Le Kangoo passagers
+            // serait plus justement un monospace, mais cette carrosserie
+            // n'existe pas dans l'enumeration et son ajout a ete ecarte par
+            // le proprietaire. A savoir : la meme migration range DOUZE
+            // modeles monospace du referentiel — Berlingo, Zafira, Mazda5,
+            // Doblo, Note — sous `van` pour la meme raison.
+            ['renault', 'Kangoo',    'I',   'utilitaire', 'B', 1997, 2007],
+            ['renault', 'Kangoo',    'II',  'utilitaire', 'B', 2007, 2021],
+            ['renault', 'Kangoo',    'III', 'utilitaire', 'B', 2021, null],
+
             // ─── VOLKSWAGEN ────────────────────────────────────────────
             ['volkswagen', 'Polo',   'AW',  'citadine',  'B', 2017, null],
             ['volkswagen', 'Golf',   'VIII','compacte',  'C', 2019, null],
