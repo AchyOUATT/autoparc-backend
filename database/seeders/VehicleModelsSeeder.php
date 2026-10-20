@@ -202,15 +202,68 @@ class VehicleModelsSeeder extends Seeder
             ['mercedes-benz', 'Vito',     'W447', 'utilitaire','D', 2014, null],
 
             // ─── BMW ───────────────────────────────────────────────────
+            // Les neuf premieres lignes couvrent 2009 et au-dela. Les cinq
+            // ajoutees ferment le trou qui precede IMMEDIATEMENT chacune
+            // d'elles, parce que le parc local vient de l'importation
+            // d'occasion : la generation absente n'est pas la plus recente,
+            // c'est celle d'avant. Une generation manquante rend son millesime
+            // inenregistrable — exactement ce qui etait arrive a la Tucson
+            // 2014, coincee entre la TL et la NX4.
             ['bmw', 'Série 1',      'F20',  'compacte',  'C', 2011, 2019],
             ['bmw', 'Série 3',      'G20',  'berline',   'D', 2018, null],
             ['bmw', 'Série 3',      'F30',  'berline',   'D', 2011, 2018],
+            // E90 : la berline Serie 3 la plus diffusee de toutes, et la seule
+            // porte d'entree pour une 328i nord-americaine ou une 320d
+            // europeenne d'avant 2011. Bornes de la berline recoupees :
+            // 01/2005 a 10/2011, LCI en 09/2008.
+            ['bmw', 'Série 3',      'E90',  'berline',   'D', 2005, 2011],
             ['bmw', 'Série 5',      'G30',  'berline',   'E', 2016, null],
-            ['bmw', 'Série 5',      'F10',  'berline',   'E', 2009, 2016],
+            ['bmw', 'Série 5',      'F10',  'berline',   'E', 2010, 2016],
+            // E60 : ajoutee A CAUSE de la 528i. Ce nom a porte DEUX
+            // generations successives — E60 de 2007 a 2010, marche
+            // nord-americain seul, puis F10 —, donc sans cette ligne une 528i
+            // de 2008 n'aurait aucune generation ou se poser.
+            //
+            // LA BORNE DE FIN EST VOLONTAIREMENT RABOTEE. La berline E60 a ete
+            // produite jusqu'en 09/2010 : les sources concordent la-dessus. La
+            // ligne porte pourtant 2009, parce que la F10 juste au-dessus
+            // commence en 2009 et que `CatalogueModelesTest` interdit a deux
+            // generations d'un meme modele de se recouvrir — le rattachement
+            // des cotes de consommation choisit la generation par l'annee du
+            // vehicule, et un recouvrement rendrait ce choix arbitraire. Les
+            // deux generations se sont REELLEMENT chevauchees pendant la
+            // transition de 2010, ce que ce schema ne sait pas representer.
+            //
+            // PRIX DE CE CHOIX, a connaitre : un millesime 2010 de E60 tombera
+            // sur la F10 et se verra proposer les finitions F10 — dont une
+            // 528i quatre cylindres qui n'a jamais existe sur une E60. Ce
+            // residu est plus etroit que le trou qu'il remplace, six annees
+            // entieres sans aucune generation posable. Le proprietaire peut le
+            // supprimer en faisant commencer la F10 en 2010, borne que donne
+            // la source allemande ; cette ligne-la n'a pas ete touchee ici.
+            ['bmw', 'Série 5',      'E60',  'berline',   'E', 2003, 2010],
             ['bmw', 'X1',           'F48',  'suv',       'C', 2015, null],
+            // E84 : la F48 ne commence qu'en 2015, et l'E84 n'en est pas
+            // qu'une devanciere — elle est a PROPULSION quand la F48 passe a
+            // la traction (plateforme UKL2). Le meme nom « sDrive18i » ne
+            // designe donc pas la meme motricite selon la generation, et c'est
+            // la motricite qui va en base. Bornes : 10/2009 a 06/2015.
+            ['bmw', 'X1',           'E84',  'suv',       'C', 2009, 2015],
             ['bmw', 'X3',           'G01',  'suv',       'D', 2017, null],
+            // F25 : le X3 qui circule effectivement en occasion ici ; une G01
+            // de 2017 reste chere a l'import. Bornes : 09/2010 a 08/2017,
+            // LCI 2014.
+            ['bmw', 'X3',           'F25',  'suv',       'D', 2010, 2017],
             ['bmw', 'X5',           'G05',  'suv',       'E', 2018, null],
             ['bmw', 'X5',           'F15',  'suv',       'E', 2013, 2018],
+            // E70 : le X5 le plus abordable a l'import, et celui qui a change
+            // de nomenclature EN COURS DE GENERATION — « 3.0si », « 3.0d »,
+            // « 3.0sd », « 4.8i » jusqu'en mars 2008, puis « xDrive30i »,
+            // « xDrive30d », « xDrive35d », « xDrive48i » pour les memes
+            // voitures. Les finitions posees portent la seconde nomenclature,
+            // celle des millesimes qui s'importent. Bornes : 2006 a 08/2013,
+            // LCI 2010.
+            ['bmw', 'X5',           'E70',  'suv',       'E', 2006, 2013],
 
             // ─── FORD ──────────────────────────────────────────────────
             ['ford', 'Focus',       'Mk3',  'compacte',  'C', 2011, 2018],
