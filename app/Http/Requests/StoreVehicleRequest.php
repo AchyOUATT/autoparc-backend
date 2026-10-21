@@ -23,6 +23,36 @@ class StoreVehicleRequest extends FormRequest
         return $this->user()?->role?->canManageCatalog() ?? false;
     }
 
+    /**
+     * Le code moteur est mis en majuscules avant validation.
+     *
+     * Meme raison que dans `StoreOwnedVehicleRequest` et
+     * `CompatiblePartsCriteriaRequest` : `CompatibilityService` compare par
+     * EGALITE EXACTE et le referentiel stocke « 2AR-FE », pas « 2ar-fe ». Un
+     * vehicule du catalogue saisi en minuscules ne rendrait que les
+     * compatibilites sans code moteur, et le vendeur conclurait qu'il n'y en a
+     * pas.
+     *
+     * LES TROIS PORTES D'ENTREE NORMALISENT DESORMAIS PAREIL. Elles ne le
+     * faisaient pas : seule la route publique de recherche avait ete traitee,
+     * ce qui laissait le defaut entier des deux cotes de la SAISIE. Trois
+     * normalisations identiques valent mieux qu'une seule bien placee tant que
+     * la colonne elle-meme n'impose rien — et le jour ou l'on voudra la rendre
+     * insensible a la casse en base, c'est ici qu'il faudra revenir.
+     *
+     * `UpdateVehicleRequest` herite de cette classe.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('engine_code')) {
+            $brut = trim((string) $this->input('engine_code'));
+
+            $this->merge([
+                'engine_code' => $brut === '' ? null : mb_strtoupper($brut),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [

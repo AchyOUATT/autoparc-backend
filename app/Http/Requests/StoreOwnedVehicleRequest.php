@@ -34,6 +34,32 @@ class StoreOwnedVehicleRequest extends FormRequest
         if ($this->filled('model_libre')) {
             $this->merge(['model_libre' => trim((string) $this->input('model_libre'))]);
         }
+
+        // ── LE CODE MOTEUR EST MIS EN MAJUSCULES ICI AUSSI ───────────────────
+        //
+        // `CompatibilityService` compare le code moteur par EGALITE EXACTE
+        // (`orWhere('engine_code', $code)`), et le referentiel les stocke en
+        // majuscules avec tiret — « 2AR-FE », « A25A-FKS ». Un proprietaire qui
+        // tape « 2ar-fe » dans son garage enregistre donc une valeur que la
+        // recherche de pieces ne retrouvera JAMAIS : elle ne lui rendra que les
+        // compatibilites sans code moteur, et il conclura qu'il n'y a rien.
+        //
+        // L'ASYMETRIE QUE CECI CORRIGE EST LA MIENNE. En posant le filtrage par
+        // code moteur sur la route publique, j'ai normalise `engine_code` dans
+        // `CompatiblePartsCriteriaRequest` — et j'y ai meme ECRIT le
+        // raisonnement ci-dessus — sans l'appliquer a la saisie du garage, qui
+        // est pourtant l'autre moitie du meme mecanisme. Le defaut a ete releve
+        // par un audit externe, pas par moi.
+        //
+        // `UpdateOwnedVehicleRequest` herite de cette classe, donc la
+        // modification d'un vehicule passe par le meme chemin.
+        if ($this->has('engine_code')) {
+            $brut = trim((string) $this->input('engine_code'));
+
+            $this->merge([
+                'engine_code' => $brut === '' ? null : mb_strtoupper($brut),
+            ]);
+        }
     }
 
     public function rules(): array
