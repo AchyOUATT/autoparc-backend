@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\ReferenceCatalogWriter;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -497,17 +498,18 @@ class VehicleModelsSeeder extends Seeder
             // Un même modèle peut avoir plusieurs générations — slug inclut la génération
             $slug = Str::slug($name . ($generation ? '-' . $generation : ''));
 
-            DB::table('vehicle_models')->upsert([
+            ReferenceCatalogWriter::upsert('vehicle_models', [
                 'brand_id'         => $brandId,
-                'name'             => $name,
                 'slug'             => $slug,
+            ], [
+                'name'             => $name,
                 'generation'       => $generation,
                 'body_type'        => $bodyType,
                 'segment'          => $segment,
                 'production_start' => $yearStart,
                 'production_end'   => $yearEnd,
                 'is_active'        => true,
-            ], ['brand_id', 'slug'], ['name', 'generation', 'body_type', 'segment', 'production_start', 'production_end', 'is_active']);
+            ]);
         }
     }
 }

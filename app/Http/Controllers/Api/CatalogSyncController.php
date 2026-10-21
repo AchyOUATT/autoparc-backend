@@ -11,6 +11,7 @@ use App\Models\Feature;
 use App\Models\Location;
 use App\Models\PartCategory;
 use App\Models\Trim;
+use App\Models\TrimApplication;
 use App\Models\VehicleModel;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -56,7 +57,12 @@ class CatalogSyncController extends Controller
                 ]),
 
             'trims' => $this->delta(Trim::query(), $since)
-                ->get(['id', 'vehicle_model_id', 'name', 'code', 'rank', 'default_engine_type_id', 'default_drivetrain_id', 'updated_at']),
+                ->get(['id', 'vehicle_model_id', 'name', 'code', 'rank', 'description', 'default_engine_type_id', 'default_drivetrain_id', 'updated_at']),
+
+            // Additive collection: older clients keep reading trims; clients
+            // that understand documented scopes can filter by market/year.
+            'trim_applications' => $this->delta(TrimApplication::query(), $since)
+                ->get(['id', 'trim_id', 'market', 'model_year_from', 'model_year_to', 'sources', 'verified_at', 'updated_at']),
 
             'engine_types' => $this->delta(EngineType::query(), $since)
                 ->get(['id', 'code', 'label', 'uses_fuel', 'uses_battery', 'updated_at']),
@@ -82,7 +88,10 @@ class CatalogSyncController extends Controller
     protected function delta(Builder $query, ?Carbon $since): Builder
     {
         if ($since !== null) {
-            $query->where('updated_at', '>', $since);
+            // Existing columns have second precision. Re-reading the boundary
+            // avoids losing a write made in the same second as the cursor.
+            // Clients merge references by ID, so this overlap is intentional.
+            $query->where('updated_at', '>=', $since);
         }
 
         return $query;

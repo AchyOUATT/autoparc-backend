@@ -1,0 +1,249 @@
+﻿marque,nom,generation,slug,carrosserie,segment,annee_debut,annee_fin,nb_finitions,finitions,ligne_source
+bmw,Série 1,F20,serie-1-f20,compacte,C,2011,2019,4,116i | 118d | 118i | 120d,243
+bmw,Série 3,E90,serie-3-e90,berline,D,2005,2011,6,318i | 320i | 320d | 325i | 328i | 330d,250
+bmw,Série 3,F30,serie-3-f30,berline,D,2011,2018,6,318i | 320i | 320d | 328i | 330i | 330d,245
+bmw,Série 3,G20,serie-3-g20,berline,D,2018,,4,318i | 320i | 320d | 330i xDrive,244
+bmw,Série 5,E60,serie-5-e60,berline,E,2003,2010,6,520d | 523i | 525i | 528i | 530d | 530i,275
+bmw,Série 5,F10,serie-5-f10,berline,E,2010,2016,8,520i | 520d | 525d (6 cyl. 2010-2011) | 525d (4 cyl. 2011-2016) | 528i (6 cyl. 2010-2011) | 528i (4 cyl. 2011-2016) | 530d | 535i,252
+bmw,Série 5,G30,serie-5-g30,berline,E,2016,,5,520i | 520d | 530i | 530d | 540i xDrive,251
+bmw,X1,E84,x1-e84,suv,C,2009,2015,4,sDrive18d | sDrive18i | xDrive20d | xDrive28i,282
+bmw,X1,F48,x1-f48,suv,C,2015,,4,sDrive18i | sDrive18d | xDrive20d | xDrive25i,276
+bmw,X3,F25,x3-f25,suv,D,2010,2017,4,xDrive20d | xDrive20i | xDrive30d | xDrive35i,287
+bmw,X3,G01,x3-g01,suv,D,2017,,4,xDrive20i | xDrive20d | xDrive30i | xDrive30d,283
+bmw,X5,E70,x5-e70,suv,E,2006,2013,5,xDrive30d | xDrive30i | xDrive35d | xDrive35i | xDrive48i,297
+bmw,X5,F15,x5-f15,suv,E,2013,2018,4,xDrive25d | xDrive30d | xDrive35i | xDrive50i,289
+bmw,X5,G05,x5-g05,suv,E,2018,,3,xDrive25d | xDrive30d | xDrive40i,288
+chevrolet,Aveo,T300,aveo-t300,berline,B,2011,2016,0,,308
+chevrolet,Captiva,,captiva,suv,D,2006,2018,0,,310
+chevrolet,Cruze,J300,cruze-j300,berline,C,2009,2016,0,,309
+chevrolet,Spark,M300,spark-m300,citadine,A,2009,2015,0,,307
+chevrolet,Trailblazer,RG,trailblazer-rg,suv,D,2012,,0,,311
+citroen,Berlingo,B9,berlingo-b9,monospace,C,2008,2018,0,,440
+citroen,Berlingo,K9,berlingo-k9,monospace,C,2018,,0,,439
+citroen,C-Elysée,,c-elysee,berline,C,2012,2023,0,,438
+citroen,C3,II,c3-ii,citadine,B,2009,2016,0,,434
+citroen,C3,III,c3-iii,citadine,B,2016,2024,0,,433
+citroen,C4,I,c4-i,compacte,C,2004,2010,0,,437
+citroen,C4,II,c4-ii,compacte,C,2010,2018,0,,436
+citroen,C4,III,c4-iii,compacte,C,2020,,0,,435
+citroen,C5 Aircross,,c5-aircross,suv,D,2018,,0,,441
+citroen,Jumper,,jumper,utilitaire,—,2006,,0,,442
+daihatsu,Sirion,,sirion,citadine,A,2005,,0,,395
+daihatsu,Terios,J210,terios-j210,suv,B,2006,,0,,394
+fiat,500,Type 312,500-type-312,citadine,A,2007,,0,,459
+fiat,500X,Type 334,500x-type-334,suv,B,2014,,0,,460
+fiat,500e,332,500e-332,citadine,A,2020,,0,,467
+fiat,Doblo,II,doblo-ii,monospace,C,2010,2022,0,,468
+fiat,Ducato,,ducato,utilitaire,—,2006,,0,,469
+fiat,Panda,III,panda-iii,citadine,A,2011,,0,,461
+fiat,Punto,,punto,citadine,B,2005,2018,0,,462
+fiat,Tipo,356,tipo-356,compacte,C,2015,,0,,463
+ford,EcoSport,B515 / II,ecosport-b515-ii,suv,B,2012,,0,,303
+ford,Everest,,everest,suv,E,2015,,0,,302
+ford,Explorer,U625,explorer-u625,suv,E,2019,,0,,304
+ford,Focus,Mk3,focus-mk3,compacte,C,2011,2018,0,,300
+ford,Ranger,T6,ranger-t6,pick-up,D,2011,,4,XL | XLT | Wildtrak | Raptor,301
+honda,Accord,CR,accord-cr,berline,D,2012,2017,0,,102
+honda,Accord,CV,accord-cv,berline,D,2017,,0,,103
+honda,CR-V,RM,cr-v-rm,suv,D,2011,2016,0,,105
+honda,CR-V,RW,cr-v-rw,suv,D,2016,,0,,104
+honda,City,GM6,city-gm6,berline,B,2014,,0,,108
+honda,Civic,FB,civic-fb,berline,C,2011,2015,0,,101
+honda,Civic,FC,civic-fc,berline,C,2015,,0,,100
+honda,HR-V,RU,hr-v-ru,suv,B,2014,,0,,106
+honda,Jazz,GE,jazz-ge,citadine,B,2008,2013,0,,99
+honda,Jazz,GK,jazz-gk,citadine,B,2013,,0,,98
+honda,Pilot,YF,pilot-yf,suv,E,2015,,0,,107
+hyundai,Accent,RB,accent-rb,berline,B,2011,,0,,133
+hyundai,Creta,,creta,suv,B,2015,,0,,147
+hyundai,Elantra,AD,elantra-ad,berline,C,2015,2020,0,,135
+hyundai,Elantra,CN7,elantra-cn7,berline,C,2020,,0,,134
+hyundai,Santa Fe,DM,santa-fe-dm,suv,D,2012,2018,0,,145
+hyundai,Santa Fe,TM,santa-fe-tm,suv,D,2018,,3,Essential | Comfort | Premium,146
+hyundai,Sonata,LF,sonata-lf,berline,D,2014,2019,0,,148
+hyundai,Tucson,LM,tucson-lm,suv,C,2009,2015,0,,142
+hyundai,Tucson,TL,tucson-tl,suv,C,2015,2020,4,Active | Active X | Elite | Highlander,143
+hyundai,Tucson,NX4,tucson-nx4,suv,C,2020,,0,,144
+hyundai,i10,BA,i10-ba,citadine,A,2013,,0,,131
+hyundai,i20,IB,i20-ib,citadine,B,2014,,0,,132
+isuzu,D-Max,TFR,d-max-tfr,pick-up,D,2012,,4,LS | LT | LS Premium | V-Cross 4x4,327
+isuzu,MU-X,,mu-x,suv,D,2013,,0,,328
+jeep,Cherokee,KL,cherokee-kl,suv,D,2013,,0,,316
+jeep,Compass,MP,compass-mp,suv,C,2017,,0,,317
+jeep,Grand Cherokee,WK2,grand-cherokee-wk2,suv,E,2010,2021,0,,315
+jeep,Wrangler,JL,wrangler-jl,tout-terrain,D,2018,,3,Sport | Sahara | Rubicon,314
+kia,Cerato,BD,cerato-bd,berline,C,2018,,0,,155
+kia,Picanto,TA,picanto-ta,citadine,A,2011,2017,0,,152
+kia,Picanto,JA,picanto-ja,citadine,A,2017,,0,,151
+kia,Rio,UB,rio-ub,berline,B,2011,2017,0,,154
+kia,Rio,YB,rio-yb,berline,B,2017,,0,,153
+kia,Seltos,SP2,seltos-sp2,suv,B,2019,,0,,160
+kia,Sorento,UM,sorento-um,suv,D,2014,2020,0,,158
+kia,Sportage,QL,sportage-ql,suv,C,2015,2021,4,LX | EX | SX | GT Line,156
+kia,Sportage,NQ5,sportage-nq5,suv,C,2021,,0,,157
+kia,Stonic,YB CUV,stonic-yb-cuv,suv,B,2017,,0,,159
+land-rover,Defender,L663,defender-l663,tout-terrain,E,2019,,0,,324
+land-rover,Discovery,L462,discovery-l462,suv,F,2016,,3,S | SE | HSE,320
+land-rover,Discovery Sport,L550,discovery-sport-l550,suv,D,2014,,0,,321
+land-rover,Range Rover,L405,range-rover-l405,suv,F,2012,,0,,322
+land-rover,Range Rover Sport,L494,range-rover-sport-l494,suv,E,2013,,0,,323
+lexus,CT,ZWA10,ct-zwa10,compacte,C,2010,2022,1,CT 200h,429
+lexus,ES,XV40,es-xv40,berline,E,2006,2012,1,ES 350,414
+lexus,ES,XV60,es-xv60,berline,E,2012,2018,3,ES 250 | ES 300h | ES 350,413
+lexus,ES,XV70,es-xv70,berline,E,2018,,3,ES 250 | ES 300h | ES 350,412
+lexus,GS,S190,gs-s190,berline,E,2005,2012,5,GS 300 | GS 430 | GS 350 | GS 450h | GS 460,418
+lexus,GS,L10,gs-l10,berline,E,2012,2020,5,GS 200t | GS 300 | GS 350 | GS 450h | GS F,417
+lexus,GX,J120,gx-j120,suv,E,2002,2009,1,GX 470,425
+lexus,GX,J150,gx-j150,suv,E,2009,2023,1,GX 460,424
+lexus,GX,J250,gx-j250,suv,E,2023,,1,GX 550,423
+lexus,IS,XE20,is-xe20,berline,D,2005,2013,4,IS 250 | IS 300 | IS 350 | IS F,416
+lexus,IS,XE30,is-xe30,berline,D,2013,,6,IS 250 | IS 200t | IS 300 | IS 300 AWD | IS 350 | IS 500,415
+lexus,LS,XF40,ls-xf40,berline,F,2006,2017,3,LS 460 | LS 460 L | LS 600h L,420
+lexus,LS,XF50,ls-xf50,berline,F,2017,,2,LS 500h | LS 500,419
+lexus,LX,J200,lx-j200,suv,F,2007,2021,2,LX 450d | LX 570,422
+lexus,LX,J310,lx-j310,suv,F,2021,,2,LX 600 | LX 700h,421
+lexus,NX,AZ10,nx-az10,suv,C,2014,2021,3,NX 300h | NX 200t | NX 300,427
+lexus,NX,AZ20,nx-az20,suv,C,2021,,4,NX 250 | NX 350h | NX 350 | NX 450h+,426
+lexus,RC,XC10,rc-xc10,coupe,D,2014,,5,RC 200t | RC 300 | RC 300 AWD | RC 350 | RC F,430
+lexus,RX,XU30,rx-xu30,suv,E,2003,2009,3,RX 330 | RX 400h | RX 350,411
+lexus,RX,AL10,rx-al10,suv,E,2009,2015,2,RX 350 | RX 450h,410
+lexus,RX,AL20,rx-al20,suv,E,2015,2022,4,RX 350L | RX 350 | RX 450h | RX 450hL,409
+lexus,RX,AL30,rx-al30,suv,E,2022,,4,RX 350h | RX 350 | RX 450h+ | RX 500h,408
+lexus,UX,ZA10,ux-za10,suv,B,2018,,3,UX 200 | UX 250h | UX 300h,428
+mazda,BT-50,,bt-50,pick-up,D,2011,,0,,340
+mazda,CX-3,DK,cx-3-dk,suv,B,2015,,0,,339
+mazda,CX-30,DM,cx-30-dm,suv,C,2019,,0,,349
+mazda,CX-5,KF,cx-5-kf,suv,C,2017,,0,,338
+mazda,CX-7,ER,cx-7-er,suv,D,2006,2012,0,,348
+mazda,CX-9,TB,cx-9-tb,suv,E,2006,2015,0,,346
+mazda,CX-9,TC,cx-9-tc,suv,E,2016,2024,0,,347
+mazda,Mazda2,DJ,mazda2-dj,citadine,B,2014,,0,,331
+mazda,Mazda3,BL,mazda3-bl,compacte,C,2008,2013,0,,337
+mazda,Mazda3,BM,mazda3-bm,compacte,C,2013,2018,0,,336
+mazda,Mazda3,BP,mazda3-bp,compacte,C,2018,,0,,332
+mazda,Mazda5 / Premacy,CP,mazda5-premacy-cp,monospace,C,1999,2004,0,,374
+mazda,Mazda5 / Premacy,CR,mazda5-premacy-cr,monospace,C,2004,2010,0,,375
+mazda,Mazda5 / Premacy,CW,mazda5-premacy-cw,monospace,C,2010,2018,0,,376
+mazda,Mazda6,GG,mazda6-gg,berline,D,2002,2008,0,,366
+mazda,Mazda6,GH,mazda6-gh,berline,D,2008,2012,0,,367
+mazda,Mazda6,GJ,mazda6-gj,berline,D,2012,2024,0,,368
+mazda,Tribute,EP,tribute-ep,suv,C,2000,2006,0,,381
+mazda,Tribute,II (marché NA),tribute-ii-marche-na,suv,C,2007,2011,0,,382
+mercedes-benz,Classe C,W204,classe-c-w204,berline,D,2007,2014,0,,226
+mercedes-benz,Classe C,W205,classe-c-w205,berline,D,2014,,4,C 180 | C 200 | C 220d | C 300 4M,225
+mercedes-benz,Classe E,W212,classe-e-w212,berline,E,2009,2016,0,,228
+mercedes-benz,Classe E,W213,classe-e-w213,berline,E,2016,,0,,227
+mercedes-benz,GLC,X253,glc-x253,suv,D,2015,,0,,229
+mercedes-benz,GLE,W167,gle-w167,suv,E,2018,,0,,230
+mercedes-benz,ML / GLE,W166,ml-gle-w166,suv,E,2011,2018,0,,231
+mercedes-benz,Sprinter,,sprinter,utilitaire,F,2006,,0,,232
+mercedes-benz,Vito,W447,vito-w447,utilitaire,D,2014,,0,,233
+mitsubishi,ASX,GA,asx-ga,suv,C,2010,,0,,113
+mitsubishi,Eclipse Cross,GK/GL,eclipse-cross-gkgl,suv,C,2017,,0,,116
+mitsubishi,L200,KB,l200-kb,pick-up,D,2005,2015,0,,118
+mitsubishi,L200,KL,l200-kl,pick-up,D,2015,,4,Invite | GL | GLS | Athlete,117
+mitsubishi,Lancer,CY,lancer-cy,berline,C,2007,2017,0,,111
+mitsubishi,Outlander,GF,outlander-gf,suv,D,2012,,0,,112
+mitsubishi,Pajero,V80,pajero-v80,suv,E,2006,,3,GLX | GLS | Exceed,114
+mitsubishi,Pajero Sport,QF,pajero-sport-qf,suv,D,2015,,0,,115
+nissan,Almera,N17,almera-n17,berline,C,2011,,0,,85
+nissan,Micra,K13,micra-k13,citadine,B,2010,2017,0,,83
+nissan,Micra,K14,micra-k14,citadine,B,2017,,0,,82
+nissan,Navara,D40,navara-d40,pick-up,D,2004,2014,0,,94
+nissan,Navara,D23,navara-d23,pick-up,D,2014,,4,S | SL | SV | PRO-4X,93
+nissan,Note,E12,note-e12,monospace,B,2012,,0,,84
+nissan,Pathfinder,R52,pathfinder-r52,suv,E,2012,,0,,95
+nissan,Patrol,Y61,patrol-y61,suv,F,1997,2010,3,DX | SE | GRX,92
+nissan,Patrol,Y62,patrol-y62,suv,F,2010,,0,,91
+nissan,Qashqai,J11,qashqai-j11,suv,C,2013,,0,,88
+nissan,Sentra,B18,sentra-b18,berline,C,2019,,0,,87
+nissan,Tiida,C11,tiida-c11,berline,C,2004,2012,0,,86
+nissan,X-Trail,T31,x-trail-t31,suv,D,2007,2013,0,,90
+nissan,X-Trail,T32,x-trail-t32,suv,D,2013,,3,Visia | Acenta | Tekna,89
+opel,Astra,J,astra-j,compacte,C,2009,2015,0,,449
+opel,Astra,K,astra-k,compacte,C,2015,2021,0,,448
+opel,Corsa,D,corsa-d,citadine,B,2006,2014,0,,447
+opel,Corsa,E,corsa-e,citadine,B,2014,2019,0,,446
+opel,Corsa,F,corsa-f,citadine,B,2019,,0,,445
+opel,Mokka,A,mokka-a,suv,B,2012,2019,0,,451
+opel,Mokka,B,mokka-b,suv,B,2020,,0,,450
+opel,Zafira,B,zafira-b,monospace,C,2005,2011,0,,453
+opel,Zafira,C,zafira-c,monospace,C,2011,2019,0,,452
+opel,Zafira Life,K0,zafira-life-k0,monospace,C,2019,,0,,456
+peugeot,2008,,2008,suv,B,2013,,0,,168
+peugeot,207,,207,citadine,B,2006,2012,0,,163
+peugeot,208,,208,citadine,B,2012,,0,,164
+peugeot,3008,,3008,suv,C,2016,,4,Active | Allure | GT Line | GT,169
+peugeot,301,M33,301-m33,berline,C,2012,,0,,165
+peugeot,307,T5,307-t5,compacte,C,2001,2008,0,,166
+peugeot,308,,308,compacte,C,2013,,0,,167
+peugeot,5008,,5008,suv,D,2017,,0,,170
+peugeot,Partner,,partner,utilitaire,C,2008,,0,,171
+renault,Captur,,captur,suv,B,2013,,0,,179
+renault,Clio,IV,clio-iv,citadine,B,2012,2019,0,,174
+renault,Clio,V,clio-v,citadine,B,2019,,0,,175
+renault,Duster,,duster,suv,C,2010,,4,Life | Zen | Intens | Prestige 4x4,178
+renault,Kangoo,I,kangoo-i,utilitaire,B,1997,2007,0,,210
+renault,Kangoo,II,kangoo-ii,utilitaire,B,2007,2021,0,,211
+renault,Kangoo,III,kangoo-iii,utilitaire,B,2021,,0,,212
+renault,Koleos,II,koleos-ii,suv,D,2016,,0,,180
+renault,Logan,II,logan-ii,berline,B,2012,,0,,177
+renault,Mégane,IV,megane-iv,compacte,C,2015,,0,,176
+renault,Symbol,,symbol,berline,B,2008,,0,,181
+ssangyong,Actyon,C100,actyon-c100,suv,D,2006,2012,0,,477
+ssangyong,Actyon Sports,Q100,actyon-sports-q100,pick-up,D,2006,2012,0,,480
+ssangyong,Korando,C200,korando-c200,suv,C,2010,2019,0,,473
+ssangyong,Korando,C300,korando-c300,suv,C,2019,,0,,472
+ssangyong,Musso,Q200/Q250,musso-q200q250,pick-up,D,2018,,0,,476
+ssangyong,Rexton,Y200,rexton-y200,suv,E,2001,2017,0,,475
+ssangyong,Rexton,Y400,rexton-y400,suv,E,2017,,0,,474
+subaru,Crosstrek,GU / III,crosstrek-gu-iii,suv,C,2023,,0,,390
+subaru,Forester,SK,forester-sk,suv,C,2018,,0,,385
+subaru,Impreza,GK,impreza-gk,berline,C,2016,,0,,391
+subaru,Outback,BT,outback-bt,break,D,2020,,0,,386
+subaru,XV,GT,xv-gt,suv,C,2017,,0,,387
+suzuki,Alto,,alto,citadine,A,2015,,0,,121
+suzuki,Ertiga,,ertiga,monospace,B,2012,,0,,127
+suzuki,Jimny,JB43,jimny-jb43,tout-terrain,B,1998,2018,0,,125
+suzuki,Jimny,JB74,jimny-jb74,tout-terrain,B,2018,,0,,124
+suzuki,S-Cross,,s-cross,suv,C,2013,,0,,128
+suzuki,Swift,ZC7,swift-zc7,citadine,B,2011,2017,0,,123
+suzuki,Swift,AZG,swift-azg,citadine,B,2017,,0,,122
+suzuki,Vitara,LY,vitara-ly,suv,B,2015,,0,,126
+toyota,Auris,E180,auris-e180,compacte,C,2012,2019,0,,79
+toyota,Avalon,,avalon,berline,E,2005,2022,0,,45
+toyota,Avensis,T270,avensis-t270,berline,D,2008,2018,0,,78
+toyota,Camry,XV50,camry-xv50,berline,D,2011,2017,6,LE | SE | XLE | XSE | Hybrid LE | XLE V6,62
+toyota,Camry,XV70,camry-xv70,berline,D,2017,,7,LE | SE | XLE | XSE | Hybrid LE | XLE V6 | TRD,61
+toyota,Corolla,E140,corolla-e140,berline,C,2006,2013,4,CE | LE | S | XRS,58
+toyota,Corolla,E180,corolla-e180,berline,C,2013,2019,5,J | L | GL | GLi | S,57
+toyota,Corolla,E210,corolla-e210,berline,C,2019,,4,LE | SE | XLE | XSE,56
+toyota,Fortuner,AN50,fortuner-an50,suv,D,2005,2015,0,,73
+toyota,Fortuner,AN160,fortuner-an160,suv,D,2015,,4,GX | GXR | VXR | Legender,72
+toyota,Highlander,,highlander,suv,E,2008,,0,,42
+toyota,Hilux,AN10,hilux-an10,pick-up,D,2004,2015,0,,71
+toyota,Hilux,AN120,hilux-an120,pick-up,D,2015,,4,J | E | G | GR-S,70
+toyota,Land Cruiser,J100,land-cruiser-j100,suv,F,1998,2007,0,,67
+toyota,Land Cruiser,J200,land-cruiser-j200,suv,F,2007,2021,3,GX | VX | VX-R,66
+toyota,Land Cruiser,J300,land-cruiser-j300,suv,F,2021,,0,,65
+toyota,Land Cruiser Prado,J120,land-cruiser-prado-j120,suv,E,2002,2009,0,,69
+toyota,Land Cruiser Prado,J150,land-cruiser-prado-j150,suv,E,2009,,4,GX | GXL | TXL | VXL,68
+toyota,Prius,XW30,prius-xw30,berline,C,2009,2015,4,Two | Three | Four | Five,75
+toyota,Prius,XW50,prius-xw50,berline,C,2015,,6,Two | Three | Four | LE | XLE | Limited,74
+toyota,RAV4,XA40,rav4-xa40,suv,C,2012,2018,6,LE | XLE | SE | Limited | Hybrid XLE | Hybrid Limited,64
+toyota,RAV4,XA50,rav4-xa50,suv,C,2018,,4,LE | XLE | TRD Off-Road | Hybrid XSE,63
+toyota,Rush,F800,rush-f800,suv,B,2017,,0,,77
+toyota,Sienna,,sienna,monospace,E,2007,,0,,43
+toyota,Tacoma,,tacoma,pick-up,D,1995,,0,,46
+toyota,Venza,,venza,suv,D,2009,,0,,44
+toyota,Vios,,vios,berline,B,2013,,0,,76
+toyota,Yaris,XP150,yaris-xp150,citadine,B,2011,2020,0,,60
+toyota,Yaris,XP210,yaris-xp210,citadine,B,2020,,4,E | J | G | GR Sport,59
+volkswagen,Amarok,,amarok,pick-up,D,2010,,0,,221
+volkswagen,Golf,VII,golf-vii,compacte,C,2012,2019,0,,217
+volkswagen,Golf,VIII,golf-viii,compacte,C,2019,,0,,216
+volkswagen,Passat,B8,passat-b8,berline,D,2014,,0,,218
+volkswagen,Polo,AW,polo-aw,citadine,B,2017,,0,,215
+volkswagen,T-Roc,,t-roc,suv,B,2017,,0,,220
+volkswagen,Tiguan,AD,tiguan-ad,suv,C,2016,,4,Trendline | Comfortline | Highline | R-Line,219
+volkswagen,Touareg,CR7,touareg-cr7,suv,E,2018,,0,,222
