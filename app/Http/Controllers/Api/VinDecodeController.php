@@ -21,7 +21,8 @@ use Illuminate\Http\JsonResponse;
  *   "vin": "JTDBE30K453012345",
  *   "valid": true,
  *   "year_candidates": [2005],
- *   "engine_code": "5",
+ *   "vin_engine_character": "K",
+ *   "engine_code": null,
  *   "nhtsa": {
  *     "make": "TOYOTA", "model": "Corolla", "year": 2005,
  *     "body_class": "Sedan", "fuel_type": "Gasoline",
@@ -34,8 +35,13 @@ use Illuminate\Http\JsonResponse;
  *   "engine_type":  { "id": 2,  "code": "gasoline", "label": "Essence", ... },
  *   "drivetrain":   { "id": 1,  "code": "FWD",      "label": "Traction avant" },
  *   "confidence": "high",
- *   "warnings": []
+ *   "warnings": ["Code moteur constructeur non identifié : vérifiez-le sur le véhicule avant de choisir une pièce spécifique au moteur."]
  * }
+ *
+ * `vin_engine_character` est le caractere VDS brut en position 8, pas un code
+ * moteur complet. `engine_code` reste null en l'absence de correspondance
+ * constructeur verifiee. `nhtsa.engine_code_nhtsa`, s'il est present, conserve
+ * la reponse brute et ne doit pas etre copie comme code confirme sans controle.
  */
 class VinDecodeController extends Controller
 {

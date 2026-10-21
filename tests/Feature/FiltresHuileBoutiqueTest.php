@@ -794,6 +794,7 @@ class FiltresHuileBoutiqueTest extends TestCase
         $reponse = $this->getJson('/api/catalog/compatible-parts?'.http_build_query([
             'vehicle_model_id' => $xv50->id,
             'year'             => 2015,
+            'engine_code'      => '2AR-FE',
         ]))->assertOk();
 
         $references = collect($reponse->json('data'))->pluck('sku')->all();
@@ -855,10 +856,9 @@ class FiltresHuileBoutiqueTest extends TestCase
      *   — en minuscules, le meme resultat, parce que la comparaison est une
      *     egalite exacte en base et que « 2ar-fe » ne rendrait sinon que les
      *     lignes sans code moteur ;
-     *   — SANS le code, les deux, exactement comme avant. C'est la garde de
-     *     compatibilite ascendante : les versions deja installees de
-     *     l'application n'envoient pas ce parametre, et le feront encore
-     *     pendant des mois.
+     *   — sans le code, aucune confirmation ; avec include_candidates=1,
+     *     les deux restent proposées avec leur état à vérifier. Les anciens
+     *     clients qui badgent les IDs retournés ne doivent pas les confirmer.
      */
     public function test_la_route_publique_filtre_par_code_moteur(): void
     {
@@ -889,12 +889,12 @@ class FiltresHuileBoutiqueTest extends TestCase
             .'meme resultat : la normalisation de la requete a saute, et le '
             .'vendeur conclura qu\'il n\'y a aucune piece.');
 
-        $sansCode = $skus([]);
+        $sansCode = $skus(['include_candidates' => 1]);
         $this->assertContains('04152-YZZA1', $sansCode);
         $this->assertContains('90915-YZZN1', $sansCode,
-            'Sans code moteur, la route ne rend plus les deux filtres : le '
-            .'parametre est devenu obligatoire de fait, et toutes les versions '
-            .'installees de l\'application cessent de trouver des pieces.');
+            'La recherche explicite de candidats doit garder les deux moteurs possibles.');
+        $this->assertSame([], $skus([]),
+            'Une liste confirmée ne doit pas donner aux anciens clients deux moteurs comme certains.');
     }
 
     /**

@@ -2,6 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Support\EngineCode;
+use Illuminate\Validation\Rule;
+
 /**
  * Recherche de pieces par criteres vehicule, sans vehicule enregistre.
  *
@@ -27,20 +30,22 @@ namespace App\Http\Requests;
  * capot. Le service savait pourtant filtrer dessus ; c'est le controleur qui
  * ne lui passait rien.
  *
- * IL RESTE FACULTATIF, et ce n'est pas une precaution de style : les versions
- * de l'application deja installees ne l'envoient pas, et elles continueront
- * pendant des mois. Sans lui, le comportement est exactement celui d'avant.
+ * Le code reste facultatif : les déclarations universelles peuvent être
+ * confirmées sans lui. Les références propres à un moteur restent disponibles
+ * avec include_candidates=1, sans être confondues avec les confirmations.
  */
 class CompatiblePartsCriteriaRequest extends CompatiblePartsRequest
 {
     public function rules(): array
     {
         return $this->paginationRules() + [
-            'vehicle_model_id' => ['required', 'exists:vehicle_models,id'],
+            'vehicle_model_id' => ['required', 'integer', 'exists:vehicle_models,id'],
             'year'             => ['nullable', 'integer', 'min:1950'],
-            'trim_id'          => ['nullable', 'exists:trims,id'],
-            'engine_type_id'   => ['nullable', 'exists:engine_types,id'],
-            'drivetrain_id'    => ['nullable', 'exists:drivetrains,id'],
+            'trim_id'          => ['nullable', 'integer', Rule::exists('trims', 'id')->where(
+                'vehicle_model_id', is_scalar($this->input('vehicle_model_id')) ? $this->input('vehicle_model_id') : null,
+            )],
+            'engine_type_id'   => ['nullable', 'integer', 'exists:engine_types,id'],
+            'drivetrain_id'    => ['nullable', 'integer', 'exists:drivetrains,id'],
 
             // Pas de `exists:` : un code moteur n'est pas une clef etrangere,
             // c'est une chaine libre sur part_fitments. Un code inconnu ne doit
@@ -59,10 +64,8 @@ class CompatiblePartsCriteriaRequest extends CompatiblePartsRequest
      * « A25A-FKS ». Un vendeur qui tape « 2ar-fe » ne trouverait donc que les
      * compatibilites sans code moteur, et conclurait a tort qu'il n'y a rien.
      *
-     * On normalise ici plutot que dans le service : la route du garage lui
-     * passe `effective_engine_code`, qui vient de la base et est deja
-     * canonique. C'est l'entree humaine qu'il faut redresser, pas la sortie
-     * machine.
+     * La même normalisation est partagée avec les écritures du garage et du
+     * parc. Le service normalise aussi les anciennes valeurs déjà stockées.
      */
     protected function prepareForValidation(): void
     {
@@ -70,10 +73,13 @@ class CompatiblePartsCriteriaRequest extends CompatiblePartsRequest
             return;
         }
 
-        $brut = trim((string) $this->input('engine_code'));
+        $brut = $this->input('engine_code');
+        if ($brut !== null && ! is_string($brut)) {
+            return;
+        }
 
         $this->merge([
-            'engine_code' => $brut === '' ? null : mb_strtoupper($brut),
+            'engine_code' => EngineCode::normalize($brut),
         ]);
     }
 

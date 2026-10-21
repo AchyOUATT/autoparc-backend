@@ -26,6 +26,10 @@ class PartResource extends JsonResource
             'sku'         => $this->sku,
             'name'        => $this->name,
             'description' => $this->description,
+            'compatibility_assessment' => $this->when(
+                $this->resource->getAttribute('compatibility_assessment') !== null,
+                fn () => $this->resource->getAttribute('compatibility_assessment'),
+            ),
             'type'        => $this->type->value,
             'condition'   => $this->condition->value,
             'category'        => $this->whenLoaded('category', fn () => [

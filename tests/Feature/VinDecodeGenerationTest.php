@@ -85,7 +85,8 @@ class VinDecodeGenerationTest extends TestCase
         $this->assertSame('BM', $resultat['vehicle_model']['generation'],
             'La BL s\'arrete en 2013 et la BP commence en 2018 : seule la BM couvre 2014.');
         $this->assertTrue($resultat['vehicle_model']['covers_year']);
-        $this->assertSame([], $resultat['warnings']);
+        $this->assertCount(1, $resultat['warnings']);
+        $this->assertStringContainsString('Code moteur constructeur non identifié', $resultat['warnings'][0]);
     }
 
     public function test_chaque_millesime_tombe_sur_sa_generation(): void

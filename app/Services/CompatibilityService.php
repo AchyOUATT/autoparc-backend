@@ -8,6 +8,7 @@ use App\Models\Part;
 use App\Models\PartCategory;
 use App\Models\Vehicle;
 use App\Models\VehicleModel;
+use App\Support\EngineCode;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -68,6 +69,8 @@ class CompatibilityService
         ?int $drivetrainId = null,
         ?string $engineCode = null
     ): Builder {
+        $engineCode = EngineCode::forCompatibility($engineCode);
+
         $apply = function (Builder $f) use ($vehicleModelId, $year, $trimId, $engineTypeId, $drivetrainId, $engineCode) {
             $f->where('vehicle_model_id', $vehicleModelId);
 
@@ -91,7 +94,9 @@ class CompatibilityService
 
             // Code moteur : un fitment sans engine_code vaut pour tous les moteurs du modele.
             if ($engineCode !== null) {
-                $f->where(fn ($q) => $q->whereNull('engine_code')->orWhere('engine_code', $engineCode));
+                $f->where(fn ($q) => $q->whereNull('engine_code')
+                    ->orWhereRaw("TRIM(engine_code) = ''")
+                    ->orWhereRaw('UPPER(TRIM(engine_code)) = ?', [$engineCode]));
             }
         };
 
@@ -106,9 +111,9 @@ class CompatibilityService
 
     /**
      * Pieces compatibles avec un vehicule personnel du client ("mon garage").
-     * Retombe sur la motorisation par defaut de la finition si le client
-     * n'a pas precise engine_type_id/drivetrain_id.
-     * Utilise engine_code quand disponible (decodage VIN NHTSA) pour plus de precision.
+     * Une valeur par défaut de finition est une aide de saisie, pas la
+     * configuration constatée du véhicule. Seules les valeurs explicites
+     * réduisent la recherche ; les contraintes inconnues restent à vérifier.
      */
     public function partsForOwnedVehicle(OwnedVehicle $vehicle, array $filters = []): Builder
     {
@@ -128,8 +133,8 @@ class CompatibilityService
             $vehicle->vehicle_model_id,
             $vehicle->manufacturing_year,
             $vehicle->trim_id,
-            $vehicle->effective_engine_type_id,
-            $vehicle->effective_drivetrain_id,
+            $vehicle->engine_type_id,
+            $vehicle->drivetrain_id,
             $vehicle->effective_engine_code,   // null si absent — pas de filtrage supplementaire
         );
 
@@ -146,6 +151,30 @@ class CompatibilityService
         }
 
         return $query;
+    }
+
+    public function ownedVehicleCriteria(OwnedVehicle $vehicle): array
+    {
+        return [
+            'vehicle_model_id' => $vehicle->vehicle_model_id,
+            'year' => $vehicle->manufacturing_year,
+            'trim_id' => $vehicle->trim_id,
+            'engine_type_id' => $vehicle->engine_type_id,
+            'drivetrain_id' => $vehicle->drivetrain_id,
+            'engine_code' => $vehicle->effective_engine_code,
+        ];
+    }
+
+    public function vehicleCriteria(Vehicle $vehicle): array
+    {
+        return [
+            'vehicle_model_id' => $vehicle->vehicle_model_id,
+            'year' => $vehicle->manufacturing_year,
+            'trim_id' => $vehicle->trim_id,
+            'engine_type_id' => $vehicle->engine_type_id,
+            'drivetrain_id' => $vehicle->drivetrain_id,
+            'engine_code' => EngineCode::forCompatibility($vehicle->engine_code),
+        ];
     }
 
     /** Vehicules du parc compatibles avec un numero OEM saisi. */
@@ -184,8 +213,13 @@ class CompatibilityService
                         $sub->where('drivetrain_id', $fitment->drivetrain_id);
                     }
 
-                    if ($fitment->engine_code) {
-                        $sub->where('engine_code', $fitment->engine_code);
+                    $engineCode = EngineCode::normalize($fitment->engine_code);
+                    if ($engineCode !== null) {
+                        if (EngineCode::forCompatibility($engineCode) === null) {
+                            $sub->whereRaw('1 = 0');
+                        } else {
+                            $sub->whereRaw('UPPER(TRIM(engine_code)) = ?', [$engineCode]);
+                        }
                     }
 
                     if ($fitment->year_from) {
@@ -263,8 +297,11 @@ class CompatibilityService
             $fitment->where(fn ($q) => $q->whereNull('drivetrain_id')->orWhere('drivetrain_id', $vehicle->drivetrain_id));
         }
 
-        if ($vehicle->engine_code) {
-            $fitment->where(fn ($q) => $q->whereNull('engine_code')->orWhere('engine_code', $vehicle->engine_code));
+        $engineCode = EngineCode::forCompatibility($vehicle->engine_code);
+        if ($engineCode !== null) {
+            $fitment->where(fn ($q) => $q->whereNull('engine_code')
+                ->orWhereRaw("TRIM(engine_code) = ''")
+                ->orWhereRaw('UPPER(TRIM(engine_code)) = ?', [$engineCode]));
         }
 
         return $fitment;

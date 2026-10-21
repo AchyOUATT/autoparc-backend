@@ -17,6 +17,8 @@ de la branche.
 
 Pour les améliorations ensuite réalisées, leurs commandes et leurs limites,
 voir [le guide du catalogue des finitions](../../catalogue-finitions.md).
+Les corrections suivantes des défauts F2, F3 et F4 sont décrites dans
+[le suivi de l'audit externe](../../corrections-audit-externe.md).
 
 ## État des travaux joints
 

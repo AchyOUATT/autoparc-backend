@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\EngineCode;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -273,20 +274,20 @@ class OwnedVehicle extends Model
 
     /**
      * Code moteur effectif pour la compatibilite (ex: "1NZ", "K20", "OM651").
-     * Fourni par le decodage VIN (NHTSA) ou saisi manuellement.
-     * Optionnel : null si l'utilisateur ne l'a pas renseigne.
+     * Un caractère isolé issu d'un ancien décodage VIN reste stocké mais
+     * ne constitue pas un code moteur exploitable pour une comparaison.
      */
     public function getEffectiveEngineCodeAttribute(): ?string
     {
-        return $this->engine_code ?: null;
+        return EngineCode::forCompatibility($this->engine_code);
     }
 
     /**
      * Le vehicule a-t-il de quoi trancher une compatibilite ?
      *
-     * Deux conditions, et la premiere est la plus importante : un modele du
-     * referentiel. Les compatibilites sont declarees par modele — sans lui,
-     * aucune ne peut correspondre, et la recherche rend zero piece.
+     * Indicateur général conservé pour les anciens clients : un modèle du
+     * référentiel et un code moteur exploitable. Le verdict par pièce vérifie
+     * ses contraintes propres et ne se déduit pas de ce seul indicateur.
      *
      * Ce zero ne veut pas dire « aucune piece ne convient » mais « on ne sait
      * pas ». Repondre vrai ici le ferait passer pour un resultat : l'ecran
@@ -300,7 +301,9 @@ class OwnedVehicle extends Model
             return false;
         }
 
-        return $this->effective_engine_type_id !== null || $this->effective_engine_code !== null;
+        // Présence d'un code exploitable, pas une certification de toute pièce.
+        // Le verdict dépend des contraintes de chaque ligne du référentiel.
+        return $this->effective_engine_code !== null;
     }
 
     /**

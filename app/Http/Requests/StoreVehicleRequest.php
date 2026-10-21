@@ -8,6 +8,8 @@ use App\Enums\VehicleAvailability;
 use App\Enums\VehicleCondition;
 use App\Enums\VehicleDealType;
 use App\Enums\VehicleStatus;
+use App\Support\EngineCode;
+use App\Support\VehicleClassification;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,6 +23,13 @@ class StoreVehicleRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user()?->role?->canManageCatalog() ?? false;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('engine_code') && (is_string($this->input('engine_code')) || $this->input('engine_code') === null)) {
+            $this->merge(['engine_code' => EngineCode::normalize($this->input('engine_code'))]);
+        }
     }
 
     public function rules(): array
@@ -37,9 +46,9 @@ class StoreVehicleRequest extends FormRequest
                 'pickup', 'van', 'minibus', 'bus', 'truck', 'other',
             ])],
 
-            'brand_id'           => ['required', 'exists:brands,id'],
-            'vehicle_model_id'   => ['required', 'exists:vehicle_models,id'],
-            'trim_id'            => ['nullable', 'exists:trims,id'],
+            'brand_id'           => ['required', 'integer', 'exists:brands,id'],
+            'vehicle_model_id'   => ['required', 'integer', 'exists:vehicle_models,id'],
+            'trim_id'            => ['nullable', 'integer', 'exists:trims,id'],
             'engine_type_id'     => ['required', 'exists:engine_types,id'],
             'drivetrain_id'      => ['nullable', 'exists:drivetrains,id'],
             'color_id'           => ['nullable', 'exists:colors,id'],
@@ -143,27 +152,11 @@ class StoreVehicleRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            // Cohérence : le modèle doit appartenir à la marque envoyée.
-            if ($this->filled(['brand_id', 'vehicle_model_id'])) {
-                $belongs = \App\Models\VehicleModel::where('id', $this->input('vehicle_model_id'))
-                    ->where('brand_id', $this->input('brand_id'))
-                    ->exists();
-
-                if (! $belongs) {
-                    $validator->errors()->add('vehicle_model_id', "Ce modele n'appartient pas a la marque selectionnee.");
-                }
-            }
-
-            // Cohérence : la finition doit appartenir au modèle.
-            if ($this->filled(['vehicle_model_id', 'trim_id'])) {
-                $belongs = \App\Models\Trim::where('id', $this->input('trim_id'))
-                    ->where('vehicle_model_id', $this->input('vehicle_model_id'))
-                    ->exists();
-
-                if (! $belongs) {
-                    $validator->errors()->add('trim_id', "Cette finition n'appartient pas au modele selectionne.");
-                }
-            }
+            VehicleClassification::validate(
+                $validator,
+                $this->only(['brand_id', 'vehicle_model_id', 'trim_id']),
+                $this->route('vehicle'),
+            );
         });
     }
 }

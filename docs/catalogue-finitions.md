@@ -181,7 +181,7 @@ simuler l'import, examiner les conflits, importer sur la base choisie puis
 relancer l'audit. Ne pas annoncer que les 181 entrées sont complétées avant
 ce travail documentaire et la vérification de la base cible.
 
-## Validation réalisée le 21 octobre 2026
+## Validation du premier lot, le 21 octobre 2026
 
 - PHP 8.4, dépendances Composer du lockfile et extensions CI installés dans
   un runtime Docker local, sans modification des manifestes ni du lockfile.
@@ -199,3 +199,7 @@ ce travail documentaire et la vérification de la base cible.
 La production et le client Flutter n'ont pas été modifiés. La vérification
 documentaire des dix gammes pilotes reste bloquée par l'accès aux sites
 constructeur ; l'outillage prêt ne remplace pas cet enrichissement.
+
+Le lot suivant sur la cohérence des fiches, le VIN et les niveaux de preuve
+des compatibilités est décrit avec son propre bilan dans
+[les corrections de l'audit externe](corrections-audit-externe.md).
