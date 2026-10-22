@@ -54,6 +54,8 @@ final class ArticlePartage
          * quoi dire de chaque type.
          */
         public readonly ?string $indisponibilite = null,
+        /** Tarif mensuel public, sans conversion implicite depuis le journalier. */
+        public readonly ?float $tarifLocationMensuel = null,
     ) {}
 
     /** L'article est-il servi alors qu'il n'est pas disponible ? */
@@ -93,12 +95,25 @@ final class ArticlePartage
      * retour a la ligne avant « jour » laisserait lire « 25 000 FCFA » tout
      * court sur l'ecran du destinataire, soit le malentendu que ce suffixe
      * existe pour eviter.
+     * Le journalier est prioritaire ; a defaut, le mensuel porte « / mois ».
      */
     public function tarifLocationFormate(): ?string
     {
-        $montant = $this->montant($this->tarifLocation);
+        return $this->tarifAvecPeriode($this->tarifLocation, 'jour')
+            ?? $this->tarifAvecPeriode($this->tarifLocationMensuel, 'mois');
+    }
 
-        return $montant === null ? null : $montant."\u{A0}/\u{A0}jour";
+    /**
+     * Les tarifs ouverts qui ne sont pas deja affiches sur la ligne principale.
+     *
+     * @return list<string>
+     */
+    public function tarifsLocationComplementaires(): array
+    {
+        return array_values(array_filter([
+            $this->tarifAvecPeriode($this->tarifLocation, 'jour'),
+            $this->tarifAvecPeriode($this->tarifLocationMensuel, 'mois'),
+        ], fn (?string $tarif) => $tarif !== null && $tarif !== $this->ligneDePrix()));
     }
 
     /**
@@ -217,5 +232,12 @@ final class ArticlePartage
         }
 
         return number_format($valeur, 0, ',', "\u{A0}")."\u{A0}FCFA";
+    }
+
+    private function tarifAvecPeriode(?float $tarif, string $periode): ?string
+    {
+        $montant = $this->montant($tarif);
+
+        return $montant === null ? null : $montant."\u{A0}/\u{A0}".$periode;
     }
 }

@@ -88,7 +88,7 @@ class StoreVehicleRequest extends FormRequest
 
             'purchase_price'     => ['nullable', 'numeric', 'min:0'],
             'sale_price'         => ['nullable', 'numeric', 'min:0', 'required_if:availability,sale,both'],
-            'rental_daily_rate'  => ['nullable', 'numeric', 'min:0', 'required_if:availability,rent,both'],
+            'rental_daily_rate'  => ['nullable', 'numeric', 'min:0'],
             'rental_weekly_rate' => ['nullable', 'numeric', 'min:0'],
             'rental_monthly_rate' => ['nullable', 'numeric', 'min:0'],
             'rental_deposit'     => ['nullable', 'numeric', 'min:0'],
@@ -152,11 +152,34 @@ class StoreVehicleRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
+            $vehicle = $this->route('vehicle');
+
             VehicleClassification::validate(
                 $validator,
                 $this->only(['brand_id', 'vehicle_model_id', 'trim_id']),
-                $this->route('vehicle'),
+                $vehicle,
             );
+
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            // En modification, un champ omis conserve sa valeur ; un null
+            // explicite retire le tarif. On controle donc la fiche resultante.
+            $availability = $this->input('availability', $vehicle?->availability?->value);
+
+            if (! in_array($availability, ['rent', 'both'], true)) {
+                return;
+            }
+
+            $dailyRate = $this->input('rental_daily_rate', $vehicle?->rental_daily_rate);
+            $monthlyRate = $this->input('rental_monthly_rate', $vehicle?->rental_monthly_rate);
+
+            if ($dailyRate === null && $monthlyRate === null) {
+                $message = 'Renseignez un prix journalier ou un forfait mensuel pour proposer ce véhicule à la location.';
+                $validator->errors()->add('rental_daily_rate', $message);
+                $validator->errors()->add('rental_monthly_rate', $message);
+            }
         });
     }
 }

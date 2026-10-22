@@ -32,6 +32,10 @@
              destinataire. --}}
         <p class="prix">{{ $article->ligneDePrix() }}</p>
 
+        @foreach ($article->tarifsLocationComplementaires() as $tarif)
+            <p class="tarif-location">Location : {{ $tarif }}</p>
+        @endforeach
+
         @if ($article->estIndisponible())
             {{-- La regle d'ArticleController::catalogueMontre sert une piece en
                  rupture, parce que le catalogue des pieces la montre. Servie, la

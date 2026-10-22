@@ -1508,6 +1508,92 @@ class PagesProduitTest extends TestCase
         );
     }
 
+    public function test_un_tarif_mensuel_seul_est_affiche_avec_son_unite(): void
+    {
+        $html = $this->get('/v/'.$this->vehicule([
+            'availability' => 'rent',
+            'sale_price' => null,
+            'rental_daily_rate' => null,
+            'rental_monthly_rate' => 600_000,
+        ])->id)->assertOk()->getContent();
+
+        $tarif = '600'."\u{A0}".'000'."\u{A0}".'FCFA'."\u{A0}".'/'."\u{A0}".'mois';
+        $this->assertSame($tarif, $this->prixAffiche($html));
+        $this->assertSame('Toyota Corolla 2015 — '.$tarif, $this->balise($html, 'og:title'));
+        $this->assertStringNotContainsString('Prix sur demande', $html);
+        $this->assertStringNotContainsString('product:price', $html);
+        $this->assertStringNotContainsString('class="tarif-location"', $html, 'Ne pas repeter le seul tarif.');
+    }
+
+    public function test_les_tarifs_journalier_et_mensuel_sont_visibles_sans_confondre_leurs_periodes(): void
+    {
+        $html = $this->get('/v/'.$this->vehicule([
+            'availability' => 'rent',
+            'sale_price' => null,
+            'rental_daily_rate' => 25_000,
+            'rental_monthly_rate' => 600_000,
+        ])->id)->assertOk()->getContent();
+
+        $journalier = '25'."\u{A0}".'000'."\u{A0}".'FCFA'."\u{A0}".'/'."\u{A0}".'jour';
+        $mensuel = '600'."\u{A0}".'000'."\u{A0}".'FCFA'."\u{A0}".'/'."\u{A0}".'mois';
+        $this->assertSame($journalier, $this->prixAffiche($html));
+        $this->assertSame('Toyota Corolla 2015 — '.$journalier, $this->balise($html, 'og:title'));
+        $this->assertStringContainsString('<p class="tarif-location">Location : '.$mensuel.'</p>', $html);
+        $this->assertStringNotContainsString('product:price', $html);
+    }
+
+    public function test_un_prix_de_vente_residuel_ne_masque_pas_la_location_mensuelle(): void
+    {
+        $html = $this->get('/v/'.$this->vehicule([
+            'availability' => 'rent',
+            'sale_price' => 4_500_000,
+            'rental_daily_rate' => null,
+            'rental_monthly_rate' => 600_000,
+        ])->id)->assertOk()->getContent();
+
+        $mensuel = '600'."\u{A0}".'000'."\u{A0}".'FCFA'."\u{A0}".'/'."\u{A0}".'mois';
+        $this->assertSame($mensuel, $this->prixAffiche($html));
+        $this->assertSame('Toyota Corolla 2015 — '.$mensuel, $this->balise($html, 'og:title'));
+        $this->assertStringNotContainsString('product:price', $html);
+        $this->assertStringNotContainsString('4'."\u{A0}".'500'."\u{A0}".'000', $html);
+    }
+
+    public function test_un_tarif_journalier_a_zero_ne_masque_pas_le_tarif_mensuel(): void
+    {
+        $html = $this->get('/v/'.$this->vehicule([
+            'availability' => 'rent',
+            'sale_price' => null,
+            'rental_daily_rate' => 0,
+            'rental_monthly_rate' => 600_000,
+        ])->id)->assertOk()->getContent();
+
+        $tarif = '600'."\u{A0}".'000'."\u{A0}".'FCFA'."\u{A0}".'/'."\u{A0}".'mois';
+        $this->assertSame($tarif, $this->prixAffiche($html));
+        $this->assertStringNotContainsString('jour', $this->balise($html, 'og:title'));
+    }
+
+    public function test_une_offre_mixte_conserve_la_vente_et_montre_les_tarifs_de_location(): void
+    {
+        $html = $this->get('/v/'.$this->vehicule([
+            'availability' => 'both',
+            'sale_price' => 4_500_000,
+            'rental_daily_rate' => 25_000,
+            'rental_monthly_rate' => 600_000,
+        ])->id)->assertOk()->getContent();
+
+        $vente = '4'."\u{A0}".'500'."\u{A0}".'000'."\u{A0}".'FCFA';
+        $this->assertSame($vente, $this->prixAffiche($html));
+        $this->assertSame('Toyota Corolla 2015 — '.$vente, $this->balise($html, 'og:title'));
+        $this->assertSame('4500000', $this->balise($html, 'product:price:amount'));
+
+        foreach ([
+            '25'."\u{A0}".'000'."\u{A0}".'FCFA'."\u{A0}".'/'."\u{A0}".'jour',
+            '600'."\u{A0}".'000'."\u{A0}".'FCFA'."\u{A0}".'/'."\u{A0}".'mois',
+        ] as $tarif) {
+            $this->assertStringContainsString('<p class="tarif-location">Location : '.$tarif.'</p>', $html);
+        }
+    }
+
     public function test_un_tarif_de_location_ferme_n_est_pas_annonce(): void
     {
         // Un vehicule « sale » peut porter un tarif residuel en base ; annoncer
@@ -1517,6 +1603,7 @@ class PagesProduitTest extends TestCase
             'availability'      => 'sale',
             'sale_price'        => null,
             'rental_daily_rate' => 25_000,
+            'rental_monthly_rate' => 600_000,
         ])->id)->assertOk()->getContent();
 
         $this->assertSame(
@@ -1529,7 +1616,9 @@ class PagesProduitTest extends TestCase
         // corps. « jour », en revanche, se cherche dans la BALISE seule : le
         // lien WhatsApp pre-rempli commence par « Bonjour ».
         $this->assertStringNotContainsString('25'."\u{A0}".'000', $html);
+        $this->assertStringNotContainsString('600'."\u{A0}".'000', $html);
         $this->assertStringNotContainsString('jour', $this->balise($html, 'og:title'));
+        $this->assertStringNotContainsString('mois', $this->balise($html, 'og:title'));
     }
 
     public function test_le_prix_est_declare_en_balises_produit(): void

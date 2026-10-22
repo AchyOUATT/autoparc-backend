@@ -176,14 +176,19 @@ class ArticleController extends Controller
             // reste un espace double au milieu. Le HTML l'avale a l'affichage,
             // mais og:title non : c'est la ligne en gras de la conversation.
             titre:       preg_replace('/\s+/', ' ', $vehicle->designation),
-            prix:        $vehicle->sale_price !== null ? (float) $vehicle->sale_price : null,
+            prix:        $vehicle->availability?->allowsSale() && $vehicle->sale_price !== null
+                ? (float) $vehicle->sale_price
+                : null,
             description: $this->extrait($vehicle->description),
             photo:       $this->couverture($vehicle),
-            // Le tarif journalier, et seulement quand la location est ouverte :
+            // Les tarifs, et seulement quand la location est ouverte :
             // un vehicule « sale » peut porter un tarif residuel en base, et
             // l'annoncer proposerait une location que le parc refuse.
             tarifLocation: $vehicle->availability?->allowsRent() && $vehicle->rental_daily_rate !== null
                 ? (float) $vehicle->rental_daily_rate
+                : null,
+            tarifLocationMensuel: $vehicle->availability?->allowsRent() && $vehicle->rental_monthly_rate !== null
+                ? (float) $vehicle->rental_monthly_rate
                 : null,
             precisions:  array_filter([
                 'Année'        => $vehicle->manufacturing_year ? (string) $vehicle->manufacturing_year : null,
