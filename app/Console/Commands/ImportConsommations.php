@@ -207,6 +207,21 @@ class ImportConsommations extends Command
      * 0 jour force l'import : aucune ligne n'est plus recente que « maintenant
      * moins zero jour ». C'est la soupape depuis le tableau de bord de Render,
      * qui n'offre pas de Shell.
+     *
+     * ── CHAQUE SOURCE VIEILLIT POUR SON COMPTE ─────────────────────────────
+     *
+     * L'age se mesurait sur TOUTE la table, sans regarder d'ou venaient les
+     * lignes. Tant qu'une seule source tournait, c'etait sans consequence.
+     *
+     * Le jour ou l'on branche la seconde, ca devient un piege muet : le
+     * demarrage lance le Canada, qui ecrit 29 187 lignes, puis l'Europe, qui
+     * trouve un maximum vieux de deux secondes et rend « rien a faire ». La
+     * source europeenne ne tournerait JAMAIS — pas une fois, pas plus tard —
+     * et le journal afficherait une ligne rassurante a chaque reveil.
+     *
+     * C'est exactement la cote du Hilux, du Land Cruiser, du D-Max, du L200 et
+     * du Navara qui disparaitrait ainsi : l'ossature du parc burkinabe, que le
+     * Canada ignore et que l'Europe est seule a publier.
      */
     private function estEncoreFraiche(): bool
     {
@@ -216,7 +231,9 @@ class ImportConsommations extends Command
             return false;
         }
 
-        $derniere = Motorisation::query()->max('updated_at');
+        $derniere = Motorisation::query()
+            ->where('source', $this->option('source'))
+            ->max('updated_at');
 
         if ($derniere === null) {
             return false;
@@ -228,9 +245,11 @@ class ImportConsommations extends Command
             return false;
         }
 
+        // La source est nommee : sans elle, deux lignes identiques dans le
+        // journal laisseraient croire qu'un seul import a ete saute.
         $this->info(sprintf(
-            'Cotes importees le %s, soit il y a moins de %d jour(s) : rien a faire.',
-            $derniere->toDateTimeString(), (int) $jours,
+            'Cotes %s importees le %s, soit il y a moins de %d jour(s) : rien a faire.',
+            $this->option('source'), $derniere->toDateTimeString(), (int) $jours,
         ));
 
         return true;

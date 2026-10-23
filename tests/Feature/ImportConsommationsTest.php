@@ -340,4 +340,94 @@ class ImportConsommationsTest extends TestCase
 
         $this->assertSame(0, Motorisation::count());
     }
+
+    // ── Chaque source vieillit pour son compte ─────────────────────────────
+    //
+    // La garde d'age mesurait le `max(updated_at)` de TOUTE la table, sans
+    // regarder d'ou venaient les lignes. Tant qu'une seule source tournait,
+    // c'etait sans consequence — et c'est pour cela que personne ne l'a vu.
+    //
+    // Le defaut ne devient visible qu'au moment ou l'on branche la seconde
+    // source, et il est alors MUET : le demarrage lance le Canada, qui ecrit
+    // 29 187 lignes, puis l'Europe, qui trouve un maximum vieux de deux
+    // secondes et annonce « rien a faire ». La source europeenne ne tournerait
+    // jamais, et le journal afficherait une ligne rassurante a chaque reveil.
+    //
+    // Ce sont les cotes du Hilux, du Land Cruiser, du D-Max, du L200 et du
+    // Navara qui disparaitraient ainsi — l'ossature du parc burkinabe, que le
+    // Canada ignore et que l'Europe est seule a publier.
+
+    public function test_une_source_fraiche_ne_bloque_pas_l_autre(): void
+    {
+        // Le canadien vient de tourner.
+        $this->importer();
+
+        $this->assertSame(6, Motorisation::where('source', 'nrcan')->count());
+
+        // Le service europeen ne rend rien : ce test porte sur la GARDE, pas
+        // sur le rendement. Ce qui compte est que la commande aille jusqu'a
+        // l'interroger.
+        Http::fake(['*' => Http::response(['results' => []])]);
+
+        $this->artisan('catalog:import-consommations', [
+            '--source'            => 'eea',
+            '--si-plus-vieux-que' => 180,
+        ])
+            ->doesntExpectOutputToContain('rien a faire')
+            ->assertSuccessful();
+    }
+
+    public function test_la_garde_reste_posee_source_par_source(): void
+    {
+        // Une cote europeenne fraiche, et rien du cote canadien.
+        Motorisation::create([
+            'source'     => 'eea',
+            'cycle'      => 'wltp',
+            'model_year' => 2024,
+            'make_raw'   => 'Toyota',
+            'model_raw'  => 'Hilux',
+        ]);
+
+        Http::fake();
+
+        // Le canadien n'a jamais tourne : sa garde doit laisser passer, meme
+        // si la table porte une ligne ecrite a l'instant par l'autre source.
+        $this->artisan('catalog:import-consommations', [
+            '--fichier'           => [$this->extrait()],
+            '--si-plus-vieux-que' => 180,
+        ])->assertSuccessful();
+
+        $this->assertSame(
+            6,
+            Motorisation::where('source', 'nrcan')->count(),
+            "L'import canadien a ete bloque par la fraicheur d'une cote europeenne."
+        );
+
+        // Et dans l'autre sens, la garde tient toujours : relancer le canadien
+        // juste apres ne retelecharge rien.
+        Http::fake();
+
+        $this->artisan('catalog:import-consommations', [
+            '--fichier'           => [$this->extrait()],
+            '--si-plus-vieux-que' => 180,
+        ])
+            ->expectsOutputToContain('rien a faire')
+            ->assertSuccessful();
+
+        Http::assertNothingSent();
+    }
+
+    public function test_le_journal_nomme_la_source_qu_il_saute(): void
+    {
+        // Deux lignes identiques dans un journal de deploiement laisseraient
+        // croire qu'un seul import a ete saute. Le plan gratuit de Render
+        // n'offre pas de Shell : ce journal est le seul organe d'observation.
+        $this->importer();
+
+        Http::fake();
+
+        $this->artisan('catalog:import-consommations', ['--si-plus-vieux-que' => 180])
+            ->expectsOutputToContain('Cotes nrcan importees')
+            ->assertSuccessful();
+    }
 }
