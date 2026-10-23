@@ -248,7 +248,13 @@ class FiltresHuileBoutiqueSeeder extends Seeder
                 // cartouche sur cette generation pour la meme raison.
                 ["prius-xw50", 2018, 2022, "2ZR-FXE", "Catalogue de correspondance du 18/10/2026, tableau YZZN1 Toyota, statut « Confirme » : Prius 1.8 2ZR-FXE montage visse 2018-2022."],
 
-                ["yaris-xp150", 2011, 2019, "1NZ-FE", "Catalogue de correspondance du 18/10/2026, tableau YZZN1 Toyota, statut « Confirme » : Yaris 1.5 1NZ-FE 2006-2019. Borne basse remontee a 2011, debut de la generation XP150 ; la XP90 manque au referentiel."],
+                // Le slug a change de code, pas de voiture : la ligne du
+                // referentiel portait « XP150 » sur la periode 2011-2020, qui
+                // est celle de la XP130. Voir le commentaire de
+                // `VehicleModelsSeeder`. La borne basse de 2011 et sa
+                // justification restent donc exactes — elles designaient deja
+                // le debut de cette generation-la, sous un mauvais nom.
+                ["yaris-xp130", 2011, 2019, "1NZ-FE", "Catalogue de correspondance du 18/10/2026, tableau YZZN1 Toyota, statut « Confirme » : Yaris 1.5 1NZ-FE 2006-2019. Borne basse remontee a 2011, debut de la generation XP130 ; la XP90 manque au referentiel."],
 
                 // Les cinq modeles d'importation americaine. Ces lignes sont
                 // confirmees trois fois : « Confirme » dans ce tableau-ci,
@@ -259,7 +265,11 @@ class FiltresHuileBoutiqueSeeder extends Seeder
                 ["highlander", 2020, null, "A25A-FXS", "Catalogue de correspondance du 18/10/2026, tableau YZZN1 Toyota, statut « Confirme » : Highlander hybride 2.5 A25A-FXS 2020+. Le tableau YZZA1 prescrit la meme reference pour ce vehicule, et la table par code moteur la confirme."],
                 ["highlander", 2023, null, "T24A-FTS", "Catalogue de correspondance du 18/10/2026, tableau YZZN1 Toyota, statut « Confirme » : Highlander / Grand Highlander 2.4 turbo T24A-FTS 2023+. La table par code moteur la confirme (T24A-FTS -> YZZN1, « Highlander 2023+ »). Le Grand Highlander est un modele distinct, absent du referentiel."],
                 ["sienna", 2021, null, "A25A-FXS", "Catalogue de correspondance du 18/10/2026, tableau YZZN1 Toyota, statut « Confirme » : Sienna hybride 2.5 A25A-FXS 2021+. Le tableau YZZA1 prescrit la meme reference pour ce vehicule."],
-                ["venza", 2021, 2024, "A25A-FXS", "Catalogue de correspondance du 18/10/2026, tableau YZZN1 Toyota, statut « Confirme » : Venza hybride 2.5 A25A-FXS 2021-2024. Le tableau YZZA1 donne la meme ligne en 2021+ ; la borne fermee du tableau YZZN1, plus precise, est retenue."],
+                // Deplacee du slug nu `venza` vers la seconde generation : la
+                // periode 2021-2024 tient entierement dans la XU80, qui est
+                // ouverte depuis 2020, donc le rattachement ne perd ni
+                // n'invente aucune annee.
+                ["venza-xu80", 2021, 2024, "A25A-FXS", "Catalogue de correspondance du 18/10/2026, tableau YZZN1 Toyota, statut « Confirme » : Venza hybride 2.5 A25A-FXS 2021-2024. Le tableau YZZA1 donne la meme ligne en 2021+ ; la borne fermee du tableau YZZN1, plus precise, est retenue. Rattachee a la seconde generation XU80 (2020-), qui couvre toute la periode de la ligne ; la ligne nue `venza` la portait avant que les generations existent."],
                 ["avalon", 2019, 2022, "A25A-FXS", "Catalogue de correspondance du 18/10/2026, tableau YZZN1 Toyota, statut « Confirme » : Avalon hybride 2.5 A25A-FXS 2019-2022. Le tableau YZZA1 prescrit la meme reference pour ce vehicule."],
 
                 // Lexus. Le tableau Lexus de cette partie sort decale a
@@ -307,6 +317,11 @@ class FiltresHuileBoutiqueSeeder extends Seeder
                 // concentraient le plus de lignes « Confirme » sans
                 // destinataire : quatorze ici, cinq sur la YZZN1.
                 //
+                // Trois sont toujours designes par un slug NU, sans
+                // generation, et c'est volontaire — voir la note de fin de
+                // bloc. Le Tacoma et le Venza, eux, ont recu leurs
+                // generations et leurs lignes les ont suivies.
+                //
                 // Le piege est que ces memes modeles portent aussi des lignes
                 // « Non compatible » dans ce tableau — Highlander hybride
                 // 3.3 3MZ-FE (YZZD1), Highlander 2.5 A25A-FXS, Highlander
@@ -321,12 +336,69 @@ class FiltresHuileBoutiqueSeeder extends Seeder
                 ["sienna", 2007, 2016, "2GR-FE", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Sienna 3.5 2GR-FE 2007-2016 FWD / AWD."],
                 ["sienna", 2011, 2013, "1AR-FE", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Sienna 2.7 1AR-FE 2011-2013 FWD."],
                 ["sienna", 2017, 2020, "2GR-FKS", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Sienna 3.5 2GR-FKS 2017-2020 FWD / AWD."],
-                ["venza", 2009, 2016, "1AR-FE", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Venza 2.7 1AR-FE 2009-2016 FWD / AWD."],
-                ["venza", 2009, 2016, "2GR-FE", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Venza 3.5 2GR-FE 2009-2016 FWD / AWD."],
+                // Les deux lignes du Venza, deplacees du slug nu vers sa
+                // premiere generation. 2009-2016 tient dans l'AV10, dont la
+                // production va de 2008 a 2017 : la ligne ne perd aucune
+                // annee par le bas, et sa borne haute de 2016 tombe avant la
+                // fin de la generation. Elle ne touche pas la XU80, qui ne
+                // commence qu'en 2020 — aucun chevauchement, donc aucune
+                // decision du proprietaire a prendre ici.
+                ["venza-av10", 2009, 2016, "1AR-FE", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Venza 2.7 1AR-FE 2009-2016 FWD / AWD. Rattachee a la premiere generation AV10 (2008-2017), qui couvre toute la periode de la ligne."],
+                ["venza-av10", 2009, 2016, "2GR-FE", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Venza 3.5 2GR-FE 2009-2016 FWD / AWD. Rattachee a la premiere generation AV10 (2008-2017), qui couvre toute la periode de la ligne."],
                 ["avalon", 2005, 2022, "2GR-FE", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Avalon 3.5 2GR-FE / FKS 2005-2022 FWD."],
                 ["avalon", 2016, 2022, "2GR-FKS", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Avalon 3.5 2GR-FE / FKS 2005-2022 FWD. Le document groupe les deux codes sans les dater ; borne basse a 2016, date du passage FE -> FKS donnee par les lignes Tacoma, Highlander et Sienna du meme document."],
                 ["avalon", 2013, 2018, "2AR-FXE", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Avalon hybride 2.5 2AR-FXE 2013-2018 FWD."],
-                ["tacoma", 2016, 2023, "2GR-FKS", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Tacoma 3.5 2GR-FKS 2016-2023 RWD / 4WD."],
+                // La premiere des dix-neuf lignes des cinq importations
+                // americaines a avoir quitte son slug nu : 2016-2023 tient
+                // entierement dans la troisieme generation du Tacoma
+                // (2016-2023), donc le rattachement ne perd ni n'invente
+                // aucune annee. Les trois lignes du Venza l'ont suivie, pour
+                // la meme raison et avec la meme marge.
+                //
+                // ── LES QUINZE QUI RESTENT, ET POURQUOI AUCUNE NE BOUGE ─────
+                //
+                // Highlander sept, Sienna quatre, Avalon quatre. SEPT D'ENTRE
+                // ELLES SONT A CHEVAL sur deux generations, et aucune source
+                // n'y changera rien — c'est la ligne de compatibilite qui est
+                // plus large que la generation :
+                //
+                //   Highlander 2GR-FE  2008-2016 : XU40 + XU50
+                //   Highlander 1AR-FE  2009-2019 : XU40 + XU50 + XU70
+                //   Highlander 2GR-FXE 2011-2016 : XU40 + XU50
+                //   Highlander 2GR-FKS 2017-2022 : XU50 + XU70
+                //   Sienna     2GR-FE  2007-2016 : XL20 + XL30
+                //   Avalon     2GR-FE  2005-2022 : XX30 + XX40 + XX50
+                //   Avalon     2GR-FKS 2016-2022 : XX40 + XX50
+                //
+                // Les bornes de production qui donnent ce verdict sont celles
+                // de `GenerationsVenzaTest::GENERATIONS_NON_POSEES`, chacune
+                // lue dans deux sources nommees. CE TABLEAU N'EST PAS RECOPIE
+                // A LA MAIN : ce test le recalcule depuis les lignes
+                // ci-dessous et echoue si l'une d'elles change de bornes.
+                //
+                // Scinder une de ces lignes en deux serait CREER une
+                // compatibilite, et la rattacher a l'une des deux generations
+                // ferait disparaitre le filtre pour les annees de l'autre —
+                // sans que le compte de lignes bouge. Les deux appartiennent
+                // au proprietaire.
+                //
+                // LES HUIT AUTRES NE SONT PAS A CHEVAL, ET POURTANT ELLES NE
+                // BOUGENT PAS NON PLUS. C'est le point a ne pas defaire :
+                // deplacer, par exemple, « Highlander 2GR-FXS 2017-2019 » sur
+                // un `highlander-xu50` tout en laissant « Highlander 2GR-FE
+                // 2008-2016 » sur la ligne nue poserait un piege. Les deux
+                // lignes resteraient atteignables, mais par DEUX entrees
+                // differentes du catalogue : un vendeur qui choisit la
+                // generation XU40 pour un Highlander de 2010 ne verrait plus
+                // la cartouche, qui pend au slug nu. Une piece qui convient et
+                // qu'on ne voit pas est du meme ordre qu'une piece qui ne
+                // convient pas et qu'on vend.
+                //
+                // Ces trois modeles sont donc indivisibles : ou bien leurs
+                // sept lignes a cheval sont tranchees et les quinze suivent,
+                // ou bien rien ne bouge. Le Venza a pu passer parce qu'il
+                // n'avait aucune ligne a cheval, et pour cette seule raison.
+                ["tacoma-iii", 2016, 2023, "2GR-FKS", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Tacoma 3.5 2GR-FKS 2016-2023 RWD / 4WD. Rattachee a la troisieme generation, qui couvre 2016-2023 ; la ligne nue `tacoma` la portait avant que les generations existent."],
 
                 // Lexus. Le tableau par modele sort decale a l'extraction
                 // « -layout » : des valeurs tombent d'une colonne dans l'autre

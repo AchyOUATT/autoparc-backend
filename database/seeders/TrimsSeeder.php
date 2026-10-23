@@ -488,6 +488,529 @@ class TrimsSeeder extends Seeder
             ['toyota', 'prius-xw50', 'XLE',     'XLE',  5, $hybrid, $fwd, 121, 1798, 4, 'cvt', '1,8 4 cylindres hybride 2ZR-FXE, 121 ch cumulés, traction ou AWD-e — la Three renommée au millésime 2019'],
             ['toyota', 'prius-xw50', 'Limited', 'LTD',  6, $hybrid, $fwd, 121, 1798, 4, 'cvt', '1,8 4 cylindres hybride 2ZR-FXE, 121 ch cumulés, traction — la Four renommée au millésime 2019'],
 
+            // ══ TOYOTA, SECONDE MOITIE : LES GENERATIONS RESTEES VIDES ═══
+            //
+            // MESURE AVANT CE LOT, et pas reprise du lot precedent : base
+            // jetable SQLite, pays et marques semes d'abord, puis
+            // VehicleModelsSeeder, TrimsSeeder, FiltresHuileBoutiqueSeeder.
+            // La marque toyota porte 33 lignes et 65 finitions, et DIX-NEUF
+            // de ses lignes n'ont aucune finition.
+            //
+            // CE N'EST PLUS QUINZE, et c'est pour cela qu'il fallait
+            // remesurer : le lot precedent a scinde le Tacoma en quatre
+            // generations et renomme `yaris-xp150` en `yaris-xp130`.
+            // 15 + 4 = 19. Le chiffre a bouge sous le lot.
+            //
+            // LES DIX-NEUF, telles que mesurees :
+            //   generations nommees (13) : auris-e180, avensis-t270,
+            //     fortuner-an50, hilux-an10, land-cruiser-j100,
+            //     land-cruiser-j300, land-cruiser-prado-j120, rush-f800,
+            //     tacoma-i, tacoma-ii, tacoma-iii, tacoma-iv, yaris-xp130
+            //   slugs nus (6) : avalon, highlander, sienna, tacoma, venza,
+            //     vios — `tacoma` etant en plus inactif.
+            //
+            // LES SIX SLUGS NUS NE RECOIVENT RIEN, et ce n'est pas un refus
+            // faute de sources : une finition se pose sur une GENERATION.
+            // Leurs bornes couvrent plusieurs generations aux gammes
+            // disjointes — le point 3 plus haut dans ce fichier le detaille
+            // pour Highlander, Sienna, Venza et Avalon, et il reste vrai
+            // pour ces quatre. Y poser « LE » proposerait cette finition a
+            // une Highlander de 2010, qui ne l'a jamais portee.
+            //
+            // ─── DEUX PASSAGES ONT VIEILLI PLUS HAUT DANS CE FICHIER ────
+            //
+            // Je ne les reecris pas — la consigne de ce lot interdit de
+            // toucher une ligne existante — mais les laisser sans avis
+            // tromperait le prochain lecteur, alors les voici nommes :
+            //
+            //   1. Le point 1 doute de `yaris-xp150` et conclut « rien n'est
+            //      pose ». LE DOUTE A ETE TRANCHE depuis, par le lot
+            //      precedent : le slug est devenu `yaris-xp130`, et ce lot-ci
+            //      pose bien trois finitions dessus. Le soupcon etait juste,
+            //      et la conclusion « ou bien le slug veut dire XP130 et le
+            //      commentaire du catalogue est a reecrire » est celle qui a
+            //      ete retenue.
+            //   2. La ligne d'ecart « highlander, sienna, venza, avalon,
+            //      tacoma : pas de generation » et le point 3 qui la
+            //      developpe NE VALENT PLUS POUR LE TACOMA : il a recu ses
+            //      quatre generations, sa ligne nue est desactivee, et deux
+            //      de ces generations recoivent des finitions ci-dessous.
+            //      Les quatre autres modeles restent nus, et pour eux le
+            //      point 3 est intact.
+            //
+            // ─── ET UN TROISIEME A VIEILLI DEPUIS, PAR UN LOT SUIVANT ───
+            //
+            // Meme usage : rien n'est reecrit, le passage est nomme. Ce lot
+            // de finitions etait deja ecrit quand il est arrive.
+            //
+            //   3. LE POINT 2 ET LE POINT 3 NE VALENT PLUS POUR LE VENZA.
+            //      Le lot du 21/10/2026 qui a suivi celui-ci lui a pose ses
+            //      deux generations — `venza-av10` (2008-2017) et
+            //      `venza-xu80` (2020-) — et a vidé sa ligne nue comme celle
+            //      du Tacoma. Le point 3 lisait « Venza 2009-ouvert couvre
+            //      AV10 et XU80 » : c'etait exact, et c'est precisement ce
+            //      qui a ete corrige.
+            //
+            //      CE LOT-CI N'EN A PAS POSE DE FINITION POUR AUTANT, et il
+            //      ne faut pas le lire comme un refus : ses deux generations
+            //      n'existaient pas quand il a mesure le referentiel. Elles
+            //      sont donc sans gamme, et nommees dans
+            //      `FinitionsToyotaSecondeMoitieTest::POSEES_APRES_CE_LOT`
+            //      plutot que parmi les neuf ecartees — celles-la ont ete
+            //      examinees, celles-ci pas encore.
+            //
+            //      Les TROIS modeles qui restent nus sont le Highlander, le
+            //      Sienna et l'Avalon, et pour eux le point 3 est intact :
+            //      sept de leurs compatibilites de filtres sont a cheval sur
+            //      deux generations, et les trancher appartient au
+            //      proprietaire. Le Venza n'en avait aucune, ce qui est la
+            //      seule chose qui l'en separait.
+            //
+            // QUATRE GENERATIONS SUR LES TREIZE RECOIVENT DES FINITIONS.
+            // NEUF SONT ECARTEES, chacune pour une raison nommee a sa place
+            // ci-dessous. Vingt-trois finitions posees, `description`
+            // remplie sur les vingt-trois.
+            //
+            // ─── POURQUOI AUCUNE MIGRATION N'ACCOMPAGNE CE LOT ──────────
+            //
+            // Le lot precedent avait besoin d'une migration parce qu'il
+            // RENOMMAIT et DESACTIVAIT des lignes existantes, ce qu'un
+            // upsert sur (brand_id, slug) ne sait pas faire. Ici il n'y a
+            // que des insertions, et le `Dockerfile` de HEAD rejoue
+            // `db:seed --class=TrimsSeeder --force` a chaque demarrage :
+            // ce seeder EST le chemin de production. Sa garde `$exists` sur
+            // (vehicle_model_id, name) rend le rejeu idempotent. Verifie en
+            // relisant la ligne dans HEAD, pas en le supposant — elle n'est
+            // pas dans le diff non commite du Dockerfile.
+            //
+            // ─── LA MOTRICITE RESTE NULLE SUR LE TACOMA, ET C'EST VOULU ─
+            //
+            // Ce n'est pas un oubli, et c'est la decision la plus
+            // consequente du lot. Sur un pick-up Tacoma, la motricite est
+            // une CONFIGURATION choisie a la commande, pas une propriete de
+            // la finition : la meme SR5 existe en propulsion et en quatre
+            // roues motrices. Aucune de mes sources ne donne la motricite
+            // finition par finition — la fiche de specifications Cars.com du
+            // millesime 2020 ne nomme « Rear Wheel Drive » que sur la seule
+            // SR Access Cab, et laisse les autres sans mention.
+            //
+            // POSER UN DEFAUT FAUX N'EST PAS NEUTRE, et le code le montre :
+            // `OwnedVehicle::getEffectiveDrivetrainIdAttribute` retombe sur
+            // `trim->default_drivetrain_id` quand le client n'a rien saisi,
+            // et `CompatibilityService::partsForCriteria` filtre alors
+            // « drivetrain_id IS NULL OR = X » sur les compatibilites. Un
+            // defaut faux CACHE une piece qui convient. Un defaut nul, lui,
+            // ne filtre rien du tout : la condition est gardee par
+            // `if ($drivetrainId !== null)`. Le nul est donc le choix large,
+            // le faux le choix etroit.
+            //   La colonne est `nullable` depuis la migration
+            //   2026_01_01_000900, et la fixture `catalog_sync.json` porte
+            //   deja des finitions a `default_drivetrain_id` nul : ce n'est
+            //   pas un etat nouveau pour l'API.
+            //   UNE SEULE EXCEPTION, parce qu'elle est sourcee au mot :
+            //   la « TRD PreRunner » de la quatrieme generation, que
+            //   Wikipedia donne « an off-road oriented two-wheel drive
+            //   trim ». Propulsion, donc, et dit par la source.
+            //
+            // LE RESTE DES MOTRICITES EST POSE, parce qu'il ne fait pas de
+            // doute : le Land Cruiser 300 n'a jamais existe qu'en quatre
+            // roues motrices, et la Yaris qu'en traction. Les lignes
+            // land-cruiser-j200 et yaris-xp210 de ce meme fichier portent
+            // deja ces valeurs.
+            //
+            // ET CELA NE MASQUE RIEN AUJOURD'HUI, mesure : sur les 94
+            // compatibilites du catalogue, QUATORZE portent une motricite et
+            // les quatorze sont des Lexus. Les dix lignes des modeles vises
+            // ici — fortuner-an50, hilux-an10, land-cruiser-j100,
+            // land-cruiser-prado-j120, tacoma-iii, yaris-xp130 — ont toutes
+            // `drivetrain_id` NULL et `trim_id` NULL. Le constat vaut pour
+            // aujourd'hui et pas pour demain, et c'est justement pourquoi un
+            // defaut faux est refuse.
+
+            // ── TOYOTA TACOMA III (2016-2023, Amerique du Nord) ──────────
+            // Sources, consultees le 21/10/2026 :
+            //   - en.wikipedia.org/wiki/Toyota_Tacoma, troisieme generation,
+            //     qui enumere au mot : « is available in 6 trim levels: base
+            //     SR, mid-level SR5, TRD Off-Road, TRD Sport, Limited, and
+            //     range-topping TRD Pro », et donne le 2,7 2TR-FE a 159 ch
+            //     et le 3,5 2GR-FKS a 278 ch.
+            //   - cars.com/research/toyota-tacoma-2020/, qui ecrit « available
+            //     in SR, SR5, TRD Sport, TRD Off Road, Limited and TRD Pro
+            //     trims », et dont la fiche de specifications donne le detail
+            //     qui manque a Wikipedia : SR et SR5 en quatre cylindres OU
+            //     V6, « V6 only » sur TRD Sport, TRD Off Road, Limited et
+            //     TRD Pro, et 159 ch a 5200 tr/min pour le 2,7.
+            // LES SIX NOMS SONT LES MEMES CHEZ LES DEUX. Rien d'ecarte ici.
+            //
+            // LE CATALOGUE DE FILTRES DU DEPOT FAIT LA TROISIEME SOURCE sur
+            // le V6, et il nomme la generation : sa ligne tacoma-iii dit
+            // « Tacoma 3.5 2GR-FKS 2016-2023 RWD / 4WD », statut
+            // « Confirme ». Aucune contradiction : c'est le meme moteur, le
+            // meme code, les memes annees. Il ne porte RIEN pour le 2,7
+            // 2TR-FE — ce n'est pas un desaccord, c'est un trou du catalogue
+            // de filtres, et il vaut d'etre su.
+            //
+            // LES DEUX SOURCES SE CONTREDISENT SUR UN SEUL POINT, L'ORDRE :
+            // Wikipedia classe TRD Off-Road AVANT TRD Sport, Cars.com
+            // l'inverse. Cars.com est suivi, et pour une raison verifiable
+            // plutot que par preference : la TRD Sport est moins chere que
+            // la TRD Off-Road au tarif de la generation suivante, seule
+            // echelle de prix que j'aie pu lire. Le rang n'atteint que
+            // l'ordre d'affichage.
+            //
+            // LA PUISSANCE DU V6 N'EST PAS DANS LA FICHE CARS.COM, qui donne
+            // le quatre cylindres seul : les 278 ch viennent de Wikipedia, et
+            // se recoupent avec les 278 ch annonces par la presse
+            // professionnelle du millesime 2020. Colonne non stockee.
+            ['toyota', 'tacoma-iii', 'SR',            'SR',    1, $petrol, null, 159, 2694, 4, 'automatic', '2,7 4 cylindres 2TR-FE de 159 ch ou 3,5 V6 2GR-FKS de 278 ch — entrée de gamme nord-américaine'],
+            ['toyota', 'tacoma-iii', 'SR5',           'SR5',   2, $petrol, null, 159, 2694, 4, 'automatic', '2,7 4 cylindres 2TR-FE de 159 ch ou 3,5 V6 2GR-FKS de 278 ch — gamme nord-américaine'],
+            ['toyota', 'tacoma-iii', 'TRD Sport',     'TRDS',  3, $petrol, null, 278, 3456, 6, 'automatic', '3,5 V6 2GR-FKS, 278 ch — V6 seulement, jamais le 2,7 ; finition routière nord-américaine'],
+            ['toyota', 'tacoma-iii', 'TRD Off-Road',  'TRDO',  4, $petrol, null, 278, 3456, 6, 'automatic', '3,5 V6 2GR-FKS, 278 ch — V6 seulement ; finition tout-terrain nord-américaine'],
+            ['toyota', 'tacoma-iii', 'Limited',       'LTD',   5, $petrol, null, 278, 3456, 6, 'automatic', '3,5 V6 2GR-FKS, 278 ch — V6 seulement ; finition haute nord-américaine'],
+            ['toyota', 'tacoma-iii', 'TRD Pro',       'TRDP',  6, $petrol, null, 278, 3456, 6, 'automatic', '3,5 V6 2GR-FKS, 278 ch — V6 seulement ; haut de gamme tout-terrain nord-américain, apparu au millésime 2017'],
+
+            // ── TOYOTA TACOMA IV (2023→, Amerique du Nord) ───────────────
+            // Sources, consultees le 21/10/2026 :
+            //   - en.wikipedia.org/wiki/Toyota_Tacoma, quatrieme generation :
+            //     huit finitions, dont six reprises de la precedente — SR,
+            //     SR5, Limited, TRD Sport, TRD Off-Road, TRD Pro — et deux
+            //     nouvelles, la Trailhunter et le retour de la TRD PreRunner,
+            //     decrite « an off-road oriented two-wheel drive trim ». Le
+            //     2,4 turbo T24A-FTS y est donne « 228-278 hp depending on
+            //     trim and transmission », l'hybride i-Force Max a 326 ch
+            //     cumules.
+            //   - cars.com/research/toyota-tacoma-2024/, dont la foire aux
+            //     questions enumere Limited, SR, SR5, TRD Off Road, TRD
+            //     PreRunner et TRD Sport, et dont la section moteur nomme les
+            //     deux dernieres en disant que l'hybride de 326 ch « is
+            //     standard on the Trailhunter and TRD Pro ». Les huit noms y
+            //     sont donc tous, et le 278 ch du turbo y est confirme.
+            //
+            // LES 228 CH NE SONT PAS ATTRIBUES A UNE FINITION PRECISE, et je
+            // ne le fais donc pas : Wikipedia donne une FOURCHETTE, 228 a
+            // 278 ch « selon la finition et la boite », sans dire laquelle
+            // recoit laquelle. La description porte la fourchette telle
+            // quelle plutot qu'un chiffre invente par finition. La colonne de
+            // puissance, qui n'atteint pas la base, porte 278 sauf sur la SR
+            // ou elle porte 228 pour que le rang reste comparable — c'est la
+            // meme convention que la ligne hybride de la Camry XV70 plus
+            // haut, qui porte le cumul en colonne et le thermique en
+            // description.
+            //
+            // L'HYBRIDE EST DE SERIE SUR TRD PRO ET TRAILHUNTER, dit par les
+            // deux sources, et c'est pourquoi ces deux lignes seules portent
+            // le type `hybrid`. Cars.com montre aussi l'hybride en OPTION
+            // sur TRD Sport et TRD Off-Road : l'option est nommee dans leur
+            // description, elle ne change pas leur type par defaut.
+            //
+            // LE CATALOGUE DE FILTRES NE CONNAIT PAS CETTE GENERATION : rien
+            // pour tacoma-iv, ni pour le T24A-FTS. Ni confirmation ni
+            // contradiction, et c'est a signaler plutot qu'a taire.
+            //
+            // L'ORDRE DES RANGS SUIT DES FAITS SOURCES, pas un tarif que je
+            // n'ai pas lu : SR puis SR5 sont donnees « base » et courante par
+            // Wikipedia ; la TRD PreRunner est la tout-terrain a deux roues
+            // motrices, donc sous les tout-terrain a quatre ; la Limited est
+            // la finition de confort ; TRD Pro et Trailhunter ferment la
+            // marche, ce sont les deux seules a hybride de serie.
+            ['toyota', 'tacoma-iv', 'SR',             'SR',    1, $petrol, null, 228, 2393, 4, 'automatic', '2,4 4 cylindres turbo T24A-FTS, de 228 à 278 ch selon la finition et la boîte — entrée de gamme nord-américaine'],
+            ['toyota', 'tacoma-iv', 'SR5',            'SR5',   2, $petrol, null, 278, 2393, 4, 'automatic', '2,4 4 cylindres turbo T24A-FTS, de 228 à 278 ch selon la finition et la boîte — gamme nord-américaine'],
+            ['toyota', 'tacoma-iv', 'TRD PreRunner',  'TRDPR', 3, $petrol, $rwd, 278, 2393, 4, 'automatic', '2,4 4 cylindres turbo T24A-FTS — finition tout-terrain nord-américaine à deux roues motrices, propulsion seule, carrosserie XtraCab'],
+            ['toyota', 'tacoma-iv', 'TRD Sport',      'TRDS',  4, $petrol, null, 278, 2393, 4, 'automatic', '2,4 4 cylindres turbo T24A-FTS, de 228 à 278 ch — gamme nord-américaine, hybride i-Force Max de 326 ch en option'],
+            ['toyota', 'tacoma-iv', 'TRD Off-Road',   'TRDO',  5, $petrol, null, 278, 2393, 4, 'automatic', '2,4 4 cylindres turbo T24A-FTS, de 228 à 278 ch — gamme nord-américaine, hybride i-Force Max de 326 ch en option'],
+            ['toyota', 'tacoma-iv', 'Limited',        'LTD',   6, $petrol, null, 278, 2393, 4, 'automatic', '2,4 4 cylindres turbo T24A-FTS, de 228 à 278 ch — finition de confort nord-américaine'],
+            ['toyota', 'tacoma-iv', 'TRD Pro',        'TRDP',  7, $hybrid, null, 326, 2393, 4, 'automatic', '2,4 4 cylindres turbo hybride i-Force Max, 326 ch cumulés de série — haut de gamme tout-terrain nord-américain'],
+            ['toyota', 'tacoma-iv', 'Trailhunter',    'TRH',   8, $hybrid, null, 326, 2393, 4, 'automatic', '2,4 4 cylindres turbo hybride i-Force Max, 326 ch cumulés de série — gamme nord-américaine, préparée pour le voyage tout-terrain'],
+
+            // ── TOYOTA LAND CRUISER J300 (2021→, Australie) ─────────────
+            // Sources, consultees le 21/10/2026 :
+            //   - en.wikipedia.org/wiki/Toyota_Land_Cruiser, section J300,
+            //     qui donne pour l'Australie « six grades: GX, GXL, VX,
+            //     Sahara, GR Sport and Sahara ZX », et le F33A-FTV 3,3 V6
+            //     diesel bi-turbo a 227 kW (304 ch).
+            //   - 4x4australia.com.au, « 2022 Toyota LandCruiser 300 pricing
+            //     and features », qui enumere les SIX MEMES noms avec leur
+            //     tarif de lancement — GX 89 990, GXL 101 790, VX 113 990,
+            //     Sahara 131 190, GR Sport 137 790, Sahara ZX 138 790 — et
+            //     precise que les six partagent le meme « 3.3L twin-turbo V6
+            //     diesel ».
+            // LES SIX NOMS ET LEUR ORDRE SONT LES MEMES CHEZ LES DEUX, et le
+            // rang suit l'echelle de prix, qui est lue et non supposee.
+            //
+            // POURQUOI L'AUSTRALIE ET PAS LE GOLFE. Wikipedia donne aussi six
+            // noms pour le Moyen-Orient — GX, EX-R, GX-R, VX, VX-R et GR
+            // Sport — et cinq pour le Japon. Je ne les pose pas : UNE SEULE
+            // SOURCE chacun. C'est la meme regle qui a fait refuser les noms
+            // du Golfe au lot precedent, et la liste de candidats du
+            // proprietaire proposait justement « GX-R, VX-R, ZX » pour le
+            // Golfe. Ecartes, donc, et le marche australien est nomme dans
+            // chaque description pour qu'aucun « GX » ne soit pris pour
+            // l'autre.
+            //
+            // L'AUSTRALIE EST A CONDUITE A DROITE, et le lot precedent s'en
+            // est servi pour ecarter les noms britanniques de l'Auris. La
+            // difference est reelle et je ne la cache pas : ici le marche est
+            // NOMME dans la description, donc un vendeur voit a quoi il a
+            // affaire, alors qu'un « Icon » d'Auris ne disait rien de son
+            // pays. C'est un arbitrage de catalogue, et il vous revient de le
+            // defaire si le parc ne vient jamais d'Australie.
+            //
+            // LE CATALOGUE DE FILTRES NE CONNAIT PAS LE J300 : mesure, zero
+            // ligne pour land-cruiser-j300. Aucune confirmation interne du
+            // F33A-FTV, et aucune contradiction non plus.
+            //
+            // LA GAMME AUSTRALIENNE EST ENTIEREMENT DIESEL, dit par les deux
+            // sources. Le V35A-FTS essence de 409 ch existe, mais au Japon et
+            // au Moyen-Orient, donc sur des noms que je n'ai pas poses.
+            ['toyota', 'land-cruiser-j300', 'GX',        'GX',   1, $diesel, $dwa, 304, 3346, 6, 'automatic', '3,3 V6 diesel bi-turbo F33A-FTV, 304 ch, 4 roues motrices — entrée de gamme australienne'],
+            ['toyota', 'land-cruiser-j300', 'GXL',       'GXL',  2, $diesel, $dwa, 304, 3346, 6, 'automatic', '3,3 V6 diesel bi-turbo F33A-FTV, 304 ch, 4 roues motrices — gamme australienne'],
+            ['toyota', 'land-cruiser-j300', 'VX',        'VX',   3, $diesel, $dwa, 304, 3346, 6, 'automatic', '3,3 V6 diesel bi-turbo F33A-FTV, 304 ch, 4 roues motrices — gamme australienne'],
+            ['toyota', 'land-cruiser-j300', 'Sahara',    'SAH',  4, $diesel, $dwa, 304, 3346, 6, 'automatic', '3,3 V6 diesel bi-turbo F33A-FTV, 304 ch, 4 roues motrices — finition haute australienne'],
+            ['toyota', 'land-cruiser-j300', 'GR Sport',  'GRS',  5, $diesel, $dwa, 304, 3346, 6, 'automatic', '3,3 V6 diesel bi-turbo F33A-FTV, 304 ch, 4 roues motrices — haut de gamme tout-terrain australien'],
+            ['toyota', 'land-cruiser-j300', 'Sahara ZX', 'SZX',  6, $diesel, $dwa, 304, 3346, 6, 'automatic', '3,3 V6 diesel bi-turbo F33A-FTV, 304 ch, 4 roues motrices — haut de gamme routier australien'],
+
+            // ── TOYOTA YARIS XP130 (2011-2020, Amerique du Nord) ─────────
+            // ATTENTION : LA LISTE DE CANDIDATS DU PROPRIETAIRE PORTE SUR UNE
+            // AUTRE VOITURE. Elle propose « Yaris XP150 : J, E, G, S, TRD
+            // Sportivo ; Xi, XS, Sport, Cross ». Ce sont les noms de la Yaris
+            // et de la Vios d'ASIE. Or le lot precedent a corrige cette
+            // ligne : le referentiel porte maintenant `yaris-xp130`, la
+            // citadine a hayon d'Europe, du Japon et d'Amerique du Nord. Ces
+            // candidats-la n'ont donc PLUS de ligne ou se poser, et les poser
+            // sur la XP130 aurait reinstalle exactement le malentendu que le
+            // lot precedent vient de defaire. ECARTES EN BLOC, et c'est le
+            // desaccord le plus net de ce lot.
+            //
+            // Sources pour ce qui est pose, consultees le 21/10/2026 :
+            //   - en.wikipedia.org/wiki/Toyota_Yaris_(XP130), qui ecrit pour
+            //     l'Amerique du Nord « the base L (CE in Canada), mid-range
+            //     LE and sport-tuned SE trim levels », et donne le 1NZ-FE
+            //     1,5 pour le chassis NCP131.
+            //   - cars.com/research/toyota-yaris-2015/, dont la foire aux
+            //     questions dit « available in 3 trim levels » et dont les
+            //     versions disponibles sont « Liftback Man L », « Auto L »,
+            //     « Auto LE », « Man SE » et « Auto SE », avec un
+            //     « 106-horsepower 1.5 liter four-cylinder ». La fiche du
+            //     millesime 2017 du meme site redonne L, LE, SE et les memes
+            //     106 ch.
+            // LES TROIS NOMS SONT LES MEMES CHEZ LES DEUX.
+            //
+            // LE CATALOGUE DE FILTRES DU DEPOT CONFIRME LE MOTEUR ET LA
+            // GENERATION, et il a ete corrige par le lot precedent : sa ligne
+            // dit « Yaris 1.5 1NZ-FE », bornes 2011-2019, note « Borne basse
+            // remontee a 2011, debut de la generation XP130 ». Meme code
+            // moteur, meme cylindree, meme generation. Troisieme source, et
+            // interne.
+            //
+            // LES 106 CH NE VIENNENT QUE DE CARS.COM, deux millesimes du meme
+            // site : Wikipedia donne le CODE 1NZ-FE mais aucune puissance
+            // pour cette generation. Je le dis plutot que de compter deux
+            // sources ou il n'y en a qu'une. La colonne n'atteint pas la
+            // base ; le code moteur, lui, est bien a deux sources.
+            //
+            // LA BOITE DEPARTAGE CES TROIS FINITIONS plus que la puissance,
+            // qui est la meme : la LE n'existe qu'en automatique chez
+            // Cars.com, la L et la SE existent dans les deux. Le rang suit
+            // donc l'equipement, du plus modeste au plus sportif, et c'est
+            // dit ici plutot que laisse deviner.
+            //
+            // LE MARCHE NORD-AMERICAIN EST NOMME DANS CHAQUE DESCRIPTION, et
+            // il faut savoir ce que cela laisse de cote : le lot precedent a
+            // etabli que ce parc vient du Japon, de Coree, d'Allemagne, de
+            // France, des Pays-Bas et de Belgique. Un vendeur avec une Yaris
+            // francaise ne trouvera donc pas sa finition — mais il n'en
+            // trouvait AUCUNE avant ce lot, et la description l'empeche de
+            // prendre une « SE » americaine pour la sienne.
+            //
+            // LES DEUX MARCHES QUI AURAIENT MIEUX VALU, ET POURQUOI ILS NE
+            // SONT PAS POSES. Cette generation n'apparait pas dans le bloc des
+            // ecartees plus bas, puisqu'elle est pourvue : sa part refusee est
+            // donc dite ici.
+            //   - LE JAPON est le marche le plus utile des deux, le parc en
+            //     venant. Wikipedia donne la gamme au mot — « The Vitz was
+            //     offered in F, U, Jewela and RS model grades » — mais une
+            //     seule fois, et je n'ai pas trouve de seconde source. S'y
+            //     ajoute que la voiture s'y nomme VITZ et non Yaris : poser
+            //     « Jewela » sur une ligne « Yaris » demanderait de trancher
+            //     si le referentiel suit le nom du marche ou celui du modele,
+            //     ce qui n'est pas une question de finitions.
+            //   - L'EUROPE n'a pas de gamme du tout chez Wikipedia pour cette
+            //     generation : le seul nom qui y figure, « Trend », est dans
+            //     une legende de photographie. Et le lot precedent a deja
+            //     etabli que le nom de finition europeen change de pays en
+            //     pays — c'est ce qui bloque l'Auris et l'Avensis.
+            //   Une seconde source japonaise suffirait a poser quatre
+            //   finitions de plus ici, et ce serait le meilleur rapport
+            //   effort/utilite qui reste sur ce modele.
+            ['toyota', 'yaris-xp130', 'L',  'L',  1, $petrol, $fwd, 106, 1497, 4, 'manual',    '1,5 4 cylindres 1NZ-FE, 106 ch, traction — entrée de gamme nord-américaine, « CE » au Canada'],
+            ['toyota', 'yaris-xp130', 'LE', 'LE', 2, $petrol, $fwd, 106, 1497, 4, 'automatic', '1,5 4 cylindres 1NZ-FE, 106 ch, traction — gamme nord-américaine, automatique seulement'],
+            ['toyota', 'yaris-xp130', 'SE', 'SE', 3, $petrol, $fwd, 106, 1497, 4, 'manual',    '1,5 4 cylindres 1NZ-FE, 106 ch, traction — finition sportive nord-américaine, même moteur que la LE'],
+
+            // ══ LES NEUF GENERATIONS ECARTEES, UNE PAR UNE ═══════════════
+            //
+            // Aucune n'est ecartee par manque d'envie, et quatre le sont sur
+            // une CONTRADICTION ENTRE SOURCES que je nomme.
+            //
+            // ─── 1 et 2. TACOMA I (1995-2004) ET TACOMA II (2004-2015) ──
+            // Ce sont les deux ecarts les plus instructifs du lot, parce que
+            // les generations III et IV du MEME modele ont ete posees juste
+            // au-dessus : la difference n'est pas la disponibilite des
+            // sources, c'est que L'ECHELLE DE FINITIONS N'EXISTAIT PAS
+            // ENCORE. Elle commence au millesime 2016.
+            //   Avant elle, le Tacoma se vendait par CONFIGURATION, et mes
+            //   sources ne s'accordent donc pas sur ce qu'est une finition :
+            //   - cars.com/research/toyota-tacoma-2002/ annonce « 3 trim
+            //     levels » et nomme PreRunner, S-Runner et une troisieme
+            //     sans nom ; ses versions s'appellent « Reg Cab Manual (GS) »
+            //     ou « XtraCab V6 Manual S-Runner (GS) » — de la carrosserie
+            //     et de la boite, pas une gamme.
+            //   - cars.com/research/toyota-tacoma-2015/ annonce « 3 trim
+            //     levels » et ne nomme que PreRunner et TRD Pro, la troisieme
+            //     restant sans nom — alors que Wikipedia en donne six pour la
+            //     meme annee.
+            //   - en.wikipedia.org/wiki/Toyota_Tacoma nomme bien SR, SR5, TRD
+            //     Sport, TRD Off-Road, X-Runner et TRD Pro sur la deuxieme
+            //     generation, mais place la SR « new in 2014 » et la TRD Pro
+            //     en 2015 : deux noms sur les onze derniers mois d'une
+            //     generation de onze ans.
+            //   - et les recoupements concordent sur le point qui tranche :
+            //     la SR5 de ces annees-la est un ENSEMBLE D'OPTIONS, pas une
+            //     finition, tandis que PreRunner et X-Runner designent une
+            //     motricite et un chassis.
+            //   Poser « SR5 » sur tacoma-ii ferait donc passer un ensemble
+            //   d'options pour une finition, et poser « PreRunner » ferait
+            //   passer une motricite pour une gamme. Les deux generations
+            //   restent vides, et la raison est dans la voiture, pas dans la
+            //   recherche.
+            //
+            // ─── 3. LAND CRUISER PRADO J120 (2002-2009) ─────────────────
+            // A UNE SOURCE PRES. Wikipedia donne une liste japonaise propre
+            // et citable — « The Japanese market Prado consisted of 6 trim
+            // levels known as RX, RZ, TX, TX Limited, TZ and TZ "G
+            // Selection" » — qui est exactement la liste de candidats du
+            // proprietaire. Il manque la seconde source, et les deux que j'ai
+            // essayees ne valent pas :
+            //   - drom.ru/catalog/toyota/land_cruiser_prado/ ne donne AUCUN
+            //     nom de finition pour le J120, seulement des codes chassis.
+            //     Mesure : RX, RZ, TX et TZ n'y figurent pas.
+            //   - une page de guide d'importation que je ne cite pas comme
+            //     source s'est disqualifiee : son contenu, tel que me l'a
+            //     rendu l'outil de recuperation, CONTREDIT ce qu'un extrait
+            //     de recherche du meme site affirmait au meme moment — l'un
+            //     dit que les noms d'export GX et VX « ne s'appliquent pas »
+            //     a cette voiture, l'autre que sa table de finitions les
+            //     emploie. Elle date aussi le passage au 1GR-FE d'aout 2005
+            //     quand Wikipedia le met en juillet 2004. Une source qui se
+            //     contredit sur elle-meme ne compte pas pour une.
+            //   La gamme australienne de la meme generation n'est pas mieux
+            //   servie : Wikipedia ne nomme GXL, VX et Grande que dans des
+            //   legendes de photographies, et ne mentionne pas la GX.
+            //   CE QU'IL FAUDRAIT : un catalogue japonais d'epoque, ou une
+            //   fiche Toyota Australie archivee. La liste de candidats est
+            //   probablement juste — elle n'est pas prouvee.
+            //
+            // ─── 4. FORTUNER AN50 (2005-2015) ──────────────────────────
+            // ECARTE SUR UNE CONTRADICTION, et elle porte precisement sur un
+            // nom de la liste de candidats. Celle-ci propose « G, G Luxury,
+            // V, TRD Sportivo » pour l'Asie.
+            //   - en.wikipedia.org/wiki/Toyota_Fortuner, premiere generation,
+            //     dit pour la Thailande « with two grade levels: the
+            //     entry-level G, and the top-spec V », et DEUX seulement. Il
+            //     range explicitement la TRD Sportivo dans la DEUXIEME
+            //     generation, pas la premiere.
+            //   - un miroir de Wikipedia donne au contraire « G and G Luxury
+            //     for rear-wheel drive diesel and petrol, and V for 4x4 » —
+            //     donc une « G Luxury » que l'article lui-meme ne porte pas.
+            //   - les sources philippines nomment les finitions AVEC LE
+            //     MOTEUR DEVANT — « 2.7 G gasoline, 2.5 G diesel, 3.0 V
+            //     diesel » — ce qui est une autre convention de nommage, et
+            //     la plus serieuse d'entre elles est un wiki de fans.
+            //   Trois conventions, et la seule qui soit propre n'a qu'une
+            //   source. Les noms du Golfe — Wikipedia donne « two grades sold
+            //   in Saudi Arabia, called the "GX" and the "VX" » et une liste
+            //   d'Emirats qu'il annonce a quatre variantes en en citant cinq
+            //   — tombent sous la meme regle que le lot precedent.
+            //   A NOTER POUR QUI REPRENDRA : le catalogue de filtres du depot
+            //   donne a fortuner-an50 le 2KD-FTV 2,5 diesel et le 1GR-FE 4,0
+            //   V6 essence. Le 1GR-FE 4,0 CORROBORE la « VX » saoudienne, que
+            //   Wikipedia donne en 4,0 V6 — c'est la premiere fois qu'une
+            //   source interne appuie un nom du Golfe. Une seconde source
+            //   externe sur la gamme saoudienne suffirait a debloquer ce
+            //   modele. Le catalogue ne porte en revanche AUCUNE ligne 2,7
+            //   essence, la motorisation de la « G » thailandaise.
+            //
+            // ─── 5. HILUX AN10 (2004-2015) ─────────────────────────────
+            // RIEN DE CITABLE, et ce n'est pas faute d'avoir cherche la
+            // bonne page. L'article Wikipedia du Hilux ne contient, pour
+            // toute sa septieme generation, AUCUNE phrase qui enumere une
+            // gamme : les deux seuls noms qui apparaissent le font dans des
+            // libelles d'essais de choc ANCAP — « Hilux 4x2 Workmate single
+            // cab chassis (2005) » et « Hilux 4x4 SR dual cab (2005) ». La
+            // SR5 de la liste de candidats n'y figure pas une fois pour cette
+            // generation, et les noms sud-africains qu'elle propose — SRX,
+            // Raider, Legend 35/40/45 — pas davantage.
+            //   Un libelle d'essai de choc n'est pas une gamme : il nomme le
+            //   vehicule teste, pas les finitions vendues. Deux noms tires de
+            //   deux crash-tests ne font pas une echelle.
+            //   Le catalogue de filtres du depot confirme les MOTEURS
+            //   (1KD-FTV 3,0 diesel 2005-2015 et 1GR-FE 4,0 V6 2005-2013),
+            //   et c'est tout : un code moteur ne nomme pas une finition.
+            //
+            // ─── 6. LAND CRUISER J100 (1998-2007) ──────────────────────
+            // UN SEUL NOM SOURCE, et c'est le plus haut de la gamme.
+            // Wikipedia ne nomme pour l'Australie que « the range-topping
+            // GXV model », et rien d'autre : ni Standard, ni GXL, ni Sahara.
+            // Pour le Japon il ne donne que le NOM DU MODELE — la J100 y
+            // etait vendue « as the Toyota Cygnus » — et « VX Limited »
+            // n'apparait que dans une legende de photographie. La liste de
+            // candidats en propose onze ; les sources en nomment un.
+            //   Poser la seule GXV donnerait un catalogue ou la finition la
+            //   plus chere est la seule proposee — pire qu'une case vide pour
+            //   un vendeur qui a la version de base.
+            //   Le catalogue de filtres donne le 2UZ-FE 4,7 V8 1998-2007, ce
+            //   qui concorde avec la J100 a V8 mais ne nomme aucune finition.
+            //
+            // ─── 7. RUSH F800 (2017→) ──────────────────────────────────
+            // LES NOMS CHANGENT DE MARCHE EN MARCHE, et la liste de
+            // candidats les melange en une seule ligne « G, S, TRD Sportivo,
+            // GR Sport ». Wikipedia, qui traite ce modele sous le Daihatsu
+            // Terios, les separe :
+            //   Indonesie « The Rush came with G and TRD Sportivo grades »,
+            //   la TRD Sportivo devenant GR Sport en aout 2021 ; Philippines
+            //   E et G, la G remplacee par GR Sport en mai 2022, puis la E
+            //   retiree en janvier 2024 ; Malaisie « two grade levels were
+            //   offered: 1.5 G and 1.5 S ».
+            //   La « S » n'existe donc qu'en Malaisie, et Wikipedia la rattache
+            //   par ailleurs au Rush F700, la generation PRECEDENTE. Poser les
+            //   quatre noms cote a cote ferait une gamme qu'aucun pays n'a
+            //   jamais vendue.
+            //   Il manque de toute facon la seconde source, et le catalogue
+            //   de filtres du depot ne connait pas rush-f800 : mesure, zero
+            //   ligne.
+            //
+            // ─── 8 et 9. AURIS E180 ET AVENSIS T270 ────────────────────
+            // DEJA ECARTEES PAR LE LOT PRECEDENT, et je ne renverse pas sa
+            // decision parce que je n'ai pas trouve de quoi la renverser :
+            // il faudrait une source par PAYS europeen, le nom de finition y
+            // changeant d'un marche a l'autre. Les listes de candidats le
+            // montrent elles-memes, en donnant deux jeux pour l'Auris
+            // (Royaume-Uni et France) et trois pour l'Avensis.
+            //   Je n'ai pas depense de recherche sur ces deux-la : la raison
+            //   ecrite plus haut dans ce fichier tient toujours, et aucune
+            //   de mes sources utilisables ne couvre les gammes francaise,
+            //   allemande, neerlandaise ou belge generation par generation.
+            //   C'est un travail de catalogue constructeur archive, pas de
+            //   recoupement encyclopedique.
+            //
+            // ─── CE QUE JE N'AI PAS PU OUVRIR, ET QUI NE SERT DONC A RIEN ─
+            // kbb.com, toyota.com.au, autodeal.com et pressroom.toyota.com
+            // rendent HTTP 403 ou 404 a l'outil de recuperation ;
+            // caranddriver.com est refuse en amont. Rien n'en a ete tire et
+            // aucune n'est citee comme source. La liste de candidats du
+            // proprietaire citait des pages Toyota sans lien ouvrable : je
+            // n'en ai ouvert aucune, et c'est pourquoi les gammes du Golfe
+            // restent refusees pour la deuxieme fois.
+
             // ── NISSAN PATROL Y61 ────────────────────────────────────────
             ['nissan', 'patrol-y61', 'DX',         'DX',   1, $diesel, $dwa, 130, 2953, 6, 'manual'],
             ['nissan', 'patrol-y61', 'SE',         'SE',   2, $petrol, $dwa, 170, 2997, 6, 'automatic'],

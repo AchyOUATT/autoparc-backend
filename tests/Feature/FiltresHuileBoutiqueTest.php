@@ -649,6 +649,12 @@ class FiltresHuileBoutiqueTest extends TestCase
                 ['highlander', '3MZ-FE'], ['highlander', 'A25A-FXS'],
                 ['highlander', 'T24A-FTS'], ['sienna', 'A25A-FXS'],
                 ['venza', 'A25A-FXS'], ['avalon', 'A25A-FXS'],
+                // Le Venza a recu ses generations et ses lignes les ont
+                // suivies : l'interdiction doit suivre aussi, sans quoi elle
+                // ne surveille plus qu'un slug nu que plus aucune ligne ne
+                // vise. C'est bien la XU80 qui prend l'A25A-FXS — mais en
+                // FILTRE VISSE 90915-YZZN1, jamais en cartouche.
+                ['venza-xu80', 'A25A-FXS'],
             ],
             // Le tableau YZZN1 renvoie ces vehicules vers la YZZA1 ou la
             // YZZA6. Les V6 s'y ajoutent : « aucune application V6 ou V8 n'est
@@ -666,7 +672,17 @@ class FiltresHuileBoutiqueTest extends TestCase
                 ['highlander', '2GR-FE'], ['highlander', '2GR-FKS'],
                 ['highlander', '1AR-FE'], ['sienna', '2GR-FE'],
                 ['venza', '1AR-FE'], ['avalon', '2AR-FXE'],
+                // Meme raison que pour le Tacoma juste en dessous : l'AV10
+                // prend bien le 1AR-FE, mais en CARTOUCHE 04152-YZZA1.
+                ['venza-av10', '1AR-FE'],
                 ['tacoma', '2GR-FKS'], ['tacoma', '2TR-FE'],
+                // Le Tacoma a recu ses generations et sa compatibilite les a
+                // suivies : l'interdiction doit suivre aussi, sans quoi elle
+                // ne surveille plus qu'un slug nu que plus aucune ligne ne
+                // vise. C'est bien la troisieme generation qui prend le
+                // 2GR-FKS — mais en CARTOUCHE 04152-YZZA1, jamais en filtre
+                // visse.
+                ['tacoma-iii', '2GR-FKS'], ['tacoma-iii', '2TR-FE'],
             ],
             // Le tableau YZZA6 renvoie ces vehicules vers la YZZN1 ou la
             // YZZF1.
@@ -708,6 +724,13 @@ class FiltresHuileBoutiqueTest extends TestCase
      * Le proprietaire a leve l'absence de ces cinq modeles sur une estimation
      * du nombre de compatibilites qu'ils debloqueraient. Ce test fixe le compte
      * reel, modele par modele, pour que la decision reste verifiable.
+     *
+     * LE TOTAL DE DIX-NEUF EST LA PREUVE QU'AUCUNE N'A DISPARU, et c'est
+     * pourquoi il est verifie a part : le jour ou l'une de ces lignes change
+     * de cible, c'est la repartition qui bouge et le total qui doit tenir.
+     * Le Tacoma l'a deja fait — sa ligne est passee du slug nu `tacoma` a
+     * `tacoma-iii`, et le total n'a pas bronche. Le Venza l'a fait apres lui,
+     * avec ses trois lignes reparties sur ses deux generations.
      */
     public function test_les_modeles_d_importation_americaine_portent_leurs_lignes(): void
     {
@@ -716,9 +739,15 @@ class FiltresHuileBoutiqueTest extends TestCase
         $attendus = [
             'highlander' => ['04152-YZZA1' => 5, '90915-YZZN1' => 2],
             'sienna'     => ['04152-YZZA1' => 3, '90915-YZZN1' => 1],
-            'venza'      => ['04152-YZZA1' => 2, '90915-YZZN1' => 1],
             'avalon'     => ['04152-YZZA1' => 3, '90915-YZZN1' => 1],
-            'tacoma'     => ['04152-YZZA1' => 1],
+            // Et non `tacoma` ni `venza` : ces deux lignes-la ne portent plus
+            // rien, voir `GenerationsTacomaYarisTest` et
+            // `GenerationsVenzaTest`. Le Venza est le seul des cinq a repartir
+            // ses lignes sur DEUX generations : les deux cartouches sur
+            // l'AV10 de 2008-2017, le filtre visse sur la XU80 de 2020.
+            'tacoma-iii' => ['04152-YZZA1' => 1],
+            'venza-av10' => ['04152-YZZA1' => 2],
+            'venza-xu80' => ['90915-YZZN1' => 1],
         ];
 
         $total = 0;
@@ -758,13 +787,46 @@ class FiltresHuileBoutiqueTest extends TestCase
     {
         $this->semer();
 
-        foreach (['Highlander', 'Sienna', 'Venza', 'Avalon', 'Tacoma'] as $nom) {
+        foreach (['Highlander', 'Sienna', 'Avalon'] as $nom) {
             $this->assertCount(
                 1,
                 VehicleModel::where('name', $nom)->get(),
                 "Le modele {$nom} existe en plusieurs exemplaires.",
             );
         }
+
+        // Le Venza fait exception depuis qu'il a ses generations, et de la
+        // meme facon voulue que le Tacoma ci-dessous : deux generations
+        // actives, plus la ligne nue conservee mais inactive. En compter trois
+        // d'actives signifierait que la ligne nue est revenue dans la liste.
+        $this->assertCount(
+            2,
+            VehicleModel::where('name', 'Venza')->where('is_active', true)->get(),
+            'Le Venza doit montrer ses deux generations, et rien de plus.',
+        );
+
+        $this->assertCount(
+            3,
+            VehicleModel::where('name', 'Venza')->get(),
+            'La ligne nue du Venza doit etre conservee : la supprimer casserait ce qui la reference.',
+        );
+
+        // Le Tacoma fait exception, et de facon voulue : quatre generations
+        // actives, plus la ligne nue conservee mais inactive. Le test porte
+        // donc sur ce qu'un vendeur VOIT, c'est-a-dire les lignes actives —
+        // en compter cinq signifierait que la ligne nue est revenue dans la
+        // liste et que « Tacoma » y apparait une fois de trop.
+        $this->assertCount(
+            4,
+            VehicleModel::where('name', 'Tacoma')->where('is_active', true)->get(),
+            'Le Tacoma doit montrer ses quatre generations, et rien de plus.',
+        );
+
+        $this->assertCount(
+            5,
+            VehicleModel::where('name', 'Tacoma')->get(),
+            'La ligne nue du Tacoma doit etre conservee : la supprimer casserait ce qui la reference.',
+        );
 
         // Et les noms de marche de ces memes vehicules ne doivent pas avoir
         // cree une seconde entree : le Highlander se vend « Kluger » hors
