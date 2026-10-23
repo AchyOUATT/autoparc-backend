@@ -398,24 +398,29 @@ class GenerationsTacomaYarisTest extends TestCase
     // ── Ce que `is_active = false` fait, et ce qu'il ne fait pas ────────────
 
     /**
-     * MESURE : la route publique des modeles NE CACHE PAS la ligne inactive.
+     * La route publique des modeles CACHE la ligne inactive. Depuis le 23/10.
      *
-     * Ce test ne fixe pas un comportement souhaitable, il fixe le comportement
-     * REEL — et c'est pour cela qu'il existe. `VehicleModelsSeeder` affirme en
-     * commentaire que la desactivation ne suffit pas sur cette route ; un
-     * commentaire qui affirme un comportement doit etre vrai, et c'est ici
-     * qu'on le verifie.
+     * ── CE TEST A CHANGE DE SENS, ET C'EST SON HISTOIRE QUI COMPTE ─────────
      *
-     * `BrandController::models` ne filtre pas `is_active`, et
-     * `VehicleModelResource` n'expose meme pas la colonne : le client n'a donc
-     * aucun moyen de trancher. Un vendeur voit « Tacoma » cinq fois sur cette
-     * route.
+     * Il a d'abord existe comme MESURE du contraire : il affirmait que la
+     * route ne filtrait pas `is_active`, que la ressource n'exposait meme pas
+     * la colonne, et qu'un vendeur voyait donc « Tacoma » cinq fois. Il ne
+     * fixait pas un comportement souhaitable, il enregistrait le comportement
+     * reel — parce que `VehicleModelsSeeder` l'affirmait en commentaire et
+     * qu'un commentaire qui affirme un comportement doit etre verifie.
      *
-     * CE TEST DOIT ETRE INVERSE LE JOUR OU LA ROUTE EST CORRIGEE, et le
-     * commentaire du seeder reecrit avec lui. Rendre la route conforme est un
-     * changement de comportement public, donc une decision du proprietaire.
+     * Il portait sa propre condition de peremption : « CE TEST DOIT ETRE
+     * INVERSE LE JOUR OU LA ROUTE EST CORRIGEE ». Le jour est venu, et c'est
+     * LUI qui l'a signale : il est le seul test de la suite a etre tombe quand
+     * le filtre a ete pose. Un test de caracterisation qui fait son travail ne
+     * protege pas un defaut, il garde la trace de l'endroit ou l'on reviendra.
+     *
+     * Le filtre lui-meme, ses garde-fous et le piege de `catalog:import-nhtsa`
+     * vivent dans `SelecteurModelesActifsTest`. Ce qui reste ici est ce qui
+     * concerne CE lot : le Tacoma garde ses quatre generations et perd sa
+     * ligne nue.
      */
-    public function test_mesure_la_route_publique_des_modeles_ignore_le_drapeau_actif(): void
+    public function test_la_route_publique_des_modeles_cache_la_ligne_nue(): void
     {
         $toyota = Brand::find($this->toyota());
 
@@ -423,25 +428,29 @@ class GenerationsTacomaYarisTest extends TestCase
 
         $slugs = collect($reponse->json('data'))->pluck('slug')->all();
 
-        $this->assertContains('tacoma', $slugs,
-            'La route filtre desormais is_active : le commentaire de VehicleModelsSeeder est a reecrire.');
+        $this->assertNotContains('tacoma', $slugs,
+            'La ligne nue du Tacoma est de nouveau proposee a cote de ses quatre generations.');
 
-        $this->assertCount(5, array_filter($slugs, fn ($s) => str_starts_with($s, 'tacoma')),
-            'Cinq lignes « Tacoma » sur cette route, dont une inactive : c\'est la mesure, pas un souhait.');
+        $this->assertCount(4, array_filter($slugs, fn ($s) => str_starts_with($s, 'tacoma')),
+            'Quatre generations de Tacoma doivent etre proposees, et elles seules.');
 
-        // Et le client ne peut pas filtrer lui-meme : la ressource n'expose
-        // pas la colonne.
-        $this->assertArrayNotHasKey('is_active', collect($reponse->json('data'))->first(),
-            'La ressource expose desormais is_active : le commentaire de VehicleModelsSeeder est a reecrire.');
+        // Et le client peut trancher lui-meme quand il demande l'inventaire
+        // complet : la ressource expose desormais la colonne.
+        $this->assertArrayHasKey('is_active', collect($reponse->json('data'))->first(),
+            'La ressource n\'expose plus is_active : un client qui demande active_only=0 ne peut plus distinguer les deux.');
     }
 
     /**
-     * MESURE : la synchronisation du cache local, elle, expedie le drapeau.
+     * La synchronisation du cache local, elle, expedie le drapeau.
      *
-     * `CatalogSyncController` ne filtre pas davantage, mais il envoie
-     * `is_active` dans `vehicle_models`. L'application a donc de quoi trancher
-     * cote cache, a condition de s'en servir — ce que ce depot ne peut pas
-     * verifier.
+     * `CatalogSyncController` ne filtre PAS `is_active`, contrairement a la
+     * route de selection depuis le 23/10, et cette asymetrie est voulue : il
+     * envoie `is_active` dans `vehicle_models`, ce qui est le seul moyen pour
+     * une application deja installee d'apprendre qu'un modele a ete retire.
+     * Un delta qui filtrerait figerait la ligne dans son cache pour toujours.
+     *
+     * L'application a donc de quoi trancher cote cache, a condition de s'en
+     * servir — ce que ce depot ne peut pas verifier.
      */
     public function test_mesure_la_synchronisation_expedie_le_drapeau_actif(): void
     {

@@ -65,10 +65,28 @@ class ImportNhtsaCatalog extends Command
             return;
         }
 
-        $brand = Brand::updateOrCreate(
-            ['name' => $makeName],
-            ['slug' => Str::slug($makeName), 'is_active' => true]
-        );
+        // ── CET IMPORT NE RESSUSCITE RIEN ────────────────────────────────
+        //
+        // `updateOrCreate(..., ['is_active' => true])` reposait le drapeau a
+        // VRAI sur CHAQUE ligne rencontree, existante comprise. Un seul
+        // passage aurait donc reactive, d'un coup et sans un mot, tout ce que
+        // le referentiel avait desactive a la main — notamment les lignes nues
+        // `tacoma` et `venza`, remplacees par leurs generations le 23/10/2026.
+        // Le selecteur se serait remis a proposer les doublons que le filtre
+        // de `BrandController::models()` venait d'eteindre, et rien n'aurait
+        // relie la cause a l'effet : l'import ne dit pas ce qu'il reactive.
+        //
+        // NHTSA dit ce qui EXISTE chez le constructeur. Il ne decide pas de ce
+        // que notre referentiel PROPOSE. Le drapeau n'est donc pose qu'a la
+        // creation ; sur une ligne existante, il n'est jamais touche.
+        $brand = Brand::firstOrNew(['name' => $makeName]);
+
+        if (! $brand->exists) {
+            $brand->is_active = true;
+        }
+
+        $brand->slug = Str::slug($makeName);
+        $brand->save();
 
         // NHTSA peut renvoyer plusieurs entrees pour un meme nom de modele
         // (variantes internes) : on ne garde qu'une occurrence par nom.
@@ -77,10 +95,20 @@ class ImportNhtsaCatalog extends Command
         $created = 0;
 
         foreach ($modelNames as $modelName) {
-            VehicleModel::updateOrCreate(
-                ['brand_id' => $brand->id, 'slug' => Str::slug($modelName)],
-                ['name' => $modelName, 'is_active' => true]
-            );
+            // Meme regle que pour la marque ci-dessus : le drapeau n'est pose
+            // qu'a la creation. C'est ICI que le defaut mordait le plus fort,
+            // puisque c'est au niveau du modele que la desactivation sert.
+            $modele = VehicleModel::firstOrNew([
+                'brand_id' => $brand->id,
+                'slug'     => Str::slug($modelName),
+            ]);
+
+            if (! $modele->exists) {
+                $modele->is_active = true;
+            }
+
+            $modele->name = $modelName;
+            $modele->save();
             $created++;
         }
 

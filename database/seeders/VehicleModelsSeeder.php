@@ -298,27 +298,32 @@ class VehicleModelsSeeder extends Seeder
      * active ferait voir « Tacoma » CINQ FOIS et « Venza » TROIS FOIS a un
      * vendeur, sans qu'il sache lequel choisir.
      *
-     * ── CE QUE `is_active = false` FAIT REELLEMENT, MESURE LE 21/10/2026 ────
+     * ── CE QUE `is_active = false` FAIT, ETAT DU 23/10/2026 ────────────────
      *
-     * Il ne suffit pas, et il faut le dire ici plutot que de le croire :
+     * Il suffit desormais, et voici par quels chemins :
      *
-     *   - `VinDecodeService::resolveModel` filtre bien `is_active = true` :
-     *     un VIN de Tacoma ne ressortira plus sur la ligne nue.
+     *   - `VinDecodeService::resolveModel` filtre `is_active = true` : un VIN
+     *     de Tacoma ne ressort pas sur la ligne nue.
      *   - `BrandController::models`, la route publique
      *     `GET /api/catalog/brands/{brand}/models` qui alimente les listes de
-     *     selection, NE FILTRE PAS ce drapeau — et `VehicleModelResource`
-     *     n'expose meme pas la colonne, donc le client ne peut pas filtrer
-     *     lui-meme. Sur cette route, la ligne nue reste visible.
-     *   - `CatalogSyncController` ne filtre pas non plus, mais il EXPEDIE
-     *     `is_active` dans `vehicle_models` : le cache local de l'application
-     *     a de quoi trancher, a condition de s'en servir.
+     *     selection, FILTRE ce drapeau depuis le 23/10. `index()` et `show()`
+     *     aussi — le compte comme la fiche. `active_only=0` rend l'inventaire
+     *     complet pour l'administration, et `VehicleModelResource` expose
+     *     desormais la colonne pour que le client sache les distinguer.
+     *   - `CatalogSyncController` NE FILTRE TOUJOURS PAS, et c'est VOULU :
+     *     il expedie `is_active` dans `vehicle_models`. Si le delta cessait de
+     *     renvoyer la ligne desactivee, une application deja installee la
+     *     garderait indefiniment en cache sans jamais apprendre qu'elle doit
+     *     l'oublier. Une liste de choix se filtre au serveur ; un cache
+     *     s'informe. `SelecteurModelesActifsTest` garde cette asymetrie.
      *   - `catalog:import-nhtsa` ferait `Str::slug('Tacoma') === 'tacoma'` et
-     *     remettrait `is_active = true` par son `updateOrCreate`. C'est une
-     *     commande manuelle, pas une tache planifiee, mais elle annulerait
-     *     cette desactivation sans le dire.
+     *     remettait `is_active = true` par son `updateOrCreate` : un seul
+     *     passage rallumait tout ce qui avait ete eteint a la main. La
+     *     commande ne pose plus le drapeau qu'A LA CREATION.
      *
-     * Rendre la route conforme est un changement de comportement public, donc
-     * une decision du proprietaire : ce lot le rapporte et ne le prend pas.
+     * Ces quatre points sont mesures, pas supposes : voir
+     * `SelecteurModelesActifsTest`, dont six des neuf cas tombent si l'un
+     * d'eux est defait.
      *
      * CE QUE LE VENZA AJOUTE A CE CONSTAT, ET RIEN DE PLUS. Les quatre mesures
      * ci-dessus sont celles du 21/10/2026 et elles ne sont pas refaites ici :
