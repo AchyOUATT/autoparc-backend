@@ -316,6 +316,95 @@ EXPOSE 8000
 # panne. La commande rend désormais le code 1 quand RIEN n'a pu être généré
 # alors qu'il y avait à faire, ce qui donne enfin quelque chose à dire au `||`
 # ci-dessous — avec un code 0 systématique, il ne s'allumait jamais.
+#
+# ── Cotes de consommation officielles ─────────────────────────────────────
+#
+# `motorisations` est VIDE en production, et elle l'a toujours été : aucun
+# seeder, aucune migration de données, un seul écrivain — la commande
+# `catalog:import-consommations`, qui n'a jamais tourné en ligne. Mesure du
+# 20/10/2026 sur la production : `/api/catalog/motorisations?vehicle_model_id=N`
+# rend `{"data":[]}` sur tous les modèles essayés, et `consumption.official` est
+# `null`. Toute la chaîne — CotesOfficielles, VehicleResource, le widget
+# _ConsommationOfficielle — est juste et affiche « Côte constructeur inconnue »
+# partout, faute de donnée.
+#
+# POURQUOI PAS `POST /api/tasks/{tâche}`. C'était la solution évidente, et
+# c'est une faute : ScheduledTaskController appelle `Artisan::call` DANS la
+# requête, et `php artisan serve` ne sert qu'une requête à la fois. Mesure
+# ci-dessous : 161,8 s d'import. La boutique serait injoignable près de trois
+# minutes, et Render marquerait le service en échec. Le mécanisme correct est
+# celui déjà en place au-dessus — arrière-plan, après que `/up` répond.
+#
+# DANS LE MÊME BLOC QUE LES APERÇUS, ET APRÈS EUX. Deux blocs `nohup`
+# concurrents feraient tourner deux PHP en plus du serveur sur une instance de
+# 512 Mo, et additionneraient leurs pics. Un seul bloc les sérialise, et
+# n'attend `/up` qu'une fois. Les aperçus passent EN PREMIER parce qu'ils sont
+# bornés (~40 s) et doivent avancer à chaque démarrage, tandis que l'import est
+# long et ne tombe qu'une fois par période : l'ordre inverse aurait retardé de
+# 161,8 s le seul travail qui progresse à chaque réveil.
+#
+# PAS DE `-d memory_limit` ICI, contrairement aux aperçus. Mesure sur base
+# jetable, sous les 192M que pose docker/php/depot-de-photos.ini : pic
+# 90 177 536 o, soit 86,0 Mo. Les `upsert` par paquets de 500 lignes sont ce
+# qui tient ce chiffre bas malgré les 29 227 lignes lues. Relever la limite
+# n'achèterait rien.
+#
+# ── LA GARDE, ET POURQUOI CE N'EST PAS « LA TABLE EST VIDE » ──────────────
+#
+# Sans garde, chaque réveil de l'instance gratuite retéléchargerait les quatre
+# fichiers canadiens. Le critère évident — n'importer que si la table est vide
+# — a deux défauts qui se paient en données fausses et non en pannes : il fige
+# le référentiel pour toujours, alors que Ressources naturelles Canada
+# republie chaque millésime (c'est précisément pour cela que la commande
+# résout ses adresses par le catalogue CKAN) ; et il prend un import
+# interrompu entre deux des quatre fichiers pour un import fait.
+#
+# `--si-plus-vieux-que=N` n'a ni l'un ni l'autre : il relance quand la cote la
+# plus récente dépasse N jours, donc il rattrape une republication comme un
+# import tronqué. Une table vide ne rend aucun âge et laisse passer — c'est le
+# premier démarrage, l'état d'aujourd'hui.
+#
+# 180 jours par défaut : la source publie une fois l'an, deux passages par an
+# attrapent le nouveau millésime dans les six mois, pour deux téléchargements
+# de 161,8 s par an. `CATALOG_CONSO_JOURS=0` force l'import — aucune ligne
+# n'est plus récente que « maintenant moins zéro jour » — et c'est la seule
+# façon de forcer une reprise sans Shell, que le plan gratuit n'offre pas.
+# À REMETTRE À 180 ENSUITE, sinon chaque réveil retélécharge.
+#
+# ── CE QUE L'IMPORT RAPPORTE VRAIMENT, mesuré sur base jetable ────────────
+#
+# Base SQLite neuve portant le référentiel complet (pays, marques, modèles
+# semés avant — sans quoi VehicleModelsSeeder annonce DONE en insérant zéro),
+# 248 générations, 174 noms de modèles distincts, 25 marques :
+#
+#     29 227 lignes lues, 0 ignorée -> 29 187 motorisations écrites (40 doublons)
+#     4 366 cotes rattachées à une génération du catalogue
+#     135 générations sur 248 reçoivent au moins une cote
+#     90 noms de modèles sur 174
+#     161,8 s, pic 90 177 536 o, base passée à 10 727 424 o
+#
+# CE QUI RESTE VIDE EST CE QUI ROULE ICI, et c'est le chiffre qui décide si la
+# fonctionnalité vaut d'être allumée. Les 113 générations sans cote sont le
+# pick-up et le 4x4 d'Afrique de l'Ouest, que l'Amérique du Nord ne vend pas :
+# Hilux (les deux générations), Land Cruiser 1998-2021, Land Cruiser Prado,
+# Fortuner, D-Max, L200, Navara, Patrol, Pajero, BT-50, Amarok — et six marques
+# entières sans la moindre cote : Citroën, Peugeot, Renault, Opel, Daihatsu,
+# SsangYong. Le Hiace, lui, n'est même pas au catalogue.
+#
+# Ce qui est couvert, en revanche, l'est largement : Corolla 160 cotes sur
+# trois générations, Camry 87, RAV4 68, Yaris 28. L'import vaut donc d'être
+# allumé pour la berline et le SUV, et ne répondra pas pour l'utilitaire —
+# c'est ce que la source européenne (`--source=eea`, déjà écrite) vise, et
+# elle n'est pas branchée ici.
+#
+# L'ÉCHEC NE FAIT RIEN ÉCHOUER, et il se dit. Trois cas, vérifiés par des
+# tests : catalogue injoignable ou en erreur -> une ligne nommée puis code 1 ;
+# fichier isolé perdu -> avertissement nommé, les autres passent ; source qui
+# répond 200 avec des en-têtes changés -> « Aucune cote ecrite » et code 1, au
+# lieu du « 0 lignes enregistrees » muet d'avant. Dans les trois cas le `||`
+# ci-dessous écrit son avertissement et le démarrage continue : une fiche sans
+# côte constructeur affiche « Côte constructeur inconnue », ce qu'elle fait
+# déjà aujourd'hui partout.
 CMD php artisan config:cache \
     && php artisan route:cache \
     && (php artisan storage:link \
@@ -333,6 +422,8 @@ CMD php artisan config:cache \
             sleep 3; \
           done; \
           php -d memory_limit=256M artisan media:apercus --limit="${MEDIA_APERCUS_LIMIT:-60}" \
-            || echo "ATTENTION : aucune vignette generee par ce rattrapage. Les echecs sont marques, le prochain demarrage traitera de nouvelles lignes ; voir les lignes « Apercu : media abandonne » de ce journal" \
+            || echo "ATTENTION : aucune vignette generee par ce rattrapage. Les echecs sont marques, le prochain demarrage traitera de nouvelles lignes ; voir les lignes « Apercu : media abandonne » de ce journal"; \
+          php artisan catalog:import-consommations --si-plus-vieux-que="${CATALOG_CONSO_JOURS:-180}" \
+            || echo "ATTENTION : cotes de consommation officielles non importees. Les fiches afficheront « Cote constructeur inconnue » ; la cause est dans les lignes ci-dessus de ce journal (catalogue injoignable, en erreur, ou en-tetes changes). Le prochain demarrage reessaiera" \
         ' >&2 & ) \
     && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}

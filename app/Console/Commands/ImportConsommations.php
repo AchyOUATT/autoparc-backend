@@ -6,6 +6,8 @@ use App\Models\Brand;
 use App\Models\Motorisation;
 use App\Models\VehicleModel;
 use Illuminate\Console\Command;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -34,7 +36,8 @@ class ImportConsommations extends Command
                             {--fichier=* : Fichier CSV local, au lieu du telechargement}
                             {--modele=* : Limiter la source europeenne a ces modeles}
                             {--dry-run : Analyser sans rien ecrire}
-                            {--relier-seulement : Ne pas importer, seulement rattacher au catalogue}';
+                            {--relier-seulement : Ne pas importer, seulement rattacher au catalogue}
+                            {--si-plus-vieux-que= : N\'importer que si la cote la plus recente date de plus de N jours (0 : toujours)}';
 
     protected $description = 'Importe les cotes de consommation officielles (Canada, Europe)';
 
@@ -107,6 +110,10 @@ class ImportConsommations extends Command
             return $this->relier();
         }
 
+        if ($this->estEncoreFraiche()) {
+            return self::SUCCESS;
+        }
+
         if ($this->option('source') === 'eea') {
             return $this->importerEurope();
         }
@@ -122,6 +129,7 @@ class ImportConsommations extends Command
         }
 
         $total = ['lues' => 0, 'retenues' => 0, 'ignorees' => 0];
+        $ecrites = 0;
 
         foreach ($sources as $nom => $contenu) {
             $this->info("Lecture de $nom");
@@ -133,7 +141,9 @@ class ImportConsommations extends Command
                 continue;
             }
 
-            $this->line(sprintf('  %d lignes enregistrees', $this->enregistrer($lignes)));
+            $cePaquet = $this->enregistrer($lignes);
+            $ecrites += $cePaquet;
+            $this->line(sprintf('  %d lignes enregistrees', $cePaquet));
         }
 
         $this->newLine();
@@ -146,7 +156,84 @@ class ImportConsommations extends Command
             return self::SUCCESS;
         }
 
+        // UNE SOURCE QUI REPOND N'EST PAS UNE SOURCE QUI SERT, et le cas n'est
+        // pas theorique : les libelles de colonnes varient deja d'un fichier a
+        // l'autre — c'est la raison d'etre de `cleColonne()`, qui fait tenir
+        // « City (L/100 km) » et « City (L/100km) » pour la meme colonne. Le
+        // jour ou la variation depasse ce que la normalisation absorbe,
+        // `analyser()` ecarte le fichier entier sur un simple `warn` et la
+        // commande rendait 0 : le journal de deploiement affichait « 0 lignes
+        // enregistrees » au milieu d'un demarrage qui se lisait comme sain, et
+        // le `|| echo` du Dockerfile ne s'allumait jamais. Rendre 1 ici est la
+        // seule facon qu'a ce bloc de dire quelque chose.
+        if ($ecrites === 0) {
+            $this->error(
+                'Aucune cote ecrite : la source a repondu, mais rien d\'exploitable n\'en est sorti '
+                .'(en-tetes inattendus, ou fichiers vides).'
+            );
+
+            return self::FAILURE;
+        }
+
         return $this->relier();
+    }
+
+    /**
+     * La garde qui evite de retelecharger le jeu canadien a chaque demarrage.
+     *
+     * POURQUOI UN AGE ET NON « LA TABLE EST VIDE ». Le critere evident aurait
+     * ete le plus simple a ecrire, et il a deux defauts qui se paient en
+     * donnees fausses plutot qu'en pannes :
+     *
+     *   - il FIGE le referentiel pour toujours. Ressources naturelles Canada
+     *     republie chaque millesime — `depuisCanada()` resout d'ailleurs les
+     *     adresses par le catalogue CKAN precisement parce qu'elles changent
+     *     d'une annee sur l'autre. Une table non vide n'aurait plus jamais vu
+     *     une cote de 2027, et personne n'aurait eu de raison de s'en douter.
+     *   - il prend un import INTERROMPU pour un import fait. Le jeu canadien
+     *     arrive en quatre fichiers ; l'instance gratuite peut s'eteindre
+     *     entre le premier et le dernier. La table est alors non vide et
+     *     incomplete, donc definitivement incomplete.
+     *
+     * L'age n'a ni l'un ni l'autre : il rattrape une republication, et il
+     * rattrape un import tronque, au prix d'un telechargement par periode.
+     *
+     * CE QUE MESURE L'AGE. `upsert()` d'Eloquent ajoute toujours `updated_at`
+     * aux colonnes mises a jour : la ligne la plus recente date donc du
+     * dernier import, qu'il ait insere ou seulement corrige des cotes. Une
+     * table vide ne rend aucun maximum, et la garde laisse passer — c'est le
+     * cas du premier demarrage.
+     *
+     * 0 jour force l'import : aucune ligne n'est plus recente que « maintenant
+     * moins zero jour ». C'est la soupape depuis le tableau de bord de Render,
+     * qui n'offre pas de Shell.
+     */
+    private function estEncoreFraiche(): bool
+    {
+        $jours = $this->option('si-plus-vieux-que');
+
+        if ($jours === null) {
+            return false;
+        }
+
+        $derniere = Motorisation::query()->max('updated_at');
+
+        if ($derniere === null) {
+            return false;
+        }
+
+        $derniere = Carbon::parse($derniere);
+
+        if ($derniere->lessThanOrEqualTo(now()->subDays((int) $jours))) {
+            return false;
+        }
+
+        $this->info(sprintf(
+            'Cotes importees le %s, soit il y a moins de %d jour(s) : rien a faire.',
+            $derniere->toDateTimeString(), (int) $jours,
+        ));
+
+        return true;
     }
 
     /**
@@ -207,7 +294,21 @@ class ImportConsommations extends Command
      */
     private function depuisCanada(): array
     {
-        $reponse = Http::timeout(60)->get(self::CATALOGUE_CKAN);
+        // UN SERVICE INJOIGNABLE N'EST PAS UN SERVICE QUI REPOND MAL, et les
+        // deux arrivaient ici par des chemins differents. Un 503 etait dit en
+        // une ligne ; une resolution DNS qui lache, un refus de connexion ou
+        // un depassement des 60 s levaient une ConnectionException que rien
+        // n'attrapait — Laravel la rendait en trace d'exception au milieu du
+        // journal de deploiement. Le code de sortie etait bon dans les deux
+        // cas, la lisibilite non. `interrogerEea()` attrapait deja la sienne ;
+        // c'est la meme discipline, appliquee a la source canadienne.
+        try {
+            $reponse = Http::timeout(60)->get(self::CATALOGUE_CKAN);
+        } catch (ConnectionException $e) {
+            $this->error('Le catalogue open.canada.ca est injoignable : '.Str::limit($e->getMessage(), 120));
+
+            return [];
+        }
 
         if (! $reponse->successful()) {
             $this->error('Le catalogue open.canada.ca ne repond pas ('.$reponse->status().').');
@@ -243,10 +344,19 @@ class ImportConsommations extends Command
 
         $sources = [];
         foreach ($adresses as $nom => $url) {
-            $fichier = Http::timeout(180)->get($url);
+            try {
+                $fichier = Http::timeout(180)->get($url);
+            } catch (ConnectionException $e) {
+                // Un fichier perdu n'emporte pas les autres : le jeu canadien
+                // en compte quatre, et trois valent mieux que zero. Mais le
+                // dire nommement, sinon le total final paraitrait normal.
+                $this->warn("Telechargement injoignable, ignore : $nom (".Str::limit($e->getMessage(), 90).')');
+
+                continue;
+            }
 
             if (! $fichier->successful()) {
-                $this->warn("Telechargement echoue, ignore : $nom");
+                $this->warn("Telechargement echoue, ignore : $nom (".$fichier->status().')');
 
                 continue;
             }

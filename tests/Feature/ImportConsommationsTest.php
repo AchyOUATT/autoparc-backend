@@ -6,6 +6,8 @@ use App\Models\Brand;
 use App\Models\Motorisation;
 use App\Models\VehicleModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
@@ -235,5 +237,107 @@ class ImportConsommationsTest extends TestCase
 
         $this->assertSame('2,5 l 4 cyl. boîte auto. 6', $camry->libelle);
         $this->assertSame('Essence ordinaire', Motorisation::libelleCarburant($camry->fuel_code));
+    }
+
+    // ── La garde d'age, et ce que le journal doit dire ───────────────
+    //
+    // Le Dockerfile lance cette commande a chaque demarrage, en arriere-plan.
+    // Sans garde, chaque reveil de l'instance gratuite retelechargerait les
+    // quatre fichiers canadiens — mesure sur base jetable : 161,8 s et 29 187
+    // lignes. Ces tests tiennent la garde ET ce que la commande dit quand la
+    // source se derobe, parce qu'un journal de deploiement est le seul organe
+    // d'observation dont dispose un plan sans Shell.
+
+    public function test_la_garde_d_age_evite_de_retelecharger(): void
+    {
+        $this->importer();
+
+        Http::fake();
+
+        $this->artisan('catalog:import-consommations', ['--si-plus-vieux-que' => 180])
+            ->expectsOutputToContain('rien a faire')
+            ->assertSuccessful();
+
+        // La vraie promesse n'est pas le message, c'est l'absence d'appel :
+        // c'est le telechargement qu'on evite, pas l'ecriture.
+        Http::assertNothingSent();
+    }
+
+    public function test_une_table_vide_passe_la_garde(): void
+    {
+        // Le premier demarrage d'une base neuve : aucune cote, donc aucun age,
+        // donc l'import doit avoir lieu. C'est exactement l'etat de la
+        // production aujourd'hui.
+        $this->importer(['--si-plus-vieux-que' => 180]);
+
+        $this->assertSame(6, Motorisation::count());
+    }
+
+    public function test_des_cotes_trop_vieilles_relancent_l_import(): void
+    {
+        $this->importer();
+        Motorisation::query()->update(['updated_at' => now()->subDays(400)]);
+
+        // Ressources naturelles Canada republie chaque millesime : une table
+        // non vide ne doit pas interdire la mise a jour pour autant.
+        $this->importer(['--si-plus-vieux-que' => 180]);
+
+        $this->assertTrue(
+            Motorisation::query()->max('updated_at') > now()->subMinute(),
+            'Un import qui a eu lieu rafraichit la date, donc repousse la garde.',
+        );
+    }
+
+    public function test_un_age_de_zero_jour_force_l_import(): void
+    {
+        $this->importer();
+
+        // La soupape : aucune ligne n'est plus recente que « maintenant moins
+        // zero jour ». C'est le seul moyen de forcer une reprise depuis le
+        // tableau de bord de Render, qui n'ouvre pas de Shell.
+        $this->artisan('catalog:import-consommations', [
+            '--fichier' => [$this->extrait()],
+            '--si-plus-vieux-que' => 0,
+        ])
+            ->expectsOutputToContain('lignes enregistrees')
+            ->assertSuccessful();
+    }
+
+    public function test_un_catalogue_injoignable_le_dit_en_clair_et_echoue(): void
+    {
+        // open.canada.ca peut ne pas repondre du tout : DNS, refus de
+        // connexion, 60 s depassees. Sans ce traitement, l'exception remontait
+        // en trace de pile au milieu du journal de deploiement.
+        Http::fake(fn () => throw new ConnectionException('cURL error 6: Could not resolve host: open.canada.ca'));
+
+        $this->artisan('catalog:import-consommations')
+            ->expectsOutputToContain('Le catalogue open.canada.ca est injoignable')
+            ->expectsOutputToContain('Aucune source de donnees exploitable.')
+            ->assertFailed();
+
+        $this->assertSame(0, Motorisation::count());
+    }
+
+    public function test_une_source_qui_rend_autre_chose_que_prevu_echoue_en_clair(): void
+    {
+        // Le cas le plus traitre : le service repond 200, le fichier existe,
+        // et ses colonnes ont change de libelle. `analyser()` ecarte alors le
+        // fichier entier sur un simple avertissement — la commande rendait 0
+        // et le demarrage se lisait comme sain.
+        Http::fake([
+            'open.canada.ca/*' => Http::response([
+                'result' => ['resources' => [
+                    ['url' => 'https://exemple.test/my2027-fuel-consumption-ratings.csv'],
+                ]],
+            ]),
+            'exemple.test/*' => Http::response("Annee,Marque,Modele\n2027,Toyota,Corolla\n"),
+        ]);
+
+        $this->artisan('catalog:import-consommations')
+            ->expectsOutputToContain('En-tete inattendu')
+            ->expectsOutputToContain('Aucune cote ecrite')
+            ->assertFailed();
+
+        $this->assertSame(0, Motorisation::count());
     }
 }

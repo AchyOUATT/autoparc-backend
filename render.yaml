@@ -212,6 +212,39 @@ services:
       - key: MEDIA_APERCUS_LIMIT
         sync: false          # media traités par démarrage ; défaut 60
 
+      # ── Cotes de consommation officielles ───────────────────────────
+      #
+      # Au bout de combien de jours `catalog:import-consommations` retélécharge
+      # le jeu de Ressources naturelles Canada. La table `motorisations` est
+      # vide en production depuis toujours — aucun seeder, aucune migration de
+      # données, un seul écrivain, cette commande, qui n'avait jamais tourné en
+      # ligne. Toute la chaîne d'affichage (CotesOfficielles, VehicleResource,
+      # le widget _ConsommationOfficielle) attend cette donnée et affiche
+      # « Côte constructeur inconnue » sans elle.
+      #
+      # Le Dockerfile la lance en arrière-plan, après que `/up` répond, dans le
+      # même bloc que les aperçus et APRÈS eux : les détails et les mesures
+      # sont commentés là-bas.
+      #
+      # Pourquoi un âge plutôt qu'un « n'importer que si la table est vide » :
+      # le second fige le référentiel pour toujours, alors que la source
+      # republie chaque millésime, et prend un import interrompu entre deux des
+      # quatre fichiers pour un import fait.
+      #
+      # Non renseignée, 180 — la source publie une fois l'an, deux passages par
+      # an suffisent. Mesure sur base jetable portant le référentiel complet :
+      # 161,8 s, pic 90 177 536 o, 29 187 motorisations écrites, 135
+      # générations sur 248 couvertes, 90 noms de modèles sur 174.
+      #
+      # 0 FORCE L'IMPORT au démarrage suivant — aucune ligne n'est plus récente
+      # que « maintenant moins zéro jour » —, et modifier la valeur ici
+      # redéclenche justement un démarrage. C'est la seule façon de forcer une
+      # reprise sans Shell, que le plan gratuit n'offre pas. À REMETTRE À 180
+      # ENSUITE : laissée à 0, chaque réveil de l'instance retéléchargerait les
+      # quatre fichiers.
+      - key: CATALOG_CONSO_JOURS
+        sync: false          # âge au-delà duquel les cotes sont réimportées ; défaut 180, 0 force
+
   # Les rappels d'entretien ne sont PLUS ici.
   #
   # Ce fichier declarait un service `type: cron` avec `plan: free`. Render
