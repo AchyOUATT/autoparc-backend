@@ -219,6 +219,93 @@ class VehicleClassificationIntegrityTest extends TestCase
         $this->assertDatabaseHas('vehicles', ['id' => $vehicle->id, 'trim_id' => $this->references['foreign_trim']->id]);
     }
 
+    /**
+     * Historical rows were accepted before classification validation existed.
+     * Independent changes must not force users to repair those rows first.
+     */
+    public function test_legacy_garage_mileage_update_ignores_untouched_bad_classification(): void
+    {
+        $vehicle = $this->garageVehicle();
+        $vehicle->forceFill([
+            'trim_id' => $this->references['second_trim']->id,
+            'motorisation_id' => $this->references['second_motor']->id,
+        ])->save();
+
+        $this->patchJson('/api/my/vehicles/'.$vehicle->id, ['mileage_km' => 149500])
+            ->assertOk();
+
+        $this->assertDatabaseHas('owned_vehicles', [
+            'id' => $vehicle->id,
+            'mileage_km' => 149500,
+            'trim_id' => $this->references['second_trim']->id,
+            'motorisation_id' => $this->references['second_motor']->id,
+        ]);
+    }
+
+    public function test_legacy_park_price_update_does_not_require_classification_resubmission(): void
+    {
+        $vehicle = $this->parkVehicle();
+        $vehicle->forceFill(['trim_id' => $this->references['second_trim']->id])->save();
+
+        $this->patchJson('/api/vehicles/'.$vehicle->id, ['sale_price' => 5500000])
+            ->assertOk();
+
+        $this->assertDatabaseHas('vehicles', [
+            'id' => $vehicle->id,
+            'sale_price' => 5500000,
+            'trim_id' => $this->references['second_trim']->id,
+        ]);
+    }
+
+    public function test_legacy_park_resubmitting_unchanged_identity_does_not_block_price(): void
+    {
+        $vehicle = $this->parkVehicle();
+        $vehicle->forceFill(['trim_id' => $this->references['second_trim']->id])->save();
+
+        $this->patchJson('/api/vehicles/'.$vehicle->id, $this->parkPayload([
+            'trim_id' => '@second_trim',
+            'sale_price' => 5600000,
+        ]))->assertOk();
+
+        $this->assertDatabaseHas('vehicles', [
+            'id' => $vehicle->id,
+            'sale_price' => 5600000,
+            'trim_id' => $this->references['second_trim']->id,
+        ]);
+    }
+
+    public function test_legacy_garage_can_repair_one_dependency_without_fixing_another(): void
+    {
+        $vehicle = $this->garageVehicle();
+        $vehicle->forceFill([
+            'trim_id' => $this->references['second_trim']->id,
+            'motorisation_id' => $this->references['second_motor']->id,
+        ])->save();
+
+        $this->patchJson('/api/my/vehicles/'.$vehicle->id, [
+            'trim_id' => $this->references['first_trim']->id,
+        ])->assertOk();
+
+        $this->assertDatabaseHas('owned_vehicles', [
+            'id' => $vehicle->id,
+            'trim_id' => $this->references['first_trim']->id,
+            'motorisation_id' => $this->references['second_motor']->id,
+        ]);
+    }
+
+    public function test_legacy_garage_still_rejects_an_incoherent_model_change(): void
+    {
+        $vehicle = $this->garageVehicle();
+        $vehicle->forceFill(['trim_id' => $this->references['second_trim']->id])->save();
+        $before = $vehicle->fresh()->getAttributes();
+
+        $this->patchJson('/api/my/vehicles/'.$vehicle->id, [
+            'vehicle_model_id' => $this->references['foreign']->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors(['vehicle_model_id']);
+
+        $this->assertSame($before, $vehicle->fresh()->getAttributes());
+    }
+
     public function test_park_creation_rejects_a_trim_from_another_model(): void
     {
         Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
