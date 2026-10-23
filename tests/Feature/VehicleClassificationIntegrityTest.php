@@ -200,7 +200,11 @@ class VehicleClassificationIntegrityTest extends TestCase
         $vehicle = $this->parkVehicle();
 
         $data = $this->parkPayload(['vehicle_model_id' => '@second', 'trim_id' => null]);
-        $this->patchJson('/api/vehicles/'.$vehicle->id, $data)->assertOk();
+        $this->patchJson('/api/vehicles/'.$vehicle->id, $data)->assertOk()
+            ->assertJsonPath('data.brand_id', $this->references['brand']->id)
+            ->assertJsonPath('data.vehicle_model_id', $this->references['second']->id)
+            ->assertJsonPath('data.trim_id', null)
+            ->assertJsonPath('data.engine_type_id', $this->references['engine']->id);
         $this->assertDatabaseHas('vehicles', ['id' => $vehicle->id, 'vehicle_model_id' => $this->references['second']->id, 'trim_id' => null]);
     }
 

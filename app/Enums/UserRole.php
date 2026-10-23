@@ -4,23 +4,36 @@ namespace App\Enums;
 
 enum UserRole: string
 {
-    case Admin     = 'admin';
-    case Manager   = 'manager';
-    case Sales     = 'sales';
-    case Mechanic  = 'mechanic';
+    case Admin = 'admin';
+    case Manager = 'manager';
+    case Sales = 'sales';
+    case Mechanic = 'mechanic';
     case Warehouse = 'warehouse';
-    case Viewer    = 'viewer';
-    case Client    = 'client'; // compte public : gere son propre garage, pas d'acces back-office
+    case Viewer = 'viewer';
+    case Client = 'client'; // compte public : gere son propre garage, pas d'acces back-office
+    case Partner = 'partner'; // entreprise externe : uniquement son espace et ses annonces
 
     public static function values(): array
     {
         return array_column(self::cases(), 'value');
     }
 
-    /** Tout role sauf Client a acces au back-office. */
+    /** Une nouvelle categorie de compte ne devient jamais du personnel par defaut. */
     public function isStaff(): bool
     {
-        return $this !== self::Client;
+        return in_array($this, self::staffRoles(), true);
+    }
+
+    /** @return list<self> */
+    public static function staffRoles(): array
+    {
+        return [self::Admin, self::Manager, self::Sales, self::Mechanic, self::Warehouse, self::Viewer];
+    }
+
+    /** @return list<string> */
+    public static function staffValues(): array
+    {
+        return array_map(fn (self $role) => $role->value, self::staffRoles());
     }
 
     // ── Capacites ────────────────────────────────────────────────────────
@@ -97,15 +110,15 @@ enum UserRole: string
     public function can(string $capability): bool
     {
         return match ($capability) {
-            'manage-catalog'   => $this->canManageCatalog(),
-            'delete-catalog'   => $this->canDeleteCatalog(),
-            'manage-faults'    => $this->canManageFaults(),
-            'manage-stock'     => $this->canManageStock(),
-            'manage-orders'    => $this->canManageOrders(),
+            'manage-catalog' => $this->canManageCatalog(),
+            'delete-catalog' => $this->canDeleteCatalog(),
+            'manage-faults' => $this->canManageFaults(),
+            'manage-stock' => $this->canManageStock(),
+            'manage-orders' => $this->canManageOrders(),
             'manage-customers' => $this->canManageCustomers(),
-            'manage-partners'  => $this->canManagePartners(),
-            'broadcast'        => $this->canBroadcast(),
-            default            => false,
+            'manage-partners' => $this->canManagePartners(),
+            'broadcast' => $this->canBroadcast(),
+            default => false,
         };
     }
 }

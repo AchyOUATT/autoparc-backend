@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AccessoryCategory;
+use App\Models\Concerns\HasPartnerOwner;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,18 +11,20 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Accessory extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasPartnerOwner, SoftDeletes;
 
     protected $fillable = [
         'sku', 'name', 'description', 'category', 'manufacturer_id',
         'weight_kg', 'dimensions', 'warranty_months', 'cost_price', 'selling_price',
         'currency', 'vat_rate', 'stock_quantity', 'stock_alert_threshold',
         'storage_location', 'location_id', 'is_active', 'is_available',
+        'owner_partner_account_id', 'partner_published_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'partner_published_at' => 'datetime',
             'category'       => AccessoryCategory::class,
             'cost_price'     => 'decimal:2',
             'selling_price'  => 'decimal:2',

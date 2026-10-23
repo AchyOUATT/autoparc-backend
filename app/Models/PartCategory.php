@@ -77,6 +77,7 @@ class PartCategory extends Model
         // ici en mode strict et PostgreSQL applique ONLY_FULL_GROUP_BY, ou un
         // regroupement sur des colonnes non agregees est refuse.
         $portantDesPieces = Part::query()
+            ->visibleToPublic()
             ->active()
             ->whereNotNull('part_category_id')
             ->distinct()

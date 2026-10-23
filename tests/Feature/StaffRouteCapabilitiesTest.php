@@ -51,11 +51,23 @@ class StaffRouteCapabilitiesTest extends TestCase
         ));
     }
 
-    public function test_la_consultation_reste_ouverte_a_tout_le_personnel(): void
+    public function test_la_consultation_reste_ouverte_sauf_les_dossiers_de_validation_des_partenaires(): void
     {
         $verrouillees = [];
+        // Ces dossiers contiennent les coordonnees et motifs de moderation,
+        // reserves aux responsables qui examinent les inscriptions.
+        $confidentielles = [
+            'api/partner-applications' => 'manage-partners',
+            'api/partner-applications/{partnerAccount}' => 'manage-partners',
+        ];
 
         foreach ($this->staffRoutes() as $route) {
+            if ($this->isReadOnly($route) && isset($confidentielles[$route->uri()])) {
+                $this->assertSame([$confidentielles[$route->uri()]], $this->capabilitiesOf($route));
+                unset($confidentielles[$route->uri()]);
+                continue;
+            }
+
             if ($this->isReadOnly($route) && $this->declaresCapability($route)) {
                 $verrouillees[] = $route->uri();
             }
@@ -65,6 +77,7 @@ class StaffRouteCapabilitiesTest extends TestCase
             "Ces routes de lecture sont restreintes alors que tout le personnel doit pouvoir consulter :\n  %s",
             implode("\n  ", $verrouillees),
         ));
+        $this->assertSame([], $confidentielles, 'Une route de validation attendue a disparu.');
     }
 
     /**

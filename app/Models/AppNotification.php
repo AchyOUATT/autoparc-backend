@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Model;
 
 class AppNotification extends Model
@@ -54,7 +55,7 @@ class AppNotification extends Model
         string $body,
         array  $data = [],
     ): void {
-        $staffIds = User::pluck('id');
+        $staffIds = User::whereIn('role', UserRole::staffValues())->pluck('id');
 
         $rows = $staffIds->map(fn ($id) => [
             'recipient_type' => 'staff',

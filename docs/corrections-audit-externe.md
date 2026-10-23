@@ -194,3 +194,19 @@ de cette seconde livraison est le suivant :
 Les deux échecs historiques des aperçus restent un sujet distinct. Une
 validation sur le moteur de base de production et une revue Flutter restent
 nécessaires avant toute affirmation de correction en ligne.
+
+## Suite de F2 dans l'application mobile
+
+Le travail mobile est maintenant préparé dans `autoparc-mobile`, sur
+`codex/partenaires-inscription-validation-2026-10-22`. L'édition du parc
+retrouve les références par identifiant, retire les dépendances après un
+changement de marque ou de modèle et transmet leur suppression à `null`.
+Les réponses du parc exposent désormais les six identifiants bruts nécessaires
+à cette édition ; les fiches publiques partenaires gardent leur réponse réduite.
+
+Le formulaire de création du garage applique également les transitions de
+classification. Il ne devient pas un formulaire d'édition du garage.
+
+Les tests Flutter correspondants sont préparés, mais **pas exécutés** :
+l'installation du SDK est bloquée sur son domaine officiel de téléchargement.
+Voir le [suivi mobile F2 et partenaires](https://github.com/AchyOUATT/autoparc-mobile/blob/codex/partenaires-inscription-validation-2026-10-22/docs/comptes-partenaires-et-f2.md).

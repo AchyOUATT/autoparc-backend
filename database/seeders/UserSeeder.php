@@ -14,9 +14,7 @@ class UserSeeder extends Seeder
     {
         // Un compte par rôle métier, avec mot de passe connu pour tester en dev.
         // Adapte les rôles ci-dessous si les noms de cas de ton enum UserRole diffèrent.
-        $staffRoles = collect(UserRole::cases())
-            ->reject(fn ($case) => strtolower($case->value) === 'client')
-            ->values();
+        $staffRoles = UserRole::staffRoles();
 
         foreach ($staffRoles as $role) {
             User::create([

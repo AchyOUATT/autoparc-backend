@@ -72,6 +72,12 @@ class CompatibilityController extends Controller
 
     private function paginateAssessed(Builder $parts, array $criteria, CompatiblePartsRequest $request)
     {
+        if (! $request->user()?->isStaff()) {
+            $parts->visibleToPublic();
+        }
+
+        $parts->with('sellerAccount');
+
         if (! $request->includeCandidates()) {
             $this->assessment->constrainConfirmed($parts, $criteria);
         }
@@ -103,7 +109,14 @@ class CompatibilityController extends Controller
     /** GET /api/oem/{number}/vehicles : vehicules du parc concernes par une reference OEM. */
     public function vehiclesForOem(string $number)
     {
-        return VehicleResource::collection($this->compatibility->vehiclesForOem($number));
+        $vehicles = $this->compatibility->vehiclesForOem($number);
+
+        if (! request()->user()?->isStaff()) {
+            $visibleIds = Vehicle::visibleToPublic()->whereKey($vehicles->modelKeys())->pluck('id');
+            $vehicles = $vehicles->whereIn('id', $visibleIds);
+        }
+
+        return VehicleResource::collection($vehicles->loadMissing('sellerAccount'));
     }
 
     /** GET /api/oem/{number}/models : modeles couverts par une reference OEM. */

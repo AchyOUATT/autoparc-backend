@@ -34,6 +34,8 @@ class GarageCompatibilityController extends Controller
      */
     public function checkPart(Request $request, Part $part): JsonResponse
     {
+        abort_unless(Part::visibleToPublic()->whereKey($part->id)->exists(), 404);
+
         $vehicles = OwnedVehicle::where('user_id', $request->user()->id)
             ->with(['brand', 'vehicleModel', 'trim', 'engineType', 'drivetrain'])
             ->get();

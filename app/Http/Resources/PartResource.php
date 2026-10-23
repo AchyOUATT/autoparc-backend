@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Support\PartnerListingPresentation;
+use App\Support\PartnerMedia;
 use App\Support\PhotoPartage;
 use App\Support\VersionPartage;
 use Illuminate\Http\Request;
@@ -21,8 +23,11 @@ class PartResource extends JsonResource
 
     public function toArray(Request $request): array
     {
-        return [
+        $private = PartnerListingPresentation::canSeePrivateData($this->resource, $request);
+
+        $data = [
             'id'          => $this->id,
+            'donor_vehicle_id' => $this->donor_vehicle_id,
             'sku'         => $this->sku,
             'name'        => $this->name,
             'description' => $this->description,
@@ -71,6 +76,7 @@ class PartResource extends JsonResource
             // sont expliques la-bas.
             'media' => $this->whenLoaded('media', fn () => $this->media
                 ->filter(fn ($m) => PhotoPartage::cheminExploitable($m->path))
+                ->filter(fn ($m) => $private || PartnerMedia::allows($m, $this->resource))
                 ->map(fn ($m) => [
                     'id'       => $m->id,
                     'url'      => $m->url,
@@ -132,6 +138,8 @@ class PartResource extends JsonResource
             // passerait inapercue.
             'share_version'   => VersionPartage::pour($this->updated_at),
         ];
+
+        return PartnerListingPresentation::present($data, $this->resource, $request, 'part');
     }
 
     /**
