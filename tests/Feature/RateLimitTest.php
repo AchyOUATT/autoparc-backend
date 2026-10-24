@@ -3,7 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Providers\AppServiceProvider;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\RateLimiter;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -149,6 +155,96 @@ class RateLimitTest extends TestCase
             ->getStatusCode();
 
         $this->assertSame(422, $statut, 'Les limites par adresse doivent distinguer les clients.');
+    }
+
+    // ── L'en-tete forge, et ce qui y resiste ─────────────────────────────────
+
+    /**
+     * LE DEFAUT, ET SA CORRECTION.
+     *
+     * Le test precedent montre une propriete necessaire : derriere Render, il
+     * FAUT lire `X-Forwarded-For`, sinon toutes les requetes paraissent venir
+     * de la meme adresse et le premier visiteur a atteindre le plafond bloque
+     * tous les autres. `trustProxies(at: '*')` est donc assume.
+     *
+     * Mais ce qui est lu est, par construction, ecrit par l'appelant. Et
+     * `at: '*'` ne permet pas de distinguer l'en-tete pose par le repartiteur
+     * de Render de celui qu'un attaquant ajoute lui-meme. Toute limite dont la
+     * cle contient `$request->ip()` est donc contournable en changeant d'en-tete
+     * a chaque essai — ce qui, avant cette correction, laissait le mot de passe
+     * d'un administrateur devinable a la cadence du reseau, le plafond affiche
+     * n'y changeant rien.
+     *
+     * On ne peut pas resserrer la cle par adresse sans casser le cas Render
+     * legitime. La reponse est donc une cle que l'en-tete NE TOUCHE PAS : le
+     * compte vise. Trente essais par minute sur un compte donne, quelle que
+     * soit l'adresse d'ou ils viennent.
+     *
+     * Ce test fait exactement ce qu'un attaquant ferait : une adresse neuve a
+     * chaque essai.
+     */
+    public function test_un_compte_vise_depuis_mille_adresses_reste_plafonne(): void
+    {
+        User::factory()->create(['email' => 'admin@autoparc.bf', 'role' => 'admin']);
+
+        // Trente essais, trente adresses differentes. Les limites par adresse
+        // (10 par couple compte|adresse, 20 par adresse) sont donc toutes
+        // neuves a chaque tour : aucune ne mord.
+        for ($i = 1; $i <= AppServiceProvider::LOGIN_PAR_COMPTE_PAR_MINUTE; $i++) {
+            $statut = $this->withServerVariables(['HTTP_X_FORWARDED_FOR' => "41.202.{$i}.{$i}"])
+                ->tenterConnexion('admin@autoparc.bf');
+
+            $this->assertSame(422, $statut, "L'essai {$i} aurait du etre examine.");
+        }
+
+        // Le suivant, depuis une adresse encore inedite, est refuse quand meme.
+        $this->assertSame(
+            429,
+            $this->withServerVariables(['HTTP_X_FORWARDED_FOR' => '197.158.200.1'])
+                ->tenterConnexion('admin@autoparc.bf'),
+            "Changer d'en-tete a chaque essai suffit a deviner un mot de passe : "
+            .'la limitation ne tient que par des cles que le client ne controle pas.'
+        );
+    }
+
+    /**
+     * Le cablage, sur les deux portes publiques a la fois.
+     *
+     * Atteindre 120 soumissions de besoin dans un test couterait plusieurs
+     * secondes pour prouver ce qu'une comparaison de cles etablit exactement :
+     * chaque limiteur public doit porter AU MOINS UNE cle identique pour deux
+     * appelants d'adresses differentes. Sans elle, il n'existe aucun plafond
+     * qu'un en-tete ne desarme.
+     */
+    #[DataProvider('limiteursPublics')]
+    public function test_chaque_limiteur_public_porte_une_cle_hors_d_atteinte_de_l_en_tete(
+        string $limiteur,
+        array $corps,
+    ): void {
+        $cles = fn (string $adresse) => array_map(
+            fn (Limit $limite) => $limite->key,
+            Arr::wrap(call_user_func(
+                RateLimiter::limiter($limiteur),
+                Request::create('/', 'POST', $corps, server: ['REMOTE_ADDR' => $adresse]),
+            )),
+        );
+
+        $communes = array_values(array_intersect($cles('41.202.10.5'), $cles('197.158.0.1')));
+
+        $this->assertNotEmpty($communes, sprintf(
+            'Toutes les cles du limiteur « %s » dependent de l adresse : un en-tete '
+            .'X-Forwarded-For different a chaque requete le desarme entierement.',
+            $limiteur
+        ));
+    }
+
+    /** @return array<string, array{0: string, 1: array<string, string>}> */
+    public static function limiteursPublics(): array
+    {
+        return [
+            'connexion'         => ['login', ['email' => 'admin@autoparc.bf']],
+            'ecriture publique' => ['public-write', []],
+        ];
     }
 
     // ── Plafond general ──────────────────────────────────────────────────────

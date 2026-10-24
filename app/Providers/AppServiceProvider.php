@@ -31,6 +31,36 @@ class AppServiceProvider extends ServiceProvider
      */
     public const PARTAGE_CLE_GLOBALE = 'partage:tout-le-monde';
 
+    /**
+     * Les plafonds GLOBAUX des deux portes publiques qui n'en avaient pas.
+     *
+     * Memes clés constantes que `PARTAGE_CLE_GLOBALE`, et pour exactement la
+     * meme raison : aucune valeur de la requete n'y entre, donc aucun en-tete
+     * n'en sort. Voir les commentaires de `login` et de `public-write`.
+     *
+     * Les valeurs sont larges a dessein. Elles ne sont pas la pour gener
+     * l'usage normal — une entreprise d'une dizaine d'employes et quelques
+     * partenaires n'approche jamais 300 connexions par minute — mais pour
+     * qu'un plafond EXISTE la ou il n'y en avait aucun.
+     */
+    public const LOGIN_PAR_MINUTE_GLOBAL = 300;
+
+    public const LOGIN_CLE_GLOBALE = 'login:tout-le-monde';
+
+    /**
+     * Essais par minute sur UN compte donne, toutes adresses confondues.
+     *
+     * C'est la cle qui compte le plus : elle ne contient que l'adresse e-mail
+     * visee, donc rien que l'appelant puisse faire varier pour s'y soustraire.
+     * Trente laisse place a quelqu'un qui se trompe plusieurs fois de suite,
+     * et ferme la devinette automatisee.
+     */
+    public const LOGIN_PAR_COMPTE_PAR_MINUTE = 30;
+
+    public const ECRITURE_PUBLIQUE_PAR_MINUTE_GLOBAL = 120;
+
+    public const ECRITURE_PUBLIQUE_CLE_GLOBALE = 'ecriture-publique:tout-le-monde';
+
     public function register(): void
     {
         //
@@ -176,6 +206,42 @@ class AppServiceProvider extends ServiceProvider
         // trois fois de mot de passe atteindrait sinon le plafond sans motif.
         // Dix par minute reste sans usage pour deviner un mot de passe, et le
         // plafond par adresse ci-dessous borne la machine entiere.
+        // ── LES DEUX PLAFONDS CI-DESSOUS NE SUFFISAIENT PAS ──────────────
+        //
+        // Ils sont tous deux cles sur l'adresse IP, et `bootstrap/app.php:63`
+        // pose `trustProxies(at: '*')` : Laravel lit alors l'entree la plus a
+        // GAUCHE de `X-Forwarded-For`, c'est-a-dire celle que l'appelant
+        // fournit lui-meme. Un en-tete different a chaque requete donnait donc
+        // une cle differente, et le plafond ne mordait jamais.
+        //
+        // Verification faite le 24/10/2026, et conservee :
+        // `RateLimitTest::test_un_compte_vise_depuis_mille_adresses_reste_plafonne`
+        // envoie 30 essais sur un meme compte avec une adresse neuve a chaque
+        // fois. Les deux limites par adresse n'en refusent AUCUN — elles sont
+        // toutes neuves a chaque tour. En neutralisant la limite par compte
+        // ajoutee ci-dessous, le 31e essai est examine lui aussi : c'est le
+        // defaut, reproduit. Avec elle, il rend 429.
+        //
+        // Le projet connaissait deja ce defaut et l'avait corrige — pour les
+        // SEULES pages de partage (voir PARTAGE_CLE_GLOBALE plus haut, et son
+        // commentaire). `login` n'avait jamais recu la compagne, alors que
+        // c'est la porte qui donne un jeton de PERSONNEL.
+        //
+        // Les deux limites ajoutees ci-dessous portent des cles qu'aucun
+        // en-tete n'atteint :
+        //
+        //   - par ADRESSE EMAIL seule : borne les essais contre UN compte,
+        //     quelle que soit l'adresse revendiquee. C'est celle qui ferme
+        //     l'attaque par force brute ciblee.
+        //   - GLOBALE, cle constante : borne la machine entiere.
+        //
+        // COMPROMIS ASSUME sur la premiere. Le commentaire d'origine ci-dessus
+        // explique que l'IP figure dans la cle pour qu'un tiers ne puisse pas
+        // bloquer un employe en echouant a sa place. C'est vrai, et une limite
+        // par email seule reintroduit ce risque. Mais une minute de gene vaut
+        // mieux qu'un nombre d'essais illimite sur le compte d'un
+        // administrateur, et 30 par minute laisse largement place a quelqu'un
+        // qui se trompe plusieurs fois de suite.
         RateLimiter::for('login', fn (Request $request) => [
             Limit::perMinute(10)
                 ->by(Str::lower((string) $request->input('email')).'|'.$request->ip())
@@ -187,6 +253,16 @@ class AppServiceProvider extends ServiceProvider
                 ->response($this->refus(
                     'Trop de tentatives depuis cet appareil. Patientez une minute.'
                 )),
+            Limit::perMinute(self::LOGIN_PAR_COMPTE_PAR_MINUTE)
+                ->by('login:compte:'.Str::lower((string) $request->input('email')))
+                ->response($this->refus(
+                    'Trop de tentatives sur ce compte. Patientez une minute avant de reessayer.'
+                )),
+            Limit::perMinute(self::LOGIN_PAR_MINUTE_GLOBAL)
+                ->by(self::LOGIN_CLE_GLOBALE)
+                ->response($this->refus(
+                    'Trop de tentatives de connexion en cours. Patientez une minute.'
+                )),
         ]);
 
         // ── Ecritures ouvertes a tous ────────────────────────────────────────
@@ -195,11 +271,28 @@ class AppServiceProvider extends ServiceProvider
         // acheteur doit pouvoir se manifester sans s'inscrire. Mais chaque
         // soumission notifie tout le personnel : sans plafond, n'importe qui
         // peut noyer les notifications de l'equipe.
-        RateLimiter::for('public-write', fn (Request $request) => Limit::perMinute(10)
-            ->by($request->ip())
-            ->response($this->refus(
-                'Trop de demandes envoyees. Patientez une minute avant de reessayer.'
-            )));
+        // Meme correctif que pour `login`, et pour la meme raison : la seule
+        // cle de ce limiteur etait l'adresse, et elle cede a un en-tete
+        // `X-Forwarded-For`. Le plafond de 10 affiche ci-dessous ne bornait
+        // donc rien du tout pour qui prend la peine de poser l'en-tete.
+        //
+        // L'enjeu grandit bientot : la branche
+        // `codex/catalogue-finitions-rapport-2026-10-21` accroche
+        // `POST /partner/register` a CE limiteur (routes/partner.php:14) — une
+        // creation de compte sur un plafond qui ne tenait pas. Le defaut est
+        // corrige avant que cette porte n'ouvre, pas apres.
+        RateLimiter::for('public-write', fn (Request $request) => [
+            Limit::perMinute(10)
+                ->by($request->ip())
+                ->response($this->refus(
+                    'Trop de demandes envoyees. Patientez une minute avant de reessayer.'
+                )),
+            Limit::perMinute(self::ECRITURE_PUBLIQUE_PAR_MINUTE_GLOBAL)
+                ->by(self::ECRITURE_PUBLIQUE_CLE_GLOBALE)
+                ->response($this->refus(
+                    'Trop de demandes en cours. Patientez une minute avant de reessayer.'
+                )),
+        ]);
 
         // Le declencheur de taches planifiees. Trois par minute : l'ordonnanceur
         // appelle une fois par jour, et la tache balaie le parc entier — rien ne
