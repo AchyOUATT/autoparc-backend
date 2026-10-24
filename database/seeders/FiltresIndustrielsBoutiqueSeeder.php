@@ -144,8 +144,14 @@ class FiltresIndustrielsBoutiqueSeeder extends Seeder
             'type'       => PartType::Oem,
             'categorie'  => 'Filtre à huile',
             'nom'        => 'Filtre à huile moteur Caterpillar 462-1171',
-            'description' => 'Filtre à huile moteur Caterpillar, moteurs C4.4 / C6.6 / C7.1 selon '
-                .'configuration. Entre dans le kit d\'entretien CAT 610-3589 pour C7.1.',
+            'description' => 'Filtre à huile moteur Caterpillar. Entre dans le kit d\'entretien '
+                .'CAT 610-3589 (« C7.1 PM Kit Filters »), vérifié chez le constructeur, aux côtés '
+                .'de 435-6493 en deux exemplaires et du filtre à air 130-4678. '
+                .'LA LISTE DE MOTEURS A ÉTÉ RETIRÉE : cette description portait « moteurs C4.4 / '
+                .'C6.6 / C7.1 selon configuration », repris du document source et jamais vérifié '
+                .'chez Caterpillar — une contre-expertise du 24/10/2026 attribue cette liste à une '
+                .'AUTRE référence. Un filtre C7.1 posé sur une machine à C9.3 est exactement '
+                .'l\'erreur qui a fait refuser quinze lignes du catalogue Toyota.',
         ],
         [
             'sku'        => '435-6493',
