@@ -13,6 +13,7 @@ use App\Models\CustomerNeed;
 use App\Models\Vehicle;
 use App\Services\FcmService;
 use App\Services\ReferenceGenerator;
+use App\Support\TriPublic;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -66,10 +67,14 @@ class VehicleController extends Controller
             // `deal_type=flash_sale` un type precis.
             ->when($request->boolean('deal'), fn ($q) => $q->whereNotNull('deal_type'))
             ->when($request->filled('deal_type'), fn ($q) => $q->where('deal_type', $request->deal_type))
-            ->orderBy(
-                $request->input('sort_by', 'created_at'),
-                $request->input('sort_dir', 'desc')
-            )
+            // Tri borne a une liste blanche : `sort_by` et `sort_dir`
+            // passaient bruts dans `orderBy`, ce qui rendait 500 sur un sens
+            // invalide ET permettait de classer tout le catalogue par
+            // `purchase_price`, colonne absente de toute ressource publique.
+            // Voir App\Support\TriPublic.
+            ->tap(fn ($q) => TriPublic::appliquer(
+                $q, $request, TriPublic::vehicules(), 'created_at', 'desc'
+            ))
             ->paginate($request->integer('per_page', 20))
             ->withQueryString();
 

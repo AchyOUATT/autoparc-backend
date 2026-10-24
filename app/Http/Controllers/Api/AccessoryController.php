@@ -11,6 +11,7 @@ use App\Models\AppNotification;
 use App\Models\ClientFcmToken;
 use App\Models\CustomerNeed;
 use App\Services\FcmService;
+use App\Support\TriPublic;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -46,7 +47,7 @@ class AccessoryController extends Controller
             ->when($request->filled('vehicle_model_id'), fn ($q) => $q->compatibleWithModel($request->integer('vehicle_model_id')))
             ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
             ->when($request->filled('city'), fn ($q) => $q->whereHas('location', fn ($l) => $l->where('city', $request->city)))
-            ->orderBy($request->input('sort_by', 'name'), $request->input('sort_dir', 'asc'))
+            ->tap(fn ($q) => TriPublic::appliquer($q, $request, TriPublic::articles(), 'name', 'asc'))
             ->paginate($request->integer('per_page', 20))
             ->withQueryString();
 
@@ -86,7 +87,7 @@ class AccessoryController extends Controller
             ->when($request->boolean('active_only', true), fn ($q) => $q->active())
             ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
             ->when($request->filled('city'), fn ($q) => $q->whereHas('location', fn ($l) => $l->where('city', $request->city)))
-            ->orderBy($request->input('sort_by', 'name'), $request->input('sort_dir', 'asc'))
+            ->tap(fn ($q) => TriPublic::appliquer($q, $request, TriPublic::articles(), 'name', 'asc'))
             ->paginate($request->integer('per_page', 20))
             ->withQueryString();
 
