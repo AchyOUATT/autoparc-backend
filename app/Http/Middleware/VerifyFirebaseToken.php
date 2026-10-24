@@ -69,24 +69,29 @@ class VerifyFirebaseToken
         $user = User::where('firebase_uid', $claims['uid'])->first();
 
         if ($user) {
+            abort_unless($user->isClient(), 403, 'Ce compte ne peut pas utiliser la connexion client Firebase.');
+
             return $user;
         }
 
         // Compte cree par le staff avant la premiere connexion mobile (rare, mais possible)
         // : on rattache le firebase_uid a la fiche existante plutot que d'en creer une seconde.
-        if ($claims['email'] && $existing = User::where('email', $claims['email'])->first()) {
+        if ($claims['email'] && $existing = User::whereRaw('LOWER(email) = ?', [mb_strtolower($claims['email'])])->first()) {
+            // Verifier AVANT le rattachement : un email Firebase ne transforme
+            // jamais un employe ou une entreprise en compte client.
+            abort_unless($existing->isClient(), 403, 'Ce compte ne peut pas utiliser la connexion client Firebase.');
             $existing->update(['firebase_uid' => $claims['uid']]);
 
             return $existing;
         }
 
         return User::create([
-            'name'         => $claims['name'] ?? 'Client',
-            'email'        => $claims['email'] ?? $claims['uid'].'@firebase.local',
-            'password'     => Hash::make(Str::random(40)), // jamais utilise : auth via Firebase uniquement
-            'role'         => UserRole::Client,
+            'name' => $claims['name'] ?? 'Client',
+            'email' => $claims['email'] ?? $claims['uid'].'@firebase.local',
+            'password' => Hash::make(Str::random(40)), // jamais utilise : auth via Firebase uniquement
+            'role' => UserRole::Client,
             'firebase_uid' => $claims['uid'],
-            'is_active'    => true,
+            'is_active' => true,
         ]);
     }
 }

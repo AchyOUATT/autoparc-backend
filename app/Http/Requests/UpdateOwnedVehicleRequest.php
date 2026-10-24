@@ -40,6 +40,10 @@ class UpdateOwnedVehicleRequest extends StoreOwnedVehicleRequest
         parent::withValidator($validator);
 
         $validator->after(function ($validator) {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
             $vehicule = $this->route('ownedVehicle');
 
             if ($vehicule === null) {

@@ -15,6 +15,10 @@ class OwnedVehicleResource extends JsonResource
             'nickname'         => $this->nickname,
             'brand_id'         => $this->brand_id,
             'vehicle_model_id' => $this->vehicle_model_id,
+            'trim_id' => $this->trim_id,
+            'engine_type_id' => $this->engine_type_id,
+            'drivetrain_id' => $this->drivetrain_id,
+            'color_id' => $this->color_id,
 
             // Le modele tape a la main, quand le referentiel ne l'avait pas.
             // Il est transmis tel quel : le formulaire de modification doit
@@ -61,8 +65,8 @@ class OwnedVehicleResource extends JsonResource
                 'color'      => $this->whenLoaded('color', fn () => $this->color?->name),
             ],
 
-            // Indique si le calcul de compatibilite dispose d'une motorisation
-            // (saisie ou deduite de la finition) pour etre precis.
+            // Indicateur général de présence d'un code moteur exploitable.
+            // Le verdict par pièce est fourni par compatibility_assessment.
             'compatibility_ready' => $this->hasPreciseEngineData(),
 
             // La cote officielle du moteur choisi, quand il l'a ete. Nulle

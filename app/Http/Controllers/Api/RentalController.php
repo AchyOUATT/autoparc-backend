@@ -48,7 +48,9 @@ class RentalController extends Controller
             'handled_by' => auth()->id(),
         ]));
 
-        return (new RentalResource($rental->load(['customer', 'vehicle'])))
+        // Relire aussi les valeurs par defaut de la base (dont payment_status)
+        // avant de serialiser le contrat qui vient d'etre cree.
+        return (new RentalResource($rental->refresh()->load(['customer', 'vehicle'])))
             ->response()
             ->setStatusCode(201);
     }

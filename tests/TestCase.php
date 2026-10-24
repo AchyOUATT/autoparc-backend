@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use App\Services\FirebaseAuthService;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
@@ -24,13 +25,15 @@ abstract class TestCase extends BaseTestCase
     {
         if ($user !== null) {
             $uid = $user->firebase_uid ?? $uid;
-            $user->forceFill(['firebase_uid' => $uid])->save();
+            // Ce helper prepare un compte client reel. Les tests de refus des
+            // autres roles injectent leur jeton Firebase directement.
+            $user->forceFill(['firebase_uid' => $uid, 'role' => UserRole::Client])->save();
         }
 
         $this->app->instance(FirebaseAuthService::class, new FakeFirebaseAuthService([
-            'uid'   => $uid,
+            'uid' => $uid,
             'email' => $user?->email ?? "{$uid}@exemple.test",
-            'name'  => $user?->name ?? 'Client de test',
+            'name' => $user?->name ?? 'Client de test',
         ]));
 
         return $this->withHeader('Authorization', 'Bearer jeton-de-test');

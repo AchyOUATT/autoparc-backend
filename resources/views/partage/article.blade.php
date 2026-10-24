@@ -24,6 +24,9 @@
 
     <div class="corps">
         <h1>{{ $article->titre }}</h1>
+        @if ($vendeur)
+            <p class="vendeur">Vendeur : {{ $vendeur['company_name'] }}</p>
+        @endif
         {{-- ligneDePrix() et non prixFormate() : en l'absence de prix de vente,
              c'est le tarif de location qui s'affiche. Mesure avant correction,
              availability=rent avec rental_daily_rate=25000 : la page annoncait
@@ -31,6 +34,10 @@
              PART — alors que c'est la seule information qui decide le
              destinataire. --}}
         <p class="prix">{{ $article->ligneDePrix() }}</p>
+
+        @foreach ($article->tarifsLocationComplementaires() as $tarif)
+            <p class="tarif-location">Location : {{ $tarif }}</p>
+        @endforeach
 
         @if ($article->estIndisponible())
             {{-- La regle d'ArticleController::catalogueMontre sert une piece en
@@ -60,8 +67,12 @@
         {{-- WhatsApp d'abord : c'est par la que les clients ecrivent, et le
              message est pre-rempli du nom de l'article — sans cela le vendeur
              recoit « bonjour » et doit demander de quoi on parle. --}}
-        <a class="action whatsapp" href="{{ $whatsapp }}">Contacter sur WhatsApp</a>
-        <a class="action appel" href="tel:{{ $telephone }}">Appeler {{ $telephone }}</a>
+        @if ($whatsapp)
+            <a class="action whatsapp" href="{{ $whatsapp }}">Contacter sur WhatsApp</a>
+        @endif
+        @if ($telephone)
+            <a class="action appel" href="tel:{{ $telephone }}">Appeler {{ $telephone }}</a>
+        @endif
         {{-- Le lien du magasin reste en dernier : le visiteur arrive ici parce
              qu'il n'a PAS l'application, et lui demander de l'installer avant
              de pouvoir ecrire est exactement ce que ces pages corrigent. --}}

@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Support\PartnerOwnership;
+use Illuminate\Validation\ValidationException;
+
 use App\Enums\FitmentSource;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePartRequest;
@@ -30,12 +33,13 @@ class PartController extends Controller
     public function index(Request $request)
     {
         $parts = Part::query()
+            ->when(! $request->user()?->isStaff(), fn ($query) => $query->visibleToPublic())
             // Les compatibilites sont chargees ici pour que la vignette de la
             // liste annonce les vehicules concernes. Sans elles, il fallait
             // ouvrir chaque fiche pour savoir si la piece pouvait convenir.
             // Trois requetes de plus pour la page entiere, pas une par piece.
             ->with([
-                'category', 'manufacturer', 'oemNumbers', 'location', 'media',
+                'category', 'manufacturer', 'oemNumbers', 'location', 'media', 'sellerAccount',
                 'fitments.vehicleModel.brand',
             ])
             ->search($request->string('q')->toString() ?: null)
@@ -67,6 +71,10 @@ class PartController extends Controller
     public function store(StorePartRequest $request): JsonResponse
     {
         $data = $request->validated();
+        if ($request->user()?->isPartner()) {
+            $data['owner_partner_account_id'] = PartnerOwnership::accountId($request->user());
+            $data['partner_published_at'] = null;
+        }
 
         $part = DB::transaction(function () use ($data) {
             $part = Part::create(collect($data)->except(['oem_numbers', 'fitments'])->all());
@@ -91,7 +99,9 @@ class PartController extends Controller
         // le formulaire. Le chemin etait tout aussi casse ici.
         $part->refresh()->load(['category', 'manufacturer', 'oemNumbers', 'fitments']);
 
-        $this->notifyPartNeedMatch($part);
+        if ($part->owner_partner_account_id === null) {
+            $this->notifyPartNeedMatch($part);
+        }
 
         return (new PartResource($part))
             ->response()
@@ -148,9 +158,13 @@ class PartController extends Controller
 
     public function show(Part $part): PartResource
     {
+        if (! request()->user()?->isStaff()) {
+            abort_unless(Part::visibleToPublic()->whereKey($part->id)->exists(), 404);
+        }
+
         return new PartResource($part->load([
             'category', 'manufacturer', 'oemNumbers.brand', 'oemNumbers.fitments.vehicleModel.brand',
-            'fitments.vehicleModel.brand', 'fitments.trim', 'fitments.engineType', 'donorVehicle', 'media',
+            'fitments.vehicleModel.brand', 'fitments.trim', 'fitments.engineType', 'donorVehicle', 'media', 'sellerAccount',
         ]));
     }
 
@@ -239,17 +253,25 @@ class PartController extends Controller
     {
         $sync = [];
 
-        foreach ($oemNumbers as $entry) {
-            $oem = OemNumber::firstOrCreate(
-                [
-                    'normalized_number' => OemNumber::normalize($entry['number']),
-                    'brand_id'          => $entry['brand_id'] ?? null,
-                ],
-                [
+        foreach ($oemNumbers as $index => $entry) {
+            $identity = [
+                'normalized_number' => OemNumber::normalize($entry['number']),
+                'brand_id' => $entry['brand_id'] ?? null,
+            ];
+            if (auth()->user()?->isPartner()) {
+                // Recheck within the write transaction: a partner never creates shared references.
+                $oem = OemNumber::where($identity)->first();
+                if ($oem === null) {
+                    throw ValidationException::withMessages([
+                        'oem_numbers.'.$index.'.number' => 'Référence OEM non répertoriée : utilisez manufacturer_reference.',
+                    ]);
+                }
+            } else {
+                $oem = OemNumber::firstOrCreate($identity, [
                     'number' => $entry['number'],
-                    'label'  => $entry['label'] ?? null,
-                ]
-            );
+                    'label' => $entry['label'] ?? null,
+                ]);
+            }
 
             $sync[$oem->id] = ['is_primary' => $entry['is_primary'] ?? false];
         }

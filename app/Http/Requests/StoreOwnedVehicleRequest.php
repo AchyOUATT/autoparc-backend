@@ -2,9 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Motorisation;
-use App\Models\Trim;
-use App\Models\VehicleModel;
+use App\Support\EngineCode;
+use App\Support\VehicleClassification;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreOwnedVehicleRequest extends FormRequest
@@ -25,16 +24,6 @@ class StoreOwnedVehicleRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        foreach (['vehicle_model_id', 'model_libre'] as $champ) {
-            if ($this->has($champ) && trim((string) $this->input($champ)) === '') {
-                $this->merge([$champ => null]);
-            }
-        }
-
-        if ($this->filled('model_libre')) {
-            $this->merge(['model_libre' => trim((string) $this->input('model_libre'))]);
-        }
-
         // ── LE CODE MOTEUR EST MIS EN MAJUSCULES ICI AUSSI ───────────────────
         //
         // `CompatibilityService` compare le code moteur par EGALITE EXACTE
@@ -48,24 +37,37 @@ class StoreOwnedVehicleRequest extends FormRequest
         // code moteur sur la route publique, j'ai normalise `engine_code` dans
         // `CompatiblePartsCriteriaRequest` — et j'y ai meme ECRIT le
         // raisonnement ci-dessus — sans l'appliquer a la saisie du garage, qui
-        // est pourtant l'autre moitie du meme mecanisme. Le defaut a ete releve
-        // par un audit externe, pas par moi.
+        // est pourtant l'autre moitie du meme mecanisme.
+        //
+        // LE GARDE DE TYPE N'EST PAS DECORATIF, et la fusion l'a prouve. Cette
+        // methode a porte un temps DEUX normalisations : celle-ci, et une copie
+        // non gardee qui la suivait et l'ecrasait. Un `engine_code` envoye comme
+        // TABLEAU arrivait alors a `trim((string) ...)` et rendait 500 au lieu
+        // de 422 ; envoye comme ENTIER, il devenait la chaine « 123 » et passait
+        // la validation. `EngineCodeInputTest` couvre les quatre cas.
         //
         // `UpdateOwnedVehicleRequest` herite de cette classe, donc la
         // modification d'un vehicule passe par le meme chemin.
-        if ($this->has('engine_code')) {
-            $brut = trim((string) $this->input('engine_code'));
-
-            $this->merge([
-                'engine_code' => $brut === '' ? null : mb_strtoupper($brut),
-            ]);
+        if ($this->has('engine_code') && (is_string($this->input('engine_code')) || $this->input('engine_code') === null)) {
+            $this->merge(['engine_code' => EngineCode::normalize($this->input('engine_code'))]);
         }
+
+        foreach (['vehicle_model_id', 'model_libre'] as $champ) {
+            if ($this->has($champ) && is_string($this->input($champ)) && trim($this->input($champ)) === '') {
+                $this->merge([$champ => null]);
+            }
+        }
+
+        if (is_string($this->input('model_libre'))) {
+            $this->merge(['model_libre' => trim((string) $this->input('model_libre'))]);
+        }
+
     }
 
     public function rules(): array
     {
         return [
-            'brand_id'           => ['required', 'exists:brands,id'],
+            'brand_id'           => ['required', 'integer', 'exists:brands,id'],
 
             // Le modele n'est plus obligatoire, mais l'un des deux l'est.
             //
@@ -74,11 +76,11 @@ class StoreOwnedVehicleRequest extends FormRequest
             // manquera toujours des modeles — un CX-9, jamais vendu en Europe,
             // rendait l'enregistrement impossible. Qui ne trouve pas le sien
             // le tape, et le vehicule entre quand meme au garage.
-            'vehicle_model_id'   => ['nullable', 'required_without:model_libre', 'exists:vehicle_models,id'],
+            'vehicle_model_id'   => ['nullable', 'required_without:model_libre', 'integer', 'exists:vehicle_models,id'],
             'model_libre'        => ['nullable', 'required_without:vehicle_model_id', 'string', 'max:80'],
-            'trim_id'            => ['nullable', 'exists:trims,id'],
+            'trim_id'            => ['nullable', 'integer', 'exists:trims,id'],
             'engine_type_id'     => ['nullable', 'exists:engine_types,id'],
-            'motorisation_id'    => ['nullable', 'exists:motorisations,id'],
+            'motorisation_id'    => ['nullable', 'integer', 'exists:motorisations,id'],
             'drivetrain_id'      => ['nullable', 'exists:drivetrains,id'],
             'color_id'           => ['nullable', 'exists:colors,id'],
 
@@ -114,61 +116,14 @@ class StoreOwnedVehicleRequest extends FormRequest
         ];
     }
 
-    /** Le modele concerne : celui envoye, sinon celui du vehicule modifie. */
-    protected function modeleCible(): ?int
-    {
-        if ($this->filled('vehicle_model_id')) {
-            return (int) $this->input('vehicle_model_id');
-        }
-
-        $vehicule = $this->route('ownedVehicle');
-
-        return $vehicule?->vehicle_model_id;
-    }
-
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if ($this->filled(['brand_id', 'vehicle_model_id'])) {
-                $belongs = VehicleModel::where('id', $this->input('vehicle_model_id'))
-                    ->where('brand_id', $this->input('brand_id'))
-                    ->exists();
-
-                if (! $belongs) {
-                    $validator->errors()->add('vehicle_model_id', "Ce modele n'appartient pas a la marque selectionnee.");
-                }
-            }
-
-            // Une cote de consommation appartient a un modele precis : celle
-            // d'une Hilux ne dit rien d'une Corolla. Sans ce controle, une
-            // erreur de saisie afficherait une consommation credible et
-            // fausse, sans que rien ne la signale.
-            //
-            // Le modele vient de la requete a la creation, du vehicule
-            // existant a la mise a jour : une modification partielle n'envoie
-            // que le champ modifie, et le controle ne se declenchait pas.
-            if ($this->filled('motorisation_id') && $this->modeleCible() !== null) {
-                $appartient = Motorisation::where('id', $this->input('motorisation_id'))
-                    ->where('vehicle_model_id', $this->modeleCible())
-                    ->exists();
-
-                if (! $appartient) {
-                    $validator->errors()->add(
-                        'motorisation_id',
-                        "Cette motorisation ne correspond pas au modele selectionne."
-                    );
-                }
-            }
-
-            if ($this->filled(['vehicle_model_id', 'trim_id'])) {
-                $belongs = Trim::where('id', $this->input('trim_id'))
-                    ->where('vehicle_model_id', $this->input('vehicle_model_id'))
-                    ->exists();
-
-                if (! $belongs) {
-                    $validator->errors()->add('trim_id', "Cette finition n'appartient pas au modele selectionne.");
-                }
-            }
+            VehicleClassification::validate(
+                $validator,
+                $this->only(['brand_id', 'vehicle_model_id', 'trim_id', 'motorisation_id']),
+                $this->route('ownedVehicle'),
+            );
         });
     }
 }

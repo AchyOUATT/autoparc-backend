@@ -13,6 +13,7 @@ use App\Models\CustomerNeed;
 use App\Models\Vehicle;
 use App\Services\FcmService;
 use App\Services\ReferenceGenerator;
+use App\Support\PartnerOwnership;
 use App\Support\TriPublic;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,9 +30,10 @@ class VehicleController extends Controller
     public function index(Request $request)
     {
         $vehicles = Vehicle::query()
+            ->when(! $request->user()?->isStaff(), fn ($query) => $query->visibleToPublic())
             ->with([
                 'brand', 'vehicleModel', 'trim', 'engineType', 'drivetrain', 'color',
-                'location',
+                'location', 'sellerAccount',
                 'importDetail.originCountry', 'registrationDetail.registrationCountry', 'media',
             ])
             ->withCount('faults')
@@ -84,6 +86,10 @@ class VehicleController extends Controller
     public function store(StoreVehicleRequest $request): JsonResponse
     {
         $data = $request->validated();
+        if ($request->user()?->isPartner()) {
+            $data['owner_partner_account_id'] = PartnerOwnership::accountId($request->user());
+            $data['partner_published_at'] = null;
+        }
 
         $vehicle = DB::transaction(function () use ($data) {
             // ── LE STATUT ENVOYE PRIME SUR LA PLAQUE ─────────────────────
@@ -228,6 +234,10 @@ class VehicleController extends Controller
 
     public function show(Vehicle $vehicle): VehicleResource
     {
+        if (! request()->user()?->isStaff()) {
+            abort_unless(Vehicle::visibleToPublic()->whereKey($vehicle->id)->exists(), 404);
+        }
+
         $vehicle = $this->loadRelations($vehicle);
 
         // Seulement ici : une requete par vehicule, que la liste ne peut pas
@@ -355,7 +365,7 @@ class VehicleController extends Controller
             'features', 'media', 'faults.parts',
             'importDetail.originCountry', 'importDetail.purchaseCountry',
             'registrationDetail.registrationCountry',
-            'location', 'partner',
+            'location', 'partner', 'sellerAccount',
         ]);
     }
 }

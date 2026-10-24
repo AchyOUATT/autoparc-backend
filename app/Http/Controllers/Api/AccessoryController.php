@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Support\PartnerOwnership;
+
 use App\Enums\FitmentSource;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAccessoryRequest;
@@ -28,8 +30,9 @@ class AccessoryController extends Controller
     public function catalog(Request $request)
     {
         $accessories = Accessory::query()
+            ->visibleToPublic()
             ->with([
-                'manufacturer', 'location', 'media',
+                'manufacturer', 'location', 'media', 'sellerAccount',
                 // La ligne de compatibilite des cartes lit la cle
                 // `compatibility`, que AccessoryResource rend sous
                 // whenLoaded : sans ce
@@ -58,6 +61,7 @@ class AccessoryController extends Controller
     public function catalogShow(Accessory $accessory): AccessoryResource
     {
         abort_if(! $accessory->is_active, 404);
+        abort_unless(Accessory::visibleToPublic()->whereKey($accessory->id)->exists(), 404);
 
         // 'media' etait absent de cette liste, et de celle de show() plus
         // bas, alors que catalog() le charge. whenLoaded() retire alors la
@@ -66,7 +70,7 @@ class AccessoryController extends Controller
         // PartController::show le chargeait depuis le debut — c'est cette
         // asymetrie, et elle seule, qui faisait la difference entre les deux
         // catalogues.
-        return new AccessoryResource($accessory->load(['manufacturer', 'location', 'media', 'fitments.vehicleModel', 'fitments.trim']));
+        return new AccessoryResource($accessory->load(['manufacturer', 'location', 'media', 'fitments.vehicleModel', 'fitments.trim', 'sellerAccount']));
     }
 
     /* ------------------------------------------------------------------ */
@@ -98,6 +102,10 @@ class AccessoryController extends Controller
     public function store(StoreAccessoryRequest $request): JsonResponse
     {
         $data = $request->validated();
+        if ($request->user()?->isPartner()) {
+            $data['owner_partner_account_id'] = PartnerOwnership::accountId($request->user());
+            $data['partner_published_at'] = null;
+        }
 
         $accessory = DB::transaction(function () use ($data) {
             $accessory = Accessory::create(collect($data)->except('fitments')->all());
@@ -127,7 +135,9 @@ class AccessoryController extends Controller
         // ete ecrit, pas ce qu'on a demande d'ecrire.
         $accessory->refresh()->load(['manufacturer', 'fitments']);
 
-        $this->notifyAccessoryNeedMatch($accessory);
+        if ($accessory->owner_partner_account_id === null) {
+            $this->notifyAccessoryNeedMatch($accessory);
+        }
 
         return (new AccessoryResource($accessory))
             ->response()

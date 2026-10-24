@@ -20,9 +20,9 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'role'              => UserRole::class,
-            'is_active'         => 'boolean',
+            'password' => 'hashed',
+            'role' => UserRole::class,
+            'is_active' => 'boolean',
         ];
     }
 
@@ -44,6 +44,16 @@ class User extends Authenticatable
     public function isStaff(): bool
     {
         return $this->role->isStaff();
+    }
+
+    public function isPartner(): bool
+    {
+        return $this->role === UserRole::Partner;
+    }
+
+    public function partnerAccount()
+    {
+        return $this->hasOne(PartnerAccount::class);
     }
 
     public function sales()

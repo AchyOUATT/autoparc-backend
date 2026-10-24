@@ -15,8 +15,8 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'email'       => ['required', 'email'],
-            'password'    => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
             'device_name' => ['nullable', 'string', 'max:100'],
         ]);
 
@@ -30,7 +30,13 @@ class AuthController extends Controller
             ]);
         }
 
-        if (! $user || ! Hash::check($data['password'], $user->password) || ! $user->is_active) {
+        if ($user && $user->isPartner()) {
+            throw ValidationException::withMessages([
+                'email' => ['Ce compte partenaire doit utiliser la connexion de son espace partenaire.'],
+            ]);
+        }
+
+        if (! $user || ! $user->isStaff() || ! Hash::check($data['password'], $user->password) || ! $user->is_active) {
             throw ValidationException::withMessages([
                 'email' => ['Identifiants invalides ou compte désactivé.'],
             ]);
@@ -40,11 +46,11 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user'  => [
-                'id'    => $user->id,
-                'name'  => $user->name,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
                 'email' => $user->email,
-                'role'  => $user->role->value,
+                'role' => $user->role->value,
             ],
         ]);
     }
@@ -54,10 +60,10 @@ class AuthController extends Controller
         $user = $request->user();
 
         return response()->json([
-            'id'    => $user->id,
-            'name'  => $user->name,
+            'id' => $user->id,
+            'name' => $user->name,
             'email' => $user->email,
-            'role'  => $user->role->value,
+            'role' => $user->role->value,
             'phone' => $user->phone,
         ]);
     }

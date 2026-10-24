@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\BrandResource;
 use App\Http\Resources\VehicleModelResource;
 use App\Models\Brand;
-use App\Models\Trim;
 use App\Models\VehicleModel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,9 +33,9 @@ class BrandController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'       => ['required', 'string', 'max:80', Rule::unique('brands', 'name')],
+            'name' => ['required', 'string', 'max:80', Rule::unique('brands', 'name')],
             'country_id' => ['nullable', 'exists:countries,id'],
-            'logo_path'  => ['nullable', 'string', 'max:255'],
+            'logo_path' => ['nullable', 'string', 'max:255'],
             'oem_prefix' => ['nullable', 'string', 'max:20'],
         ]);
 
@@ -47,21 +46,25 @@ class BrandController extends Controller
     {
         // Meme regle que `models()` : la fiche d'une marque est une liste de
         // choix, pas un inventaire. Un modele desactive n'y figure pas.
+        //
+        // Les finitions chargent desormais leurs `applications` : les deux
+        // preoccupations sont orthogonales et tiennent ensemble — on filtre les
+        // modeles inactifs ET on charge la profondeur dont la fiche a besoin.
         return new BrandResource($brand->load([
             'country',
             'vehicleModels' => fn ($q) => $q->where('is_active', true),
-            'vehicleModels.trims',
+            'vehicleModels.trims.applications',
         ]));
     }
 
     public function update(Request $request, Brand $brand): BrandResource
     {
         $data = $request->validate([
-            'name'       => ['sometimes', 'string', 'max:80', Rule::unique('brands', 'name')->ignore($brand->id)],
+            'name' => ['sometimes', 'string', 'max:80', Rule::unique('brands', 'name')->ignore($brand->id)],
             'country_id' => ['nullable', 'exists:countries,id'],
-            'logo_path'  => ['nullable', 'string', 'max:255'],
+            'logo_path' => ['nullable', 'string', 'max:255'],
             'oem_prefix' => ['nullable', 'string', 'max:20'],
-            'is_active'  => ['boolean'],
+            'is_active' => ['boolean'],
         ]);
 
         $brand->update($data);
@@ -105,7 +108,7 @@ class BrandController extends Controller
         return VehicleModelResource::collection(
             $brand->vehicleModels()
                 ->when($request->boolean('active_only', true), fn ($q) => $q->where('is_active', true))
-                ->with('trims')
+                ->with('trims.applications')
                 ->orderBy('name')
                 ->get()
         );
@@ -114,12 +117,12 @@ class BrandController extends Controller
     public function storeModel(Request $request, Brand $brand): JsonResponse
     {
         $data = $request->validate([
-            'name'             => ['required', 'string', 'max:80'],
-            'generation'       => ['nullable', 'string', 'max:40'],
-            'body_type'        => ['nullable', 'string', 'max:40'],
-            'segment'          => ['nullable', 'string', 'max:10'],
+            'name' => ['required', 'string', 'max:80'],
+            'generation' => ['nullable', 'string', 'max:40'],
+            'body_type' => ['nullable', 'string', 'max:40'],
+            'segment' => ['nullable', 'string', 'max:10'],
             'production_start' => ['nullable', 'integer', 'min:1950'],
-            'production_end'   => ['nullable', 'integer', 'min:1950', 'gte:production_start'],
+            'production_end' => ['nullable', 'integer', 'min:1950', 'gte:production_start'],
         ]);
 
         $model = $brand->vehicleModels()->create($data);
@@ -131,10 +134,10 @@ class BrandController extends Controller
     public function storeTrim(Request $request, VehicleModel $vehicleModel): JsonResponse
     {
         $data = $request->validate([
-            'name'        => ['required', 'string', 'max:60'],
-            'code'        => ['nullable', 'string', 'max:30'],
+            'name' => ['required', 'string', 'max:60'],
+            'code' => ['nullable', 'string', 'max:30'],
             'description' => ['nullable', 'string'],
-            'rank'        => ['nullable', 'integer', 'min:0', 'max:255'],
+            'rank' => ['nullable', 'integer', 'min:0', 'max:255'],
         ]);
 
         $trim = $vehicleModel->trims()->create($data);

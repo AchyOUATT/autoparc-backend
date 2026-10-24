@@ -73,12 +73,18 @@ class CompatiblePartsRequest extends FormRequest
         return (int) ($this->validated('per_page') ?? 20);
     }
 
+    public function includeCandidates(): bool
+    {
+        return (bool) $this->validated('include_candidates', false);
+    }
+
     /** Partagees avec la recherche par criteres, qui pagine la meme collection. */
     protected function paginationRules(): array
     {
         return [
             'per_page' => ['nullable', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
             'page'     => ['nullable', 'integer', 'min:1'],
+            'include_candidates' => ['nullable', 'boolean'],
         ];
     }
 

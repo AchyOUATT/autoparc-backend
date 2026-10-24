@@ -1,0 +1,24 @@
+{
+    "schema_version": 1,
+    "status": "blocked_source_access",
+    "purpose": "Premier lot de dix entrees sans finition. Les millesimes sont des cibles de recherche, pas des applicabilites verifiees. Aucune finition ne peut etre importee depuis ce backlog sans preuve constructeur lue.",
+    "market": "US",
+    "source_access": {
+        "checked_at": "2026-10-21",
+        "status": "blocked_source_access",
+        "reason": "Le proxy HTTPS refuse les sites constructeur avec CONNECT 403 avant lecture des sources.",
+        "required_domains": ["hondanews.com", "automobiles.honda.com", "news.mazdausa.com"]
+    },
+    "entries": [
+        {"brand": "mazda", "model_slug": "mazda3-bl", "target_model_year": 2013, "market": "US", "status": "blocked_source_access", "trims": [], "sources": []},
+        {"brand": "mazda", "model_slug": "mazda3-bm", "target_model_year": 2018, "market": "US", "status": "blocked_source_access", "trims": [], "sources": []},
+        {"brand": "mazda", "model_slug": "mazda3-bp", "target_model_year": 2020, "market": "US", "status": "blocked_source_access", "trims": [], "sources": []},
+        {"brand": "mazda", "model_slug": "cx-5-kf", "target_model_year": 2021, "market": "US", "status": "blocked_source_access", "trims": [], "sources": []},
+        {"brand": "mazda", "model_slug": "cx-9-tc", "target_model_year": 2020, "market": "US", "status": "blocked_source_access", "trims": [], "sources": []},
+        {"brand": "honda", "model_slug": "civic-fc", "target_model_year": 2018, "market": "US", "status": "blocked_source_access", "trims": [], "sources": []},
+        {"brand": "honda", "model_slug": "accord-cv", "target_model_year": 2020, "market": "US", "status": "blocked_source_access", "trims": [], "sources": []},
+        {"brand": "honda", "model_slug": "cr-v-rw", "target_model_year": 2020, "market": "US", "status": "blocked_source_access", "trims": [], "sources": []},
+        {"brand": "honda", "model_slug": "hr-v-ru", "target_model_year": 2020, "market": "US", "status": "blocked_source_access", "trims": [], "sources": []},
+        {"brand": "honda", "model_slug": "pilot-yf", "target_model_year": 2020, "market": "US", "status": "blocked_source_access", "trims": [], "sources": []}
+    ]
+}

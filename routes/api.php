@@ -45,6 +45,8 @@ use Illuminate\Support\Facades\Route;
 Route::post('login', [AuthController::class, 'login'])
     ->middleware('throttle:login'); // staff uniquement : les clients passent par Firebase Auth cote Flutter
 
+require __DIR__.'/partner.php';
+
 
 /* ------------------- Plancher de version de l'application --------------- */
 // Appelee a chaque ouverture, avant tout le reste. Elle doit etre joignable
@@ -115,6 +117,7 @@ Route::prefix('catalog')->group(function () {
     // pastille promettrait des articles que l'ecran ne montre pas : `active()`
     // et `is_available`, car ce catalogue-la masque les ruptures de stock.
     Route::get('accessory-categories', fn () => \App\Models\Accessory::query()
+        ->visibleToPublic()
         ->active()
         ->where('is_available', true)
         ->whereNotNull('category')

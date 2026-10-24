@@ -8,6 +8,7 @@ use App\Enums\VehicleAvailability;
 use App\Enums\VehicleCondition;
 use App\Enums\VehicleDealType;
 use App\Enums\VehicleStatus;
+use App\Models\Concerns\HasPartnerOwner;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Vehicle extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasPartnerOwner, SoftDeletes;
 
     /**
      * Fourchette de consommation officielle, posee par le controleur.
@@ -41,7 +42,7 @@ class Vehicle extends Model
         'purchase_price', 'sale_price', 'rental_daily_rate', 'rental_weekly_rate',
         'rental_monthly_rate', 'rental_deposit', 'rental_mileage_limit_per_day',
         'currency', 'price_negotiable', 'deal_type', 'site', 'location_id', 'description',
-        'created_by', 'published_at', 'partner_id',
+        'created_by', 'published_at', 'partner_id', 'owner_partner_account_id', 'partner_published_at',
     ];
 
     protected function casts(): array
@@ -67,6 +68,7 @@ class Vehicle extends Model
             'price_negotiable'         => 'boolean',
             'deal_type'                => VehicleDealType::class,
             'published_at'             => 'datetime',
+            'partner_published_at'     => 'datetime',
         ];
     }
 

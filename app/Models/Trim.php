@@ -25,6 +25,12 @@ class Trim extends Model
         return $this->hasMany(Vehicle::class);
     }
 
+    public function applications()
+    {
+        return $this->hasMany(TrimApplication::class)
+            ->orderBy('market')->orderBy('model_year_from');
+    }
+
     /**
      * Motorisation la plus courante pour cette finition (nullable : certaines
      * finitions existent avec plusieurs moteurs, auquel cas on laisse le client

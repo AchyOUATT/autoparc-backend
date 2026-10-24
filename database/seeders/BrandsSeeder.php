@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\ReferenceCatalogWriter;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -57,13 +58,12 @@ class BrandsSeeder extends Seeder
             ->toArray();
 
         foreach ($rows as [$name, $iso2, $prefix]) {
-            DB::table('brands')->upsert([
+            ReferenceCatalogWriter::upsert('brands', ['slug' => Str::slug($name)], [
                 'name'       => $name,
-                'slug'       => Str::slug($name),
                 'country_id' => $countryMap[$iso2] ?? null,
                 'oem_prefix' => $prefix,
                 'is_active'  => true,
-            ], ['slug'], ['name', 'country_id', 'oem_prefix', 'is_active']);
+            ]);
         }
     }
 }

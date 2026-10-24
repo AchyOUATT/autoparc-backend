@@ -8,6 +8,8 @@ use App\Enums\VehicleAvailability;
 use App\Enums\VehicleCondition;
 use App\Enums\VehicleDealType;
 use App\Enums\VehicleStatus;
+use App\Support\EngineCode;
+use App\Support\VehicleClassification;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -33,23 +35,22 @@ class StoreVehicleRequest extends FormRequest
      * compatibilites sans code moteur, et le vendeur conclurait qu'il n'y en a
      * pas.
      *
-     * LES TROIS PORTES D'ENTREE NORMALISENT DESORMAIS PAREIL. Elles ne le
-     * faisaient pas : seule la route publique de recherche avait ete traitee,
-     * ce qui laissait le defaut entier des deux cotes de la SAISIE. Trois
-     * normalisations identiques valent mieux qu'une seule bien placee tant que
-     * la colonne elle-meme n'impose rien — et le jour ou l'on voudra la rendre
-     * insensible a la casse en base, c'est ici qu'il faudra revenir.
+     * LES TROIS PORTES D'ENTREE NORMALISENT PAREIL. Elles ne le faisaient pas :
+     * seule la route publique de recherche avait ete traitee, ce qui laissait le
+     * defaut entier des deux cotes de la SAISIE.
+     *
+     * La regle vit maintenant dans `App\Support\EngineCode::normalize()`, et
+     * non recopiee a trois endroits : le jour ou l'on voudra rendre la colonne
+     * insensible a la casse en base, c'est la qu'il faudra revenir. L'appel est
+     * garde par un test de type, sans quoi un `engine_code` envoye comme
+     * TABLEAU arriverait a `trim()` et deviendrait la chaine « Array ».
      *
      * `UpdateVehicleRequest` herite de cette classe.
      */
     protected function prepareForValidation(): void
     {
-        if ($this->has('engine_code')) {
-            $brut = trim((string) $this->input('engine_code'));
-
-            $this->merge([
-                'engine_code' => $brut === '' ? null : mb_strtoupper($brut),
-            ]);
+        if ($this->has('engine_code') && (is_string($this->input('engine_code')) || $this->input('engine_code') === null)) {
+            $this->merge(['engine_code' => EngineCode::normalize($this->input('engine_code'))]);
         }
     }
 
@@ -71,9 +72,9 @@ class StoreVehicleRequest extends FormRequest
                 'pickup', 'van', 'minibus', 'bus', 'truck', 'other',
             ])],
 
-            'brand_id'           => ['required', 'exists:brands,id'],
-            'vehicle_model_id'   => ['required', 'exists:vehicle_models,id'],
-            'trim_id'            => ['nullable', 'exists:trims,id'],
+            'brand_id'           => ['required', 'integer', 'exists:brands,id'],
+            'vehicle_model_id'   => ['required', 'integer', 'exists:vehicle_models,id'],
+            'trim_id'            => ['nullable', 'integer', 'exists:trims,id'],
             'engine_type_id'     => ['required', 'exists:engine_types,id'],
             'drivetrain_id'      => ['nullable', 'exists:drivetrains,id'],
             'color_id'           => ['nullable', 'exists:colors,id'],
@@ -113,7 +114,7 @@ class StoreVehicleRequest extends FormRequest
 
             'purchase_price'     => ['nullable', 'numeric', 'min:0'],
             'sale_price'         => ['nullable', 'numeric', 'min:0', 'required_if:availability,sale,both'],
-            'rental_daily_rate'  => ['nullable', 'numeric', 'min:0', 'required_if:availability,rent,both'],
+            'rental_daily_rate'  => ['nullable', 'numeric', 'min:0'],
             'rental_weekly_rate' => ['nullable', 'numeric', 'min:0'],
             'rental_monthly_rate' => ['nullable', 'numeric', 'min:0'],
             'rental_deposit'     => ['nullable', 'numeric', 'min:0'],
@@ -177,26 +178,33 @@ class StoreVehicleRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            // Cohérence : le modèle doit appartenir à la marque envoyée.
-            if ($this->filled(['brand_id', 'vehicle_model_id'])) {
-                $belongs = \App\Models\VehicleModel::where('id', $this->input('vehicle_model_id'))
-                    ->where('brand_id', $this->input('brand_id'))
-                    ->exists();
+            $vehicle = $this->route('vehicle');
 
-                if (! $belongs) {
-                    $validator->errors()->add('vehicle_model_id', "Ce modele n'appartient pas a la marque selectionnee.");
-                }
+            VehicleClassification::validate(
+                $validator,
+                $this->only(['brand_id', 'vehicle_model_id', 'trim_id']),
+                $vehicle,
+            );
+
+            if ($validator->errors()->isNotEmpty()) {
+                return;
             }
 
-            // Cohérence : la finition doit appartenir au modèle.
-            if ($this->filled(['vehicle_model_id', 'trim_id'])) {
-                $belongs = \App\Models\Trim::where('id', $this->input('trim_id'))
-                    ->where('vehicle_model_id', $this->input('vehicle_model_id'))
-                    ->exists();
+            // En modification, un champ omis conserve sa valeur ; un null
+            // explicite retire le tarif. On controle donc la fiche resultante.
+            $availability = $this->input('availability', $vehicle?->availability?->value);
 
-                if (! $belongs) {
-                    $validator->errors()->add('trim_id', "Cette finition n'appartient pas au modele selectionne.");
-                }
+            if (! in_array($availability, ['rent', 'both'], true)) {
+                return;
+            }
+
+            $dailyRate = $this->input('rental_daily_rate', $vehicle?->rental_daily_rate);
+            $monthlyRate = $this->input('rental_monthly_rate', $vehicle?->rental_monthly_rate);
+
+            if ($dailyRate === null && $monthlyRate === null) {
+                $message = 'Renseignez un prix journalier ou un forfait mensuel pour proposer ce véhicule à la location.';
+                $validator->errors()->add('rental_daily_rate', $message);
+                $validator->errors()->add('rental_monthly_rate', $message);
             }
         });
     }

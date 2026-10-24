@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\ReferenceCatalogWriter;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -857,19 +858,28 @@ class VehicleModelsSeeder extends Seeder
             //
             // Sans cela, l'upsert de ce seeder remettrait `is_active = true` a
             // chaque demarrage et defierait la migration qui l'a desactivee.
+            //
+            // CE DRAPEAU A SURVECU A LA FUSION, ET IL FALLAIT Y VEILLER.
+            // `ReferenceCatalogWriter` remplace l'upsert du Query Builder — il
+            // n'ecrit que ce qui change et repare les `updated_at` restes NULL,
+            // ce qui est un gain. Mais la version d'ou il vient passait
+            // `is_active => true` en dur : la prendre telle quelle rallumait
+            // `tacoma` et `venza` nus a chaque demarrage, et le selecteur
+            // reproposait six entrees pour deux vehicules.
             $actif = ! in_array($slug, self::SLUGS_NUS_DESACTIVES, true);
 
-            DB::table('vehicle_models')->upsert([
+            ReferenceCatalogWriter::upsert('vehicle_models', [
                 'brand_id'         => $brandId,
-                'name'             => $name,
                 'slug'             => $slug,
+            ], [
+                'name'             => $name,
                 'generation'       => $generation,
                 'body_type'        => $bodyType,
                 'segment'          => $segment,
                 'production_start' => $yearStart,
                 'production_end'   => $yearEnd,
                 'is_active'        => $actif,
-            ], ['brand_id', 'slug'], ['name', 'generation', 'body_type', 'segment', 'production_start', 'production_end', 'is_active']);
+            ]);
         }
     }
 }

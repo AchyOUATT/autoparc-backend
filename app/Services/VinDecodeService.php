@@ -70,6 +70,7 @@ class VinDecodeService
      *   vin:             string,
      *   valid:           bool,
      *   year_candidates: int[],
+     *   vin_engine_character: string|null,
      *   engine_code:     string|null,
      *   nhtsa:           array|null,
      *   brand:           array|null,
@@ -98,7 +99,12 @@ class VinDecodeService
 
         // 3. Décodage local (aucun réseau requis)
         $yearCandidates = $this->decodeYear($vin);
-        $engineCode     = $this->decodeEngineCode($vin);
+        $vinEngineCharacter = $vin[7];
+
+        // Ce caractere VDS ne designe pas un code moteur universel. Le code
+        // complet exige une correspondance constructeur verifiee ; la valeur
+        // brute NHTSA reste donc elle aussi dans son champ de provenance.
+        $warnings[] = 'Code moteur constructeur non identifié : vérifiez-le sur le véhicule avant de choisir une pièce spécifique au moteur.';
 
         // 4. Appel NHTSA vPIC (peut échouer silencieusement)
         $nhtsa = $this->callNhtsa($vin);
@@ -162,7 +168,8 @@ class VinDecodeService
             'vin'             => $vin,
             'valid'           => true,
             'year_candidates' => $yearCandidates,
-            'engine_code'     => $engineCode,
+            'vin_engine_character' => $vinEngineCharacter,
+            'engine_code'     => null,
             'nhtsa'           => $nhtsaSummary,
             'brand'           => $brand,
             'vehicle_model'   => $model,
@@ -216,17 +223,6 @@ class VinDecodeService
     private function decodeYear(string $vin): array
     {
         return self::YEAR_MAP[$vin[9]] ?? [];
-    }
-
-    /**
-     * Char 8 (index 7) = code moteur constructeur (VDS).
-     * Retourne null si indéfini ('0').
-     */
-    private function decodeEngineCode(string $vin): ?string
-    {
-        $code = $vin[7];
-
-        return $code === '0' ? null : $code;
     }
 
     // -----------------------------------------------------------------------
@@ -552,6 +548,7 @@ class VinDecodeService
             'vin'             => $vin,
             'valid'           => false,
             'year_candidates' => [],
+            'vin_engine_character' => null,
             'engine_code'     => null,
             'nhtsa'           => null,
             'brand'           => null,

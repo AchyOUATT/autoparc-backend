@@ -8,6 +8,7 @@ use App\Models\Rental;
 use App\Models\Vehicle;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 class RentalService
@@ -34,7 +35,9 @@ class RentalService
             $rate = $data['daily_rate'] ?? $vehicle->rental_daily_rate;
 
             if ($rate === null) {
-                throw new RuntimeException("Aucun tarif journalier defini pour le vehicule {$vehicle->reference}.");
+                throw ValidationException::withMessages([
+                    'daily_rate' => 'Renseignez un tarif journalier pour cette réservation. Le forfait mensuel du véhicule ne s’applique pas automatiquement aux contrats facturés à la journée.',
+                ]);
             }
 
             $rental = Rental::create(array_merge($data, [

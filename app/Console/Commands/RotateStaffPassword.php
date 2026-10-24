@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
@@ -30,7 +31,7 @@ class RotateStaffPassword extends Command
     public function handle(): int
     {
         $email = $this->argument('email');
-        $all   = (bool) $this->option('all');
+        $all = (bool) $this->option('all');
 
         if (($email === null) === ! $all) {
             $this->error('Indiquer une adresse, ou --all pour tout le personnel.');
@@ -39,8 +40,8 @@ class RotateStaffPassword extends Command
         }
 
         $users = $all
-            ? User::query()->where('role', '!=', 'client')->orderBy('email')->get()
-            : User::query()->where('email', $email)->get();
+            ? User::query()->whereIn('role', UserRole::staffValues())->orderBy('email')->get()
+            : User::query()->whereIn('role', UserRole::staffValues())->where('email', $email)->get();
 
         if ($users->isEmpty()) {
             $this->error($all ? 'Aucun compte du personnel.' : "Aucun compte pour {$email}.");

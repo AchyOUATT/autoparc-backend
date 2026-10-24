@@ -75,6 +75,8 @@ return Application::configure(basePath: dirname(__DIR__))
     $middleware->alias([
         'staff'      => \App\Http\Middleware\EnsureStaff::class,
         'capability' => \App\Http\Middleware\EnsureCapability::class,
+        'partner' => \App\Http\Middleware\EnsurePartner::class,
+        'partner.approved' => \App\Http\Middleware\EnsureApprovedPartner::class,
         'firebase'   => \App\Http\Middleware\VerifyFirebaseToken::class,
     ]);
 })
