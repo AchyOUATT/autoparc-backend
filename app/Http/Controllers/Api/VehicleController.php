@@ -81,9 +81,29 @@ class VehicleController extends Controller
         $data = $request->validated();
 
         $vehicle = DB::transaction(function () use ($data) {
-            // Calcul automatique du statut : 'registered' si une plaque est fournie.
+            // ── LE STATUT ENVOYE PRIME SUR LA PLAQUE ─────────────────────
+            //
+            // Le statut etait DEDUIT de la plaque, et ce qui arrivait dans
+            // `registration_status` etait ecrase sans un mot — alors que la
+            // validation acceptait le champ. Un vendeur qui declarait un
+            // vehicule immatricule SANS avoir sa plaque sous la main le
+            // voyait classe « non immatricule », et sa fiche basculait du
+            // cote import : `syncTypeSpecificDetails()` ecrit le bloc import
+            // ou le bloc immatriculation SELON CE STATUT, donc le carnet
+            // d'immatriculation qu'il venait de remplir etait ignore.
+            //
+            // La plaque n'est pas la preuve de l'immatriculation, c'est une
+            // de ses donnees. On a une plaque quand on l'a ; on sait que le
+            // vehicule est immatricule bien avant.
+            //
+            // `UpdateVehicleRequest` acceptait deja le champ a la
+            // modification : seule la creation le refusait, ce qui obligeait
+            // a creer la fiche puis a la corriger aussitot.
+            //
+            // Sans statut explicite, la deduction d'avant s'applique telle
+            // quelle : une plaque vaut toujours immatriculation.
             $plateNumber = $data['plate_number'] ?? null;
-            $data['registration_status'] = $plateNumber
+            $data['registration_status'] ??= $plateNumber
                 ? RegistrationStatus::Registered->value
                 : RegistrationStatus::Unregistered->value;
 

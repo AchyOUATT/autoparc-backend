@@ -58,7 +58,11 @@ class StoreVehicleRequest extends FormRequest
         return [
             'reference'           => ['nullable', 'string', 'max:50', Rule::unique('vehicles', 'reference')],
             'vin'                 => ['nullable', 'string', 'size:17', Rule::unique('vehicles', 'vin')],
-            // registration_status est calculé automatiquement : 'registered' si plate_number fourni, sinon 'unregistered'.
+            // Envoye, il prime. Absent, il est DEDUIT de `plate_number` :
+            // une plaque vaut immatriculation. Ce champ etait accepte ici
+            // puis ecrase par le controleur, si bien qu'un vehicule
+            // immatricule dont on n'avait pas la plaque sous la main entrait
+            // au catalogue du cote import. Voir VehicleController::store().
             'registration_status' => ['nullable', Rule::in(RegistrationStatus::values())],
             'plate_number'        => ['nullable', 'string', 'max:30'],
             'vehicle_type'        => ['nullable', Rule::in(['passenger', 'utility', 'heavy'])],
