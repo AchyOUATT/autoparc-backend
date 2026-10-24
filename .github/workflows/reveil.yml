@@ -1,0 +1,120 @@
+# Garder l'instance Render eveillee, pour que les apercus de partage existent.
+#
+# ── LE DEFAUT QUE CECI CORRIGE ───────────────────────────────────────────────
+#
+# Le plan gratuit de Render met le service en veille apres une quinzaine de
+# minutes sans trafic, et son reveil demande jusqu'a une minute — chiffre
+# mesure, et deja ecrit dans `reminders.yml` : « la premiere requete peut
+# demander une minute ».
+#
+# Le robot d'apercu de Facebook, lui, n'attend que quelques secondes. S'il
+# arrive sur une instance endormie il repart les mains vides, ET IL MET CE
+# VIDE EN CACHE. Le vendeur enregistre un vehicule, passe sur Facebook, colle
+# le lien quelques minutes plus tard — entre-temps l'instance s'est endormie,
+# et l'annonce part sans vignette. Rien ne le signale : la page est juste,
+# l'image existe, le partage est vide.
+#
+# C'est la seule cause qui se reproduise A CHAQUE NOUVEAU VEHICULE, ce qui est
+# exactement le symptome rapporte.
+#
+# Verifie le 24/10/2026 sur le vehicule 98 (Corolla S 2016) : page 200 en
+# 1,1 s pour le robot Facebook, quatre balises og:image, apercu JPEG de 93 Ko
+# joignable. Le serveur n'avait aucun defaut — il dormait.
+#
+# ── POURQUOI UNE TACHE GITHUB ET PAS UN REGLAGE RENDER ───────────────────────
+#
+# Render n'offre aucun moyen d'empecher la veille sur le plan gratuit, et
+# aucune tache cron gratuite — c'est deja pourquoi `reminders.yml` et
+# `fuel-anomaly.yml` existent. Ce fichier reprend leur procede pour un besoin
+# different : eux declenchent un traitement une fois par jour, celui-ci ne
+# fait que frapper a la porte.
+#
+# ── CE QUE CELA COUTE, ET CE QUE CELA NE COUTE PAS ───────────────────────────
+#
+# Minutes GitHub Actions : rien. Le depot est PUBLIC, et les executions y sont
+# gratuites et sans plafond. Sur un depot prive la meme cadence couterait
+# environ 4 300 minutes par mois contre 2 000 offertes — si ce depot devenait
+# prive un jour, il faudrait revoir ce fichier AVANT.
+#
+# Heures d'instance Render : le plan gratuit en offre 750 par mois quand un
+# mois en compte 730. Une instance eveillee en permanence tient donc dans le
+# quota — mais de justesse, et le quota est partage par TOUS les services
+# gratuits du compte. S'il en existe un second, ce reveil les fera deborder
+# tous les deux.
+#
+# ── LES LIMITES DE CE PROCEDE, QU'IL FAUT CONNAITRE ──────────────────────────
+#
+# 1. Les taches planifiees de GitHub sont « au mieux » : elles peuvent etre
+#    retardees de plusieurs minutes en periode de charge. Une cadence de dix
+#    minutes laisse de la marge sur les quinze de Render, mais un retard de
+#    plus de cinq minutes ouvre quand meme une fenetre. Si des partages vides
+#    persistent, passer a `*/5` ne coute rien de plus ici.
+#
+# 2. GitHub DESACTIVE les taches planifiees d'un depot reste soixante jours
+#    sans activite. Il faut alors les reactiver a la main depuis l'onglet
+#    Actions. `reminders.yml` porte deja cet avertissement.
+#
+# 3. Ce reveil ne garantit rien pour un apercu DEJA mis en cache vide par
+#    Facebook. Pour ceux-la, repasser l'adresse dans le debogueur de partage
+#    de Facebook et demander une nouvelle collecte.
+
+name: Reveil de l'instance
+
+on:
+  schedule:
+    # Toutes les dix minutes : Render s'endort vers quinze.
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  # Deux reveils en meme temps ne reveillent pas mieux. Celui qui attend est
+  # annule : quand la file se forme, c'est le plus recent qui compte.
+  group: reveil-instance
+  cancel-in-progress: true
+
+jobs:
+  frapper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Frapper a la porte
+        env:
+          # Le secret s'il existe, sinon l'adresse publique — la meme que
+          # l'application porte en dur dans `endpoints.dart`. Ce reveil ne doit
+          # pas dependre d'une configuration : une tache qui echoue faute de
+          # secret ne reveille rien et personne ne le remarque.
+          URL: ${{ secrets.TASKS_URL }}
+        run: |
+          base="${URL%/api/*}"
+          base="${base:-https://autoparc-backend.onrender.com}"
+
+          # `/up` est le controle de sante de Laravel : 1,8 Ko, sans requete au
+          # catalogue. Le delai est large a dessein — un reveil LENT est un
+          # reveil reussi, c'est meme le cas que cette tache existe pour couvrir.
+          #
+          # UN SEUL APPEL, et les deux mesures en sortent ensemble. En appeler
+          # un seond pour chronometrer donnerait la duree de la requete QUI
+          # SUIT le reveil, c'est-a-dire toujours une instance chaude : le
+          # chiffre le plus inutile du lot, et le seul qu'on aurait regarde.
+          mesure=$(curl -s -o /dev/null -w '%{http_code} %{time_total}' --max-time 120 "${base}/up" || echo '000 0')
+          code="${mesure%% *}"
+          duree="${mesure##* }"
+
+          echo "Reveil de ${base}/up : HTTP ${code} en ${duree}s"
+
+          # Au-dela de dix secondes, l'instance dormait : le robot de Facebook
+          # serait reparti les mains vides. C'est la trace qui dira si la
+          # cadence de dix minutes suffit, ou s'il faut passer a cinq.
+          if [ "${duree%%.*}" -ge 10 ] 2>/dev/null; then
+            echo "::notice::Reveil lent (${duree}s) : l'instance dormait. Un partage tente a cet instant serait parti sans vignette."
+          fi
+
+          # LA TACHE N'ECHOUE JAMAIS, et c'est un choix. Une croix rouge toutes
+          # les dix minutes au moindre hoquet reseau apprendrait a tout le monde
+          # a ignorer l'onglet Actions — y compris le jour ou les rappels
+          # d'entretien tombent vraiment. Le journal dit ce qui s'est passe ;
+          # c'est la qu'on regarde si les partages redeviennent vides.
+          if [ "$code" != "200" ]; then
+            echo "::warning::L'instance n'a pas repondu 200 (code ${code}). Si cela se repete, les apercus de partage repartiront vides."
+          fi
