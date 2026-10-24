@@ -26,7 +26,7 @@ Seuls éléments burkinabè que la recherche a pu ouvrir :
 |---|---|
 | **Diacfa Automobiles**, principal distributeur poids lourds de Ouagadougou, représente **Renault Trucks, Eicher, SinoTruk et Yutong** | financialafrik.com, 02/2019 |
 | **135 Shacman H3000** livrés aux forces armées burkinabè, fin 2024 – début 2025 | military.africa, defensemirror |
-| **530 autobus Scania** pour la SOTRACO à Ouagadougou, livrés de 02/2025 à 01/2026 | burkina24.com |
+| **530 autobus** pour la SOTRACO à Ouagadougou, livrés de 02/2025 à 01/2026 — *le constructeur n'est **pas** établi* | burkina24.com ; primature.gov.bf |
 | Parc agricole d'État en **Foton Lovol**, assemblé à **Bobo-Dioulasso** par Tropic Agro Chem — environ 1 400 tracteurs subventionnés | presse nationale, 2019-2024 |
 | Parc agricole privé ouest-africain surtout en **Massey Ferguson série 300** assemblés au Pakistan (MF 240, 350, 360, 375, 385) | dépôts financiers Millat Tractors |
 
@@ -42,9 +42,15 @@ Seuls éléments burkinabè que la recherche a pu ouvrir :
 
 Ce sont selon toute vraisemblance des **libellés d'application recopiés d'un catalogue de filtres**, pas des désignations constructeur. Le chercheur et le sceptique sont d'accord. Les vraies gammes export Dongfeng s'appellent KL/Tianlong, KR/Kingrun, KC.
 
-### Setra, DAF 65, Cat 527, JCB 3C et 3D — à écarter
+> **Correction du 24/10, après relecture externe.** J'avais écrit « 530 autobus **Scania** » comme un fait. Les sources gouvernementales établissent les 530 autobus et le second lot de 375 remis le 27/01/2026, mais **n'attribuent pas le marché à Scania**. Une seule source de presse le fait. À traiter comme une piste commerciale documentée, pas comme une correspondance « SOTRACO = Scania » : créer un modèle sur cette base serait inventer un constructeur.
+
+### Setra, DAF 65, Cat 527, JCB 3C et 3D — à dépriorier, non à exclure
 
 Aucune trace burkinabè pour les deux premières. Le débardeur forestier Cat 527 n'a **aucune année de production trouvable** et son moteur 3304 DIT ne prend aucun filtre du stock — un pays sahélien sans filière bois mécanisée. Les JCB 3C et 3D ont plus de 45 ans et leur seule source est un forum d'amateurs.
+
+> **Correction du 24/10.** J'écrivais « à écarter ». C'est trop catégorique, et la relecture externe a raison : **l'absence de preuve locale n'est pas une preuve d'absence.** Un camion importé d'occasion peut avoir une vraie demande en pièces sans être distribué officiellement dans le pays — et c'est même le cas général d'un marché de pièces. Le Mercedes Kurzhauber, décrit comme « très populaire en Afrique », l'illustre.
+>
+> La bonne formulation est donc : **priorité basse, statut « présence locale non documentée »** — pas exclusion. Seul le Cat 527 reste à écarter franchement, parce qu'il n'est pas datable *et* que son moteur ne prend aucun filtre du stock : deux raisons indépendantes.
 
 ### Les moteurs nus — jamais en `vehicle_models`
 
@@ -64,6 +70,10 @@ L'option « rattacher les filtres au moteur par une autre table » est d'ailleur
 
 **Donc** : entrer l'unité (le groupe, la machine), jamais le moteur ; `generation` à null quand on n'a qu'un code de configuration ; le code moteur va dans `engine_code`.
 
+> **Ajout de la relecture externe, et il est juste.** *Techniquement possible* n'est pas *fonctionnellement pris en charge*. Rien dans le référentiel ne distingue aujourd'hui un groupe électrogène d'une chargeuse, d'une niveleuse, d'un camion ou d'une voiture — `default_vehicle_type` n'a que `passenger | utility | heavy`, et les 254 modèles le laissent nul.
+>
+> Un champ `equipment_category` serait la bonne réponse à terme. **Ce qu'il ne faut surtout pas faire, c'est détourner `generation`, `segment` ou `body_type`** pour y loger cette information : c'est exactement le genre de champ réquisitionné qu'on retrouve six mois plus tard sans savoir ce qu'il veut dire. Mieux vaut `null` honnête qu'un champ détourné.
+
 ---
 
 ## 4. Ce que je propose d'entrer, par ordre de valeur
@@ -81,9 +91,15 @@ C'est la famille où **deux filtres du stock couvrent quatre machines**, et Cate
 
 **La fréquence fait partie du modèle.** Caterpillar en fait deux produits distincts, et la version 60 Hz (1800 tr/min, 220-480 V) **ne se branche pas sur le réseau burkinabè**. Une ligne sans fréquence est une ligne fausse.
 
-Le kit d'entretien **610-3589 est confirmé** : « C7.1 PM Kit Filters », contenant 130-4678 (air, ×1), 435-6493 (carburant, ×2) et 441-5111. Deux de ces références sont déjà en stock ; les deux autres sont des achats futurs identifiés.
+Le kit **610-3589 est confirmé** chez Caterpillar — « C7.1 PM Kit Filters », contenant 130-4678, 435-6493, 441-5111 et 462-1171.
 
-**Et une piste que le document a manquée : FG Wilson.** C'est la marque de groupes de Caterpillar (NI) Ltd, à moteurs **Perkins** — et la référence Perkins 26560145 du stock est précisément donnée pour les « FG Wilson 1300 Series ». C'est la famille qui répond aux **trois** filtres Perkins. Candidats : P110-3, P150-5, P165-5, P200-3. À instruire avant d'écrire : les dates ne sont pas établies.
+> **Correction du 24/10, et elle entame l'argument de ce lot.** J'ai présenté 610-3589 comme *le* kit des C7.1. Il n'y en a pas qu'un : **610-3587 est aussi un kit C7.1, et c'est lui qui liste le DE150GC** — avec un contenu différent, **sans 435-6493**. Caterpillar renvoie d'ailleurs au concessionnaire, le montage dépendant de la configuration moteur réelle.
+>
+> Conséquence directe : **« deux filtres couvrent quatre machines » est à vérifier machine par machine**, et non à poser. Le 462-1171 apparaît dans les deux kits ; le 435-6493 non. La relecture externe propose une correspondance par modèle (DE150→610-3586, DE165→610-3589, DE200/220→610-3585) que je **n'ai pas pu confirmer** : la recherche ne trouve ni 610-3585 ni 610-3586, et rattache le DE150GC à 610-3587. Personne n'a donc la bonne table — il faut la demander au concessionnaire Caterpillar.
+
+**Et une piste que le document a manquée : FG Wilson.** C'est la marque de groupes de Caterpillar (NI) Ltd, à moteurs **Perkins**. Candidats : P110-3, P150-5, P165-5, P200-3.
+
+> **Correction du 24/10.** J'ai écrit que le 26560145 « est précisément donné pour les FG Wilson 1300 Series » et appelé cette piste « la plus proche d'une vente ». Trop fort : ce rapprochement vient d'un **catalogue de revendeur**, pas du constructeur. FG Wilson confirme un Perkins 1104C-44TAG2 sur le P110-3 dans la configuration examinée — mais une famille moteur commune **ne vaut pas compatibilité de filtre**. La piste reste bonne ; son statut est « à vérifier », pas « à vendre ».
 
 ### Lot B — les engins de chantier, lignes « marchés émergents »
 
