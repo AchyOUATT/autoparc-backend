@@ -81,12 +81,22 @@ class VersionMinimaleTest extends TestCase
         $this->assertSame(70, $this->getJson('/api/app/version')->assertOk()->json('min_version_code'));
     }
 
+    /**
+     * Le CONTRAT ENTIER de la route, epingle au champ pres.
+     *
+     * `assertExactJson` et non `assertJson` : cette reponse est lue par des
+     * binaires qu'on ne peut plus mettre a jour, et ce test est ce qui fait
+     * qu'un champ ne s'y ajoute pas par distraction. Il a d'ailleurs rempli son
+     * office le 25/10/2026, en refusant l'ajout de `partner_space_open` jusqu'a
+     * ce qu'il soit declare ici.
+     */
     public function test_une_valeur_posee_en_configuration_est_bien_rendue(): void
     {
         config()->set('mobile.min_version_code', 70);
         config()->set('mobile.latest_version_code', 72);
         config()->set('mobile.store_url', 'https://play.google.com/store/apps/details?id=bf.autoparc.app');
         config()->set('mobile.update_message', 'Les pleins saisis depuis cette version ne remontaient pas.');
+        config()->set('partenaires.espace_ouvert', false);
 
         $this->getJson('/api/app/version')
             ->assertOk()
@@ -95,7 +105,26 @@ class VersionMinimaleTest extends TestCase
                 'latest_version_code' => 72,
                 'store_url'           => 'https://play.google.com/store/apps/details?id=bf.autoparc.app',
                 'message'             => 'Les pleins saisis depuis cette version ne remontaient pas.',
+                'partner_space_open'  => false,
             ]);
+    }
+
+    /**
+     * Le drapeau partenaire est un BOOLEEN, pas « 1 » ni « true ».
+     *
+     * L'application le lit pour decider d'afficher ou non son entree d'espace
+     * partenaire. Une chaine arriverait du cote vrai de tout test de verite
+     * laxiste — y compris la chaine « false ».
+     */
+    public function test_le_drapeau_partenaire_est_rendu_en_booleen(): void
+    {
+        config()->set('partenaires.espace_ouvert', '1');
+
+        $this->assertTrue($this->getJson('/api/app/version')->assertOk()->json('partner_space_open'));
+
+        config()->set('partenaires.espace_ouvert', '');
+
+        $this->assertFalse($this->getJson('/api/app/version')->assertOk()->json('partner_space_open'));
     }
 
     /**

@@ -77,6 +77,7 @@ return Application::configure(basePath: dirname(__DIR__))
         'capability' => \App\Http\Middleware\EnsureCapability::class,
         'partner' => \App\Http\Middleware\EnsurePartner::class,
         'partner.approved' => \App\Http\Middleware\EnsureApprovedPartner::class,
+        'partner.space' => \App\Http\Middleware\EnsurePartnerSpaceOpen::class,
         'firebase'   => \App\Http\Middleware\VerifyFirebaseToken::class,
     ]);
 })

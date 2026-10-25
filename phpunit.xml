@@ -32,5 +32,16 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!--
+            L'espace partenaire est OUVERT sous les bancs, alors qu'il est
+            ferme par defaut en production (voir config/partenaires.php).
+
+            Ce n'est pas un contournement : sans cela, les huit bancs
+            partenaire mesureraient l'interrupteur au lieu de la
+            fonctionnalite, et rendraient 503 partout. Le comportement de
+            l'interrupteur lui-meme a son banc dedie,
+            EspacePartenaireFermeTest, qui referme le drapeau a la main.
+        -->
+        <env name="PARTNER_SPACE_OPEN" value="true"/>
     </php>
 </phpunit>

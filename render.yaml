@@ -123,6 +123,28 @@ services:
       - key: MOBILE_STORE_URL
         sync: false          # fiche Play ; défaut : bf.autoparc.app
 
+      # ── Interrupteur de l'espace partenaire ─────────────────────────
+      #
+      # NE PAS METTRE À `true` AVANT D'AVOIR FAIT LES DEUX ÉTAPES CI-DESSOUS.
+      # Absent ou vide, l'espace est FERMÉ, et c'est l'état voulu au premier
+      # déploiement. Le raisonnement complet est dans config/partenaires.php.
+      #
+      # Deux choses cassent si l'on ouvre trop tôt :
+      #   — personne ne peut APPROUVER un partenaire, l'écran de validation
+      #     n'étant dans aucun binaire publié. Les inscriptions resteraient
+      #     « pending » indéfiniment ;
+      #   — la première annonce partenaire rendue publique casse l'onglet
+      #     catalogue de l'application déjà publiée, qui lit `reference` en
+      #     cast dur alors que la rédaction le retire.
+      #
+      # Donc, dans cet ordre : (1) publier une version mobile portant les deux
+      # correctifs de lecture et l'écran de validation ; (2) relever
+      # MOBILE_MIN_VERSION_CODE à cette version ; (3) seulement alors, ouvrir
+      # ici. Comme `config:cache` tourne au DÉMARRAGE du conteneur et non à la
+      # construction, changer cette clé suffit — aucune reconstruction.
+      - key: PARTNER_SPACE_OPEN
+        sync: false          # `true` ouvre l'espace partenaire ; absent = fermé
+
       # ── Coordonnées de la boutique ──────────────────────────────────
       #
       # Affichées sur les pages de partage d'un article (/v, /p, /a), lues par

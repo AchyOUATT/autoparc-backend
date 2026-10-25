@@ -10,7 +10,14 @@ use App\Http\Controllers\Api\Partner\StockController;
 use App\Http\Controllers\Api\Partner\VehicleController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('partner')->name('partner.')->group(function () {
+// `partner.space` ferme le groupe ENTIER tant que la chaine de livraison n'est
+// pas prete — l'inscription d'abord, puisque c'est elle qui cree des comptes
+// que personne ne peut encore approuver. Defaut : ferme. Le raisonnement et
+// l'ordre dans lequel ouvrir sont dans `config/partenaires.php`.
+//
+// L'administration du personnel, plus bas, n'est PAS fermee : c'est par elle
+// que passera l'approbation du premier partenaire.
+Route::prefix('partner')->name('partner.')->middleware('partner.space')->group(function () {
     Route::post('register', [PartnerAuthController::class, 'register'])->middleware('throttle:public-write')->name('register');
     Route::post('login', [PartnerAuthController::class, 'login'])->middleware('throttle:login')->name('login');
 
