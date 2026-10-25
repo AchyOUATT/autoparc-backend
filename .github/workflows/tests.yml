@@ -182,10 +182,17 @@ jobs:
           # Dans ce cas la seule trace est la sortie standard, qui demande d'etre
           # connecte pour etre lue. On en remonte donc la fin en annotations.
           if [ "$code" != "0" ] && [ "$(cat nombre-echecs.txt 2>/dev/null || echo 0)" = "0" ]; then
-            echo "::error::Sortie $code SANS test en echec : le processus est mort sans que PHPUnit l'enregistre. Fin de sortie ci-dessous."
-            grep -v '^\s*$' sortie-tests.txt | tail -20 | while IFS= read -r ligne; do
-              echo "::error::$ligne"
-            done
+            # UNE SEULE annotation, et non une par ligne : GitHub n'en affiche
+            # que dix par etape et ne garantit pas leur ordre, si bien qu'une
+            # fin de sortie eclatee en vingt annotations devient illisible —
+            # mesure faite sur l'execution #67. `%0A` est la nouvelle ligne
+            # echappee des annotations : le bloc reste ordonne et entier.
+            php -r '
+              $lignes = array_values(array_filter(array_map("rtrim", file("sortie-tests.txt")), "strlen"));
+              $fin = array_slice($lignes, -30);
+              $bloc = implode("%0A", array_map(fn ($l) => str_replace(["\r", "%", "\n"], ["", "%25", ""], $l), $fin));
+              printf("::error::Sortie non nulle SANS aucun test en echec : le processus est mort sans que PHPUnit l enregistre (depassement memoire fatal, plantage d extension). Le dernier test AFFICHE a reussi ; celui qui a tue le processus est le SUIVANT dans l ordre d execution.%%0A%%0A%s\n", $bloc);
+            '
           fi
 
           exit $code
