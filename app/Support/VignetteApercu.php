@@ -360,7 +360,7 @@ final class VignetteApercu
             //
             // Desormais on prend dans l'original la plus grande zone AU
             // RAPPORT DU CADRE (1200/630, soit 1,905) et on la reduit. La
-            // CX-9 rend maintenant 744x390 : la pleine largeur de la photo,
+            // CX-9 rend maintenant 744x391 : la pleine largeur de la photo,
             // une bande horizontale prise au centre.
             //
             // CE QUE CELA COUTE, et il faut le dire parce que c'est visible :

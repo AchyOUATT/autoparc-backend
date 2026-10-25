@@ -455,6 +455,68 @@ class PagesProduitTest extends TestCase
         return $octets;
     }
 
+    /**
+     * Une image qui se comprime COMME UNE PHOTO, et non comme du bruit.
+     *
+     * `jpegDePhoto()` pose des blocs de 4x4 pseudo-aleatoires : une image
+     * volontairement incompressible, utile pour prouver qu'une variante pese
+     * peu par rapport a son original. Mais elle ne vaut rien pour eprouver un
+     * SEUIL ABSOLU, parce qu'aucune photo reelle ne lui ressemble.
+     *
+     * MESURE, 4000x3000 puis recadrage en 1200x630 a qualite 82 :
+     *
+     *     blocs 4x4 (jpegDePhoto)  -> 411 670 octets
+     *     degrades + formes (ici)  ->  34 849 octets
+     *     photo reelle, citee par le test -> 78 493 octets
+     *
+     * La seconde ligne est du bon ordre de grandeur, la premiere non. C'est
+     * pourquoi le test de poids utilise celle-ci : le seuil de 300 ko qu'il
+     * porte garde une contrainte de WhatsApp, et le mesurer sur du bruit
+     * aurait oblige a le relever — c'est-a-dire a changer la propriete plutot
+     * que la mise en scene.
+     *
+     * Elle reste du CONTENU, pas un aplat : degrade vertical, quarante ellipses
+     * et un grain leger. Un aplat passerait le seuil sans rien prouver.
+     */
+    private function jpegDePhotoRealiste(int $largeur, int $hauteur, int $qualite = 90): string
+    {
+        $image = imagecreatetruecolor($largeur, $hauteur);
+
+        for ($y = 0; $y < $hauteur; $y++) {
+            $t = $y / $hauteur;
+            imageline($image, 0, $y, $largeur, $y, imagecolorallocate(
+                $image,
+                (int) (40 + 150 * $t),
+                (int) (90 + 120 * (1 - $t)),
+                (int) (140 + 80 * $t),
+            ));
+        }
+
+        for ($i = 0; $i < 40; $i++) {
+            imagefilledellipse(
+                $image,
+                (int) (($i * 97) % $largeur),
+                (int) (($i * 131) % $hauteur),
+                (int) ($largeur / 9),
+                (int) ($hauteur / 11),
+                imagecolorallocate($image, (17 * $i) % 256, (53 * $i) % 256, (91 * $i) % 256),
+            );
+        }
+
+        for ($y = 0; $y < $hauteur; $y += 3) {
+            for ($x = (int) (($y / 3) % 3); $x < $largeur; $x += 3) {
+                imagesetpixel($image, $x, $y, imagecolorat($image, $x, $y) ^ 0x050505);
+            }
+        }
+
+        ob_start();
+        imagejpeg($image, null, $qualite);
+        $octets = (string) ob_get_clean();
+        imagedestroy($image);
+
+        return $octets;
+    }
+
     /* ------------------------------------------------------------------ */
     /* Les trois routes repondent                                          */
     /* ------------------------------------------------------------------ */
@@ -1065,7 +1127,10 @@ class PagesProduitTest extends TestCase
         // Une photo de telephone plausible : 4000x3000, du detail partout pour
         // qu'elle ne se comprime pas a rien. Un aplat ne dirait rien du cas
         // reel.
-        $octets = $this->jpegDePhoto(4000, 3000);
+        // Fixture REALISTE, et non les blocs incompressibles : le seuil de
+        // poids plus bas est absolu, et le mesurer sur du bruit aurait oblige
+        // a le relever. Voir jpegDePhotoRealiste().
+        $octets = $this->jpegDePhotoRealiste(4000, 3000);
 
         Storage::disk('photos')->put('vehicles/9/photo.jpg', $octets);
 
@@ -1086,11 +1151,26 @@ class PagesProduitTest extends TestCase
         $this->assertLessThanOrEqual(VignetteApercu::LARGEUR_MAX, $apercu['largeur']);
         $this->assertLessThanOrEqual(VignetteApercu::HAUTEUR_MAX, $apercu['hauteur']);
 
-        // Le rapport de l'original est conserve : un recadrage deformerait la
-        // voiture dans l'apercu.
+        // LE RAPPORT EST CELUI DU CADRE, PAS CELUI DE L'ORIGINAL.
+        //
+        // Ce test attendait l'inverse — `round(4000/3000, 2)` — et c'etait juste
+        // tant que `VignetteApercu` faisait TENIR l'image entiere dans
+        // 1200x630. Elle RECADRE depuis, et deliberement : une photo de
+        // telephone en portrait sortait en 380x630, sous les 600 points que
+        // Facebook exige pour une grande carte, si bien que la variante etait
+        // fabriquee et inutilisable. Le raisonnement, la mesure de production
+        // (Mazda CX-9, 744x1233 -> 380x630) et l'alternative ecartee sont dans
+        // `VignetteApercu` autour de la ligne 347.
+        //
+        // POURQUOI PERSONNE NE L'A VU : ce test exige GD (`exigerGd()`), absent
+        // des postes, donc il se SAUTAIT ; et la CI ne l'a jamais lance, son
+        // `composer install` echouant depuis le 18/10. Un test saute partout est
+        // un test qui n'existe pas. Date de la decouverte : 25/10/2026, en
+        // reparant la CI.
         $this->assertSame(
-            round(4000 / 3000, 2),
+            round(VignetteApercu::LARGEUR_MAX / VignetteApercu::HAUTEUR_MAX, 2),
             round($apercu['largeur'] / $apercu['hauteur'], 2),
+            'La variante doit porter le rapport du cadre Open Graph, pas celui de la photo.',
         );
 
         // Les dimensions enregistrees sont celles du fichier ECRIT : ce sont
@@ -1187,10 +1267,69 @@ class PagesProduitTest extends TestCase
 
         $apercu = VignetteApercu::generer('photos', 'parts/petite.jpg');
 
-        // Etirer une petite photo a 1200 de large ne lui ajoute aucun detail et
-        // multiplie son poids.
-        $this->assertSame(300, $apercu['largeur']);
-        $this->assertSame(200, $apercu['hauteur']);
+        // LA LARGEUR EST LA PROPRIETE DE CE TEST. Etirer une petite photo a 1200
+        // de large ne lui ajoute aucun detail et multiplie son poids : les 300
+        // points de la source sont conserves tels quels.
+        $this->assertSame(300, $apercu['largeur'], 'La petite photo a ete agrandie.');
+
+        // La hauteur, elle, est ROGNEE a 158 et non gardee a 200, parce que la
+        // variante porte le rapport du cadre : 300 / (1200/630) = 157,5, arrondi
+        // a 158. Ce test attendait 200, de l'epoque ou l'image entiere tenait
+        // dans le cadre ; il n'a jamais ete execute depuis le changement, GD
+        // manquant des postes et la CI etant cassee. Voir le commentaire de
+        // `test_la_variante_est_bornee_et_legere`.
+        $this->assertSame(
+            (int) round(300 / (VignetteApercu::LARGEUR_MAX / VignetteApercu::HAUTEUR_MAX)),
+            $apercu['hauteur'],
+        );
+        $this->assertSame(158, $apercu['hauteur'], 'Le calcul du rapport a change sans qu\'on le dise.');
+    }
+
+    /**
+     * LA RAISON D'ETRE DU RECADRAGE, et rien ne la couvrait.
+     *
+     * Le changement de « faire tenir » vers « recadrer » a ete fait pour une
+     * seule propriete mesuree : une photo PORTRAIT doit sortir assez large pour
+     * que Facebook rende une grande carte. En dessous de 600 points, le lien
+     * tombe en petite vignette carree ou l'image est ignoree — c'est ce qui
+     * arrivait a la Mazda CX-9, 744x1233 a la source, qui sortait en 380x630.
+     *
+     * Aucun test ne tenait cette propriete. Les deux tests de variante
+     * portaient des photos en PAYSAGE, c'est-a-dire le seul cas ou l'ancien
+     * calcul ne posait pas de probleme.
+     */
+    public function test_un_portrait_sort_assez_large_pour_une_grande_carte(): void
+    {
+        $this->exigerGd();
+
+        Storage::fake('photos');
+
+        // Les dimensions exactes de la CX-9 citee par `VignetteApercu`.
+        Storage::disk('photos')->put('vehicles/7/portrait.jpg', $this->jpegDePhoto(744, 1233));
+
+        $apercu = $this->avecLaMemoireDUnDepot(
+            fn () => VignetteApercu::generer('photos', 'vehicles/7/portrait.jpg'),
+        );
+
+        $this->assertNotNull($apercu);
+
+        // 600 est le seuil de Facebook, et la valeur attendue est celle que le
+        // commentaire de `VignetteApercu` annonce : la pleine largeur de la
+        // photo, une bande horizontale prise au centre.
+        $this->assertGreaterThanOrEqual(600, $apercu['largeur']);
+        $this->assertSame(744, $apercu['largeur']);
+        // 391 et non 390 : 744 / (1200/630) = 390,6, arrondi a 391. Le
+        // commentaire de VignetteApercu annonce « 744x390 » — il est faux
+        // d'une unite, et corrige par la meme occasion.
+        $this->assertSame(391, $apercu['hauteur']);
+
+        // Et surtout : l'ancien calcul rendait 380x630. Si quelqu'un y revient,
+        // c'est cette assertion qui tombe la premiere.
+        $this->assertGreaterThan(
+            380,
+            $apercu['largeur'],
+            'Retour au calcul « faire tenir » : la carte Facebook redeviendra une petite vignette.',
+        );
     }
 
     public function test_le_depot_aboutit_meme_quand_la_variante_ne_tient_pas_en_memoire(): void

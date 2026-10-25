@@ -79,13 +79,41 @@ jobs:
           key: composer-${{ hashFiles('composer.lock') }}
           restore-keys: composer-
 
+      # ── CETTE ÉTAPE DOIT PRÉCÉDER `composer install`. NE PAS LA DÉPLACER. ──
+      #
+      # `composer install` exécute `post-autoload-dump`, donc
+      # `php artisan package:discover` (composer.json, scripts), qui DÉMARRE
+      # Laravel. Sans fichier `.env`, `APP_ENV` vaut `production` — c'est le
+      # défaut de `config/app.php` — et la garde
+      # `AppServiceProvider::exigerUneAdressePubliqueAbsolue()` lève alors :
+      #
+      #     APP_URL est obligatoire en production et doit etre absolue :
+      #     valeur lue « http://localhost »
+      #
+      # `composer install` sort en 1, et le job meurt en une quinzaine de
+      # secondes sans avoir lancé un seul test.
+      #
+      # CE N'EST PAS UNE HYPOTHÈSE. La garde est arrivée le 2026-10-18 avec
+      # f4becc8 ; ce workflow copiait le `.env` APRÈS `composer install`, et il
+      # a échoué sur les 41 commits suivants — personne ne l'a vu, parce qu'un
+      # échec d'installation ressemble à un incident d'infrastructure. Reproduit
+      # le 2026-10-25 en écartant `.env` du dépôt et en lançant
+      # `php artisan package:discover` : même message, même cause.
+      #
+      # Avec le `.env` en place, `APP_ENV=local` et la garde s'écarte d'elle-même
+      # (`AppServiceProvider:117`). Elle reste donc entière : on ne l'affaiblit
+      # pas pour faire passer la CI, on cesse de la déclencher à tort.
+      #
+      # `key:generate` ne peut PAS remonter ici : il lui faut `vendor/`, donc
+      # l'installation. D'où la coupure en deux étapes.
+      - name: Poser le fichier d'environnement
+        run: cp .env.example .env
+
       - name: Installer les dépendances
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Préparer l'environnement
-        run: |
-          cp .env.example .env
-          php artisan key:generate
+      - name: Générer la clé d'application
+        run: php artisan key:generate
 
       - name: Lancer les tests
         run: php artisan test
