@@ -109,9 +109,19 @@ class PartnerChampsReservesTest extends TestCase
             ->assertJsonValidationErrors($champ);
     }
 
-    /** `missing` refuse meme un null explicite : on ne contourne pas en vidant le champ. */
+    /**
+     * `missing` refuse meme un null explicite : on ne contourne pas en vidant
+     * le champ.
+     *
+     * `$valeur` n'est pas utilise — ce test envoie null — mais il est DECLARE,
+     * et il doit l'etre : `champsFermes()` fournit deux arguments par jeu, et
+     * une methode qui n'en accepte qu'un declenche un avertissement PHPUnit.
+     * Cet avertissement a fait sortir la suite en 1 avec 931 tests verts, et
+     * il a ete invisible ici pendant deux executions de CI parce que le
+     * resume JSON du poste n'affiche pas les avertissements.
+     */
     #[DataProvider('champsFermes')]
-    public function test_un_null_explicite_est_refuse_aussi(string $champ): void
+    public function test_un_null_explicite_est_refuse_aussi(string $champ, mixed $valeur): void
     {
         $this->enPartenaire();
 

@@ -181,6 +181,16 @@ jobs:
           #
           # Dans ce cas la seule trace est la sortie standard, qui demande d'etre
           # connecte pour etre lue. On en remonte donc la fin en annotations.
+          # La ligne de resume de PHPUnit, toujours, et en premier. C'est la
+          # plus informative de toute la sortie — « Tests: 1 warning, 931
+          # passed » a nomme en un mot ce que deux executions de CI et un
+          # rapport JUnit muet n'avaient pas su dire. Un AVERTISSEMENT suffit a
+          # faire sortir PHPUnit en 1, et il n'apparait dans aucun noeud
+          # `<failure>` ni `<warning>` du JUnit.
+          grep -E "^ *(Tests|Duration):" sortie-tests.txt | while IFS= read -r ligne; do
+            echo "::notice::$ligne"
+          done
+
           if [ "$code" != "0" ] && [ "$(cat nombre-echecs.txt 2>/dev/null || echo 0)" = "0" ]; then
             # UNE SEULE annotation, et non une par ligne : GitHub n'en affiche
             # que dix par etape et ne garantit pas leur ordre, si bien qu'une
