@@ -115,5 +115,58 @@ jobs:
       - name: Générer la clé d'application
         run: php artisan key:generate
 
+      # ── LES ECHECS DOIVENT ETRE LISIBLES SANS OUVRIR LE JOURNAL ──────────
+      #
+      # `php artisan test` ecrit ses echecs sur la sortie standard, et rien de
+      # plus : la page d'une execution rouge n'affiche alors qu'une annotation
+      # « Process completed with exit code 1 ». Il faut ouvrir le journal, donc
+      # etre connecte avec les droits sur le depot, pour savoir QUEL test est
+      # tombe.
+      #
+      # Mesure le 25/10/2026 : la CI a passe 41 commits en echec sans que
+      # personne ne sache pourquoi, precisement parce que le motif ne sortait
+      # pas de ce journal. Le diagnostic a coute une reproduction locale de
+      # l'environnement du coureur.
+      #
+      # `--log-junit` est lu par PHPUnit, pas par `artisan test` : la passe-plat
+      # est documentee et stable. Chaque `<failure>` ou `<error>` devient un
+      # `::error::`, c'est-a-dire une ANNOTATION, visible en haut de la page
+      # d'execution sans ouvrir quoi que ce soit.
+      #
+      # `continue-on-error` serait faux ici : on veut l'annotation ET l'echec du
+      # job. D'ou le code de sortie conserve a la main.
       - name: Lancer les tests
-        run: php artisan test
+        run: |
+          set +e
+          php artisan test --log-junit=junit.xml
+          code=$?
+          set -e
+
+          if [ -f junit.xml ]; then
+            php -r '
+              $x = @simplexml_load_file("junit.xml");
+              if ($x === false) { echo "::warning::Rapport JUnit illisible.\n"; exit; }
+              $n = 0;
+              foreach ($x->xpath("//testcase[failure or error]") ?: [] as $cas) {
+                $n++;
+                $noeud = $cas->failure ?? $cas->error;
+                // Ligne 0 du corps JUnit = le nom du test, deja dans le titre.
+                // Ligne 1 = le motif. Les suivantes sont la pile.
+                $lignes = array_values(array_filter(array_map("trim", explode("\n", (string) $noeud)), "strlen"));
+                $raison = $lignes[1] ?? ($lignes[0] ?? "sans motif");
+                // Le premier cadre de pile qui pointe dans le depot, et non
+                // dans vendor/ : c est la ligne ou aller regarder.
+                $ou = "";
+                foreach ($lignes as $l) {
+                  if (! str_contains($l, "vendor") && preg_match("#(tests|app|database|routes)[\\\\/][^\s:]+\.php:\d+#", $l, $m)) {
+                    $ou = " [" . str_replace("\\", "/", $m[0]) . "]";
+                    break;
+                  }
+                }
+                printf("::error::%s — %s%s\n", $cas["name"], substr($raison, 0, 280), $ou);
+              }
+              printf("::notice::%d test(s) en echec remontes en annotation.\n", $n);
+            '
+          fi
+
+          exit $code

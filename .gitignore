@@ -25,3 +25,6 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Rapport JUnit produit par la CI pour remonter les echecs en annotations.
+junit.xml
