@@ -146,6 +146,46 @@ class EspacePartenaireFermeTest extends TestCase
             ->assertJson(['partner_space_open' => false]);
     }
 
+    /**
+     * Les valeurs d'environnement qui NE DOIVENT PAS ouvrir.
+     *
+     * Mesure du 25/10/2026 : `env()` traduit `false`, `FALSE`, `(false)`, `0`
+     * et le vide en booleen faux, mais rend les autres chaines telles quelles.
+     * Or `(bool) 'no'` vaut VRAI en PHP, comme `(bool) 'off'`. Ecrire
+     * `PARTNER_SPACE_OPEN=no` dans Render — un geste naturel — aurait ouvert
+     * l'espace. Ce test est ce qui empeche d'y revenir par un `(bool)`.
+     *
+     * @return array<string, array{0: string}>
+     */
+    public static function valeursQuiNOuvrentPas(): array
+    {
+        return array_map(
+            fn (string $v) => [$v],
+            ['false' => 'false', 'FALSE' => 'FALSE', '(false)' => '(false)', 'zero' => '0',
+                'vide' => '', 'no' => 'no', 'off' => 'off', 'nimportequoi' => 'peut-etre'],
+        );
+    }
+
+    #[DataProvider('valeursQuiNOuvrentPas')]
+    public function test_seuls_quatre_mots_ouvrent_l_espace(string $valeur): void
+    {
+        $this->assertFalse(
+            filter_var($valeur, FILTER_VALIDATE_BOOLEAN),
+            "« {$valeur} » ne doit pas ouvrir l'espace partenaire.",
+        );
+    }
+
+    /** Et les quatre qui ouvrent, sans quoi le test ci-dessus passerait a vide. */
+    public function test_les_mots_qui_ouvrent_ouvrent_bien(): void
+    {
+        foreach (['1', 'true', 'TRUE', 'on', 'yes'] as $valeur) {
+            $this->assertTrue(
+                filter_var($valeur, FILTER_VALIDATE_BOOLEAN),
+                "« {$valeur} » doit ouvrir l'espace partenaire.",
+            );
+        }
+    }
+
     public function test_le_drapeau_ouvert_rend_la_main(): void
     {
         config(['partenaires.espace_ouvert' => true]);

@@ -64,6 +64,22 @@ return [
     |
     */
 
-    'espace_ouvert' => (bool) env('PARTNER_SPACE_OPEN', false),
+    /*
+    | ── POURQUOI `filter_var` ET NON UN SIMPLE `(bool)` ────────────────────
+    |
+    | Mesure du 25/10/2026, valeur par valeur, avant de pousser. `env()` de
+    | Laravel traduit bien `false`, `FALSE`, `(false)`, `0` et le vide en
+    | booleen faux. Mais il rend les AUTRES chaines telles quelles, et
+    | `(bool) 'no'` vaut VRAI en PHP — comme `(bool) 'off'`. Ecrire
+    | `PARTNER_SPACE_OPEN=no` dans le tableau de bord de Render, ce qui est un
+    | geste parfaitement naturel, aurait donc OUVERT l'espace.
+    |
+    | `FILTER_VALIDATE_BOOLEAN` n'accepte que `1`, `true`, `on` et `yes`, et
+    | rend faux pour tout le reste. C'est exactement la regle que
+    | `_booleen()` applique cote Flutter : les deux bouts s'ouvrent sur les
+    | memes mots, et sur eux seuls.
+    */
+
+    'espace_ouvert' => filter_var(env('PARTNER_SPACE_OPEN', false), FILTER_VALIDATE_BOOLEAN),
 
 ];
