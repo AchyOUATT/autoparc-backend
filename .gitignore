@@ -28,3 +28,5 @@ Thumbs.db
 
 # Rapport JUnit produit par la CI pour remonter les echecs en annotations.
 junit.xml
+sortie-tests.txt
+nombre-echecs.txt

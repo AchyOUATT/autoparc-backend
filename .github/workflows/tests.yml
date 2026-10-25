@@ -138,8 +138,8 @@ jobs:
       - name: Lancer les tests
         run: |
           set +e
-          php artisan test --log-junit=junit.xml
-          code=$?
+          php artisan test --log-junit=junit.xml 2>&1 | tee sortie-tests.txt
+          code=${PIPESTATUS[0]}
           set -e
 
           if [ -f junit.xml ]; then
@@ -166,7 +166,26 @@ jobs:
                 printf("::error::%s — %s%s\n", $cas["name"], substr($raison, 0, 280), $ou);
               }
               printf("::notice::%d test(s) en echec remontes en annotation.\n", $n);
+              file_put_contents("nombre-echecs.txt", (string) $n);
             '
+          fi
+
+          # ── LE CAS QUI A COUTE DEUX TOURS DE CI ────────────────────────────
+          #
+          # Sortie non nulle ET aucun test en echec. C'est arrive le 25/10/2026 :
+          # l'execution #66 rendait « 0 test(s) en echec » et sortait quand meme
+          # en 1. Un test rouge n'est donc PAS la seule facon d'echouer — un
+          # processus qui meurt (depassement memoire fatal, plantage d'une
+          # extension) emporte PHPUnit sans qu'il l'enregistre, et le rapport
+          # JUnit reste muet.
+          #
+          # Dans ce cas la seule trace est la sortie standard, qui demande d'etre
+          # connecte pour etre lue. On en remonte donc la fin en annotations.
+          if [ "$code" != "0" ] && [ "$(cat nombre-echecs.txt 2>/dev/null || echo 0)" = "0" ]; then
+            echo "::error::Sortie $code SANS test en echec : le processus est mort sans que PHPUnit l'enregistre. Fin de sortie ci-dessous."
+            grep -v '^\s*$' sortie-tests.txt | tail -20 | while IFS= read -r ligne; do
+              echo "::error::$ligne"
+            done
           fi
 
           exit $code
