@@ -168,6 +168,8 @@ class CorrectTrims extends Command
             throw new InvalidArgumentException("Fichier introuvable : {$chemin}");
         }
 
+        $this->verifierLeChemin($chemin);
+
         $document = json_decode((string) file_get_contents($chemin), true, 512, JSON_THROW_ON_ERROR);
 
         if (! is_array($document)) {
@@ -175,6 +177,50 @@ class CorrectTrims extends Command
         }
 
         return $document;
+    }
+
+    /**
+     * Le document doit vivre sous le repertoire VERSIONNE des corrections.
+     *
+     * ── LA REGLE QUI N'ETAIT PAS APPLIQUEE ────────────────────────────────
+     *
+     * Le README de ce repertoire l'enonce : ces fichiers sont versionnes et ils
+     * sont la reference, `CorrectionDesFinitionsTest` les relit et exige que
+     * `TrimsSeeder` leur donne raison. Appliquer une correction sans corriger
+     * le seeder fait donc echouer la suite, et c'est voulu.
+     *
+     * Rien ne tenait cette regle. La commande acceptait n'importe quel chemin :
+     * une correction appliquee depuis `/tmp` partait en base sans laisser de
+     * trace dans le depot, et la suite continuait de donner raison a l'ancienne
+     * valeur. La regle etait ecrite ; elle n'etait pas appliquee.
+     *
+     * `realpath()` sur les DEUX cotes : c'est ce qui empeche d'en sortir par un
+     * lien symbolique ou par une remontee `..`. La comparaison porte sur le
+     * separateur final, sans quoi un repertoire voisin nomme
+     * `corrections-finitions-brouillon` passerait.
+     */
+    private function verifierLeChemin(string $chemin): void
+    {
+        $racineBrute = (string) config('catalogue.corrections_finitions');
+        $racine = realpath($racineBrute);
+
+        if ($racine === false) {
+            throw new InvalidArgumentException(
+                "Le repertoire des corrections est introuvable : {$racineBrute}. "
+                .'Voir `config/catalogue.php`.'
+            );
+        }
+
+        $resolu = realpath($chemin);
+
+        if ($resolu === false || ! str_starts_with($resolu, $racine.DIRECTORY_SEPARATOR)) {
+            throw new InvalidArgumentException(
+                "Le document doit vivre sous {$racine}. Recu : {$chemin}. "
+                .'Ces fichiers sont la reference du seeder et de la suite : une correction '
+                .'appliquee depuis ailleurs ne laisserait aucune trace dans le depot, et '
+                .'`CorrectionDesFinitionsTest` continuerait de donner raison a l\'ancienne valeur.'
+            );
+        }
     }
 
     /**
@@ -234,9 +280,33 @@ class CorrectTrims extends Command
 
         $this->verifierLaPortee($prefixe, $finition, (int) $correction['applications_couvertes']);
         $this->verifierLesChamps($prefixe, $correction);
-        $this->verifierLEtatAttendu($prefixe, $finition, $correction['expected']);
 
         $avant = $this->etatActuel($finition);
+
+        // ── DEJA FAIT : on ne reecrit pas, et on ne refuse pas ──────────────
+        //
+        // `expected` decrit l'etat AVANT la correction. Apres une passe
+        // reussie, la base porte `updates` : le meme fichier rejoue echouait
+        // donc sur « la base a change depuis la redaction de la correction »,
+        // ce qui est vrai mais inutile. Or rejouer est un geste normal — apres
+        // un echec partiel, ou sur une base restauree.
+        //
+        // L'etat final EXACT vaut donc « rien a faire ». On ne touche ni a la
+        // ligne ni a son `updated_at`, qui est le curseur de la synchro mobile :
+        // une reecriture a l'identique ferait retelecharger la finition par
+        // tous les appareils pour rien.
+        if ($this->etatCorrespond($avant, $correction['updates'])) {
+            return [
+                'finition'     => "{$correction['brand']}/{$correction['model_slug']} — {$correction['trim']}",
+                'avant'        => $avant,
+                'apres'        => $avant,
+                'applications' => (int) $correction['applications_couvertes'],
+                'deja_fait'    => true,
+            ];
+        }
+
+        $this->verifierLEtatAttendu($prefixe, $avant, $correction);
+
         $ecritures = [];
 
         foreach (self::CHAMPS as $champ => $meta) {
@@ -290,11 +360,29 @@ class CorrectTrims extends Command
         $permis = array_keys(self::CHAMPS);
 
         foreach (['expected', 'updates'] as $bloc) {
-            foreach (array_keys($correction[$bloc]) as $champ) {
+            foreach ($correction[$bloc] as $champ => $valeur) {
                 if (! in_array($champ, $permis, true)) {
                     throw new InvalidArgumentException(
                         "{$prefixe}.{$bloc} : champ inconnu « {$champ} ». Corrigeables : "
                         .implode(', ', $permis).'.'
+                    );
+                }
+
+                // ── UNE VALEUR NON SCALAIRE LEVAIT UNE ERREUR NUE ──────────
+                //
+                // `(string) $valeur` sur un tableau faisait lever une
+                // `ErrorException` de conversion, sans dire quel champ ni quel
+                // fichier : un document mal forme ressortait en trace PHP au
+                // lieu d'un refus lisible. On nomme le champ, le bloc et le
+                // type recu.
+                //
+                // `null` reste accepte : c'est l'effacement explicite, et toute
+                // la semantique de `updates` repose dessus.
+                if ($valeur !== null && ! is_string($valeur) && ! is_int($valeur)) {
+                    throw new InvalidArgumentException(
+                        "{$prefixe}.{$bloc}.{$champ} : valeur de type "
+                        .get_debug_type($valeur).'. Attendu un code du referentiel (chaine), '
+                        .'ou `null` pour effacer.'
                     );
                 }
             }
@@ -317,23 +405,69 @@ class CorrectTrims extends Command
     /**
      * @param  array<string, mixed>  $attendu
      */
-    private function verifierLEtatAttendu(string $prefixe, Trim $finition, array $attendu): void
+    /**
+     * Un champ lu correspond-il a la valeur annoncee ?
+     *
+     * Partage par le controle de `expected` et par la detection du « deja
+     * fait », pour que les deux ne puissent pas diverger : une comparaison
+     * laxiste d'un cote et stricte de l'autre rendrait l'idempotence fausse
+     * sans que rien ne le dise.
+     *
+     * `strcasecmp` parce qu'on compare des CODES de referentiel, pas du texte
+     * affiche. `null` ne se compare qu'a `null` — c'est l'effacement explicite.
+     */
+    private function champCorrespond(?string $lu, mixed $valeur): bool
     {
-        $actuel = $this->etatActuel($finition);
+        return $valeur === null
+            ? $lu === null
+            : ($lu !== null && strcasecmp($lu, (string) $valeur) === 0);
+    }
 
+    /**
+     * @param  array<string, string|null>  $etat
+     * @param  array<string, mixed>  $attendu
+     */
+    private function etatCorrespond(array $etat, array $attendu): bool
+    {
         foreach ($attendu as $champ => $valeur) {
-            $lu = $actuel[$champ];
-            $correspond = $valeur === null
-                ? $lu === null
-                : ($lu !== null && strcasecmp($lu, (string) $valeur) === 0);
-
-            if (! $correspond) {
-                throw new InvalidArgumentException(
-                    "{$prefixe} : « {$champ} » attendu a ".$this->afficher($valeur)
-                    .', trouve '.$this->afficher($lu).'. La base a change depuis la redaction de la '
-                    .'correction : relire avant d\'ecrire.'
-                );
+            if (! $this->champCorrespond($etat[$champ] ?? null, $valeur)) {
+                return false;
             }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, string|null>  $actuel
+     * @param  array<string, mixed>  $correction
+     */
+    private function verifierLEtatAttendu(string $prefixe, array $actuel, array $correction): void
+    {
+        foreach ($correction['expected'] as $champ => $valeur) {
+            if ($this->champCorrespond($actuel[$champ] ?? null, $valeur)) {
+                continue;
+            }
+
+            // ── L'ETAT MIXTE MERITE SON PROPRE MESSAGE ─────────────────────
+            //
+            // Si ce champ porte deja la valeur d'`updates`, la correction a
+            // ete PARTIELLEMENT appliquee — une passe interrompue, ou une
+            // ecriture a la main. Le message generique « la base a change »
+            // enverrait relire la preuve, alors que le travail a commencer est
+            // de constater ce qui est passe et ce qui ne l'est pas.
+            $deja = array_key_exists($champ, $correction['updates'])
+                && $this->champCorrespond($actuel[$champ] ?? null, $correction['updates'][$champ]);
+
+            throw new InvalidArgumentException($deja
+                ? "{$prefixe} : « {$champ} » porte DEJA la valeur corrigee "
+                  .$this->afficher($correction['updates'][$champ]).', mais d\'autres champs de cette '
+                  .'correction ne l\'ont pas. Elle a ete partiellement appliquee : constater ce qui est '
+                  .'passe avant de rejouer, un fichier entierement applique etant accepte sans ecriture.'
+                : "{$prefixe} : « {$champ} » attendu a ".$this->afficher($valeur)
+                  .', trouve '.$this->afficher($actuel[$champ] ?? null).'. La base a change depuis la '
+                  .'redaction de la correction : relire avant d\'ecrire.'
+            );
         }
     }
 
@@ -409,6 +543,10 @@ class CorrectTrims extends Command
             }
 
             $this->line("  applications couvertes {$ligne['applications']}");
+
+            if ($ligne['deja_fait'] ?? false) {
+                $this->line('  deja applique : aucune ecriture');
+            }
         }
 
         if ($this->option('dry-run')) {

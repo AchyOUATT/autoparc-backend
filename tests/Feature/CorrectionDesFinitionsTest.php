@@ -41,6 +41,9 @@ class CorrectionDesFinitionsTest extends TestCase
     private VehicleModel $modele;
     private Trim $finition;
 
+    /** Racine temporaire des documents de ce banc. */
+    private string $racine;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -63,6 +66,18 @@ class CorrectionDesFinitionsTest extends TestCase
             'default_drivetrain_id' => Drivetrain::where('code', 'AWD')->value('id'),
         ]);
 
+        // ── LA RACINE DES DOCUMENTS, POUR CE BANC SEULEMENT ────────────────
+        //
+        // `catalog:correct-trims` n'accepte que des documents sous le
+        // repertoire versionne des corrections. Ce banc ecrit des documents
+        // JETABLES : les poser dans le repertoire versionne y laisserait, apres
+        // un test interrompu, un fichier que la regle 4 relirait ensuite comme
+        // une reference. Il surcharge donc la racine vers un repertoire
+        // temporaire, qu'il nettoie.
+        $this->racine = storage_path('framework/testing/corrections-'.uniqid());
+        File::ensureDirectoryExists($this->racine);
+        config()->set('catalogue.corrections_finitions', $this->racine);
+
         // Deux applications : c'est ce que la preuve devra couvrir.
         foreach ([[2020, 2022], [2023, 2024]] as [$de, $a]) {
             TrimApplication::create([
@@ -76,10 +91,17 @@ class CorrectionDesFinitionsTest extends TestCase
         }
     }
 
+    protected function tearDown(): void
+    {
+        File::deleteDirectory($this->racine);
+
+        parent::tearDown();
+    }
+
     /** Ecrit un document de correction et rend son chemin. */
     private function document(array $correction, array $remplacements = []): string
     {
-        $chemin = storage_path('app/correction-'.uniqid().'.json');
+        $chemin = $this->racine.DIRECTORY_SEPARATOR.'correction-'.uniqid().'.json';
 
         File::put($chemin, json_encode(
             ['corrections' => [array_replace($correction, $remplacements)]],
@@ -108,6 +130,149 @@ class CorrectionDesFinitionsTest extends TestCase
     private function lancer(string $chemin, array $options = []): int
     {
         return Artisan::call('catalog:correct-trims', ['file' => $chemin] + $options);
+    }
+
+    // ── ETAPE 1 : REJOUABLE, BORNEE, ET QUI REFUSE LISIBLEMENT ──────────────
+
+    /**
+     * LE MEME FICHIER, DEUX FOIS.
+     *
+     * `expected` decrit l'etat AVANT la correction. Apres une passe reussie, la
+     * base porte `updates` : le meme document rejoue echouait donc sur « la
+     * base a change depuis la redaction de la correction » — vrai, mais
+     * inutile. Or rejouer est un geste normal : apres un echec partiel, ou sur
+     * une base restauree.
+     */
+    public function test_le_meme_document_se_rejoue_sans_ecrire(): void
+    {
+        $chemin = $this->document($this->correctionValable());
+
+        $this->assertSame(0, $this->lancer($chemin), 'La premiere passe doit reussir.');
+        $this->assertNull($this->finition->refresh()->default_drivetrain_id);
+
+        $empreinte = $this->finition->refresh()->updated_at;
+
+        $this->assertSame(0, $this->lancer($chemin), 'La seconde passe doit reussir aussi.');
+        $this->assertStringContainsString('deja applique', Artisan::output());
+
+        // ── POURQUOI `updated_at` COMPTE ──────────────────────────────────
+        //
+        // C'est le curseur de la synchro mobile : `/catalog/sync?since=…` ne
+        // renvoie que ce qui a bouge. Une reecriture a l'identique ferait
+        // retelecharger la finition par tous les appareils, pour rien.
+        $this->assertEquals($empreinte, $this->finition->refresh()->updated_at,
+            'Une passe sans effet ne doit pas toucher a `updated_at`.');
+    }
+
+    /**
+     * L'etat MIXTE a son propre refus.
+     *
+     * Un champ deja corrige et un autre non : la correction a ete
+     * partiellement appliquee — passe interrompue, ou ecriture a la main. Le
+     * message generique « la base a change » enverrait relire la preuve, alors
+     * que le travail est de constater ce qui est passe.
+     */
+    public function test_une_correction_partiellement_appliquee_est_nommee(): void
+    {
+        $correction = array_replace($this->correctionValable(), [
+            'expected' => ['default_drivetrain' => 'AWD', 'default_engine_type' => 'petrol'],
+            'updates' => ['default_drivetrain' => null, 'default_engine_type' => 'hybrid'],
+        ]);
+
+        // Un seul des deux champs a deja ete passe.
+        $this->finition->update(['default_drivetrain_id' => null]);
+
+        $this->assertSame(1, $this->lancer($this->document($correction)));
+
+        $sortie = Artisan::output();
+        $this->assertStringContainsString('partiellement appliquee', $sortie);
+        $this->assertStringContainsString('default_drivetrain', $sortie);
+
+        // Et rien n'a bouge : un refus ne corrige pas a moitie.
+        $this->assertSame(
+            EngineType::where('code', 'petrol')->value('id'),
+            $this->finition->refresh()->default_engine_type_id,
+        );
+    }
+
+    /**
+     * LE DOCUMENT DOIT VIVRE DANS LE DEPOT.
+     *
+     * Le README du repertoire enonce la regle — ces fichiers sont versionnes et
+     * ils sont la reference, la suite exige que `TrimsSeeder` leur donne
+     * raison — mais rien ne la tenait. Une correction appliquee depuis `/tmp`
+     * partait en base sans laisser de trace, et la suite continuait de donner
+     * raison a l'ancienne valeur.
+     */
+    public function test_un_document_hors_du_repertoire_versionne_est_refuse(): void
+    {
+        $dehors = storage_path('framework/testing/hors-depot-'.uniqid().'.json');
+        File::put($dehors, json_encode(['corrections' => [$this->correctionValable()]]));
+
+        $this->assertSame(1, $this->lancer($dehors));
+        $this->assertStringContainsString('doit vivre sous', Artisan::output());
+
+        // La base n'a pas bouge.
+        $this->assertNotNull($this->finition->refresh()->default_drivetrain_id);
+
+        File::delete($dehors);
+    }
+
+    /**
+     * UN REPERTOIRE VOISIN NE PASSE PAS POUR LA RACINE.
+     *
+     * La comparaison porte sur le separateur final. Sans lui,
+     * `corrections-finitions-brouillon` commence par `corrections-finitions` et
+     * passerait la borne : un repertoire de travail pose a cote du bon suffit
+     * alors a appliquer des corrections hors du depot. Une mutation a survecu
+     * exactement comme ca.
+     */
+    public function test_un_repertoire_voisin_au_nom_proche_est_refuse(): void
+    {
+        $voisin = $this->racine.'-brouillon';
+        File::ensureDirectoryExists($voisin);
+
+        $chemin = $voisin.DIRECTORY_SEPARATOR.'correction.json';
+        File::put($chemin, json_encode(['corrections' => [$this->correctionValable()]]));
+
+        $this->assertSame(1, $this->lancer($chemin));
+        $this->assertStringContainsString('doit vivre sous', Artisan::output());
+        $this->assertNotNull($this->finition->refresh()->default_drivetrain_id);
+
+        File::deleteDirectory($voisin);
+    }
+
+    /** Une remontee par `..` ne sort pas de la racine : `realpath` resout avant. */
+    public function test_une_remontee_de_repertoire_ne_contourne_pas_la_borne(): void
+    {
+        $dehors = storage_path('framework/testing/remontee-'.uniqid().'.json');
+        File::put($dehors, json_encode(['corrections' => [$this->correctionValable()]]));
+
+        $parLeHaut = $this->racine.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.basename($dehors);
+
+        $this->assertSame(1, $this->lancer($parLeHaut));
+        $this->assertNotNull($this->finition->refresh()->default_drivetrain_id);
+
+        File::delete($dehors);
+    }
+
+    /**
+     * Une valeur non scalaire faisait lever une `ErrorException` de conversion,
+     * sans dire quel champ ni quel fichier : un document mal forme ressortait
+     * en trace PHP au lieu d'un refus lisible.
+     */
+    public function test_une_valeur_non_scalaire_est_refusee_par_son_nom(): void
+    {
+        $correction = array_replace($this->correctionValable(), [
+            'updates' => ['default_drivetrain' => ['AWD', 'FWD']],
+        ]);
+
+        $this->assertSame(1, $this->lancer($this->document($correction)));
+
+        $sortie = Artisan::output();
+        $this->assertStringContainsString('default_drivetrain', $sortie);
+        $this->assertStringContainsString('array', $sortie);
+        $this->assertNotNull($this->finition->refresh()->default_drivetrain_id);
     }
 
     // ── REGLE 2 : le sens de `updates` ───────────────────────────────────────

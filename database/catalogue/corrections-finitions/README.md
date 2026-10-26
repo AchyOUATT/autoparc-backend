@@ -89,3 +89,32 @@ la base sont réellement éprouvées, pas seulement les nôtres.
 restent propres à chaque finition, chaque marché et chaque millésime — le
 mécanisme est réutilisable pour Hyundai, BMW, Mercedes ou Lexus, les preuves ne
 le sont pas.
+
+
+**8. Emplacement.** La commande n'accepte **que** des documents situés sous ce
+répertoire. Le chemin est résolu par `realpath()` avant comparaison, et la
+comparaison porte sur le séparateur final : ni un lien symbolique, ni une
+remontée par `..`, ni un répertoire voisin au nom proche
+(`corrections-finitions-brouillon`) n'en sortent.
+
+C'est ce qui fait tenir la règle 4. Sans cette borne, la règle était écrite mais
+pas appliquée : une correction lancée depuis `/tmp` partait en base sans laisser
+de trace dans le dépôt, et la suite continuait de donner raison à l'ancienne
+valeur. Les bancs écrivent des documents jetables et surchargent donc
+`catalogue.corrections_finitions` vers un répertoire temporaire — jamais celui-ci,
+qu'un test interrompu polluerait d'un fichier que la règle 4 relirait ensuite
+comme une référence.
+
+**9. Rejouable.** Un document entièrement appliqué est accepté **sans écriture**,
+et le bilan l'annonce. C'est nécessaire : `expected` décrit l'état *avant* la
+correction, donc un second passage trouvait `updates` en base et refusait sur
+« la base a changé » — vrai, mais inutile, alors que rejouer est un geste normal
+après un échec partiel ou sur une base restaurée.
+
+`updated_at` n'est pas touché dans ce cas, et c'est voulu : c'est le curseur de
+`/catalog/sync?since=…`, et une réécriture à l'identique ferait retélécharger la
+finition par tous les appareils pour rien.
+
+Un état **mixte** — un champ déjà corrigé, un autre non — reste refusé, avec son
+propre message : la correction a été partiellement appliquée, et le travail est
+de constater ce qui est passé, non de relire la preuve.
