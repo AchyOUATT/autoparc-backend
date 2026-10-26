@@ -188,6 +188,78 @@ class PartnerAnnonceTrouvableTest extends TestCase
     }
 
     /**
+     * CE QUE LE SERVEUR DETRUIT, ET POURQUOI LE CLIENT DOIT LE SAVOIR.
+     *
+     * `syncTypeSpecificDetails` supprime le carnet d'immatriculation des qu'il
+     * ecrit un bloc import :
+     *
+     *   if (Unregistered && ! empty($data['import'])) {
+     *       $vehicle->importDetail()->updateOrCreate(...);
+     *       $vehicle->registrationDetail()?->delete();
+     *   }
+     *
+     * La condition `! empty` est tout : un bloc import VIDE ne detruit rien.
+     * C'est sur elle que repose la correction cote application — le formulaire
+     * partenaire vide le kilometrage quand la situation s'ecarte de celle qui
+     * est enregistree, precisement pour ne pas envoyer ce bloc par accident.
+     * Le kilometrage y etant prerempli a l'edition, basculer la situation
+     * suffisait sinon a declencher la suppression sans que le vendeur ait rien
+     * tape.
+     *
+     * Ce banc fixe donc le couplage. Si la condition changeait ici, la
+     * correction cote client deviendrait soit inutile, soit insuffisante — et
+     * rien ne le dirait.
+     */
+    public function test_un_bloc_import_non_vide_supprime_le_carnet_d_immatriculation(): void
+    {
+        $id = $this->publier([
+            'vehicle_type' => 'passenger',
+            'registration_status' => 'registered',
+            'condition' => 'used',
+            'registration' => ['mileage_km' => 250_000],
+        ]);
+
+        $this->assertDatabaseHas('vehicle_registration_details', ['vehicle_id' => $id]);
+
+        // Bascule vers l'import AVEC un compteur : le carnet part.
+        $this->patchJson("/api/partner/vehicles/{$id}", $this->identite + [
+            'vehicle_type' => 'passenger',
+            'registration_status' => 'unregistered',
+            'condition' => 'used',
+            'import' => ['odometer_at_import_km' => 95_000],
+        ])->assertOk();
+
+        $this->assertDatabaseMissing('vehicle_registration_details', ['vehicle_id' => $id]);
+        $this->assertDatabaseHas('vehicle_import_details', [
+            'vehicle_id' => $id,
+            'odometer_at_import_km' => 95_000,
+        ]);
+    }
+
+    /** La meme bascule SANS bloc import ne detruit rien : c'est la porte de sortie. */
+    public function test_une_bascule_sans_bloc_import_ne_supprime_rien(): void
+    {
+        $id = $this->publier([
+            'vehicle_type' => 'passenger',
+            'registration_status' => 'registered',
+            'condition' => 'used',
+            'registration' => ['mileage_km' => 250_000],
+        ]);
+
+        $this->patchJson("/api/partner/vehicles/{$id}", $this->identite + [
+            'vehicle_type' => 'passenger',
+            'registration_status' => 'unregistered',
+            'condition' => 'used',
+        ])->assertOk();
+
+        // C est la porte sur laquelle repose la correction du formulaire.
+        $this->assertDatabaseHas('vehicle_registration_details', [
+            'vehicle_id' => $id,
+            'mileage_km' => 250_000,
+        ]);
+    }
+
+    /**
      * Les quatre champs restent REFUSES a personne : ce sont des reponses du
      * vendeur, pas des decisions de la boutique. Ce banc les tient ouverts,
      * pour qu'un elargissement du garde `missing` ne les ferme pas par
