@@ -3,11 +3,17 @@
 namespace Tests\Feature;
 
 use App\Exceptions\RefusMetier;
+use App\Http\Middleware\EnsureActiveUser;
+use App\Http\Middleware\EnsurePartner;
+use App\Http\Middleware\EnsureStaff;
+use App\Http\Middleware\VerifyFirebaseToken;
 use App\Models\PartnerAccount;
 use App\Models\User;
+use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
@@ -288,6 +294,97 @@ class SessionsDesactiveesTest extends TestCase
             'desactive',
             mb_strtolower(json_encode($reponse->json(), JSON_UNESCAPED_UNICODE)),
             'Le message de connexion revele l etat du compte.',
+        );
+    }
+
+    // ── Aucune route n'echappe au controle, et ca se verifie tout seul ─────
+
+    /**
+     * Le garde structurel : la question posee a la LISTE DES ROUTES, pas a la
+     * main.
+     *
+     * Les bancs du dessus eprouvent les routes qu'on a pensé a eprouver. Celui-ci
+     * eprouve celles qu'on n'a pas pensé a eprouver, et surtout celles qui
+     * n'existent pas encore. Une route ajoutee demain derriere `auth:sanctum`,
+     * sans garde d'activite, rendrait a un compte desactive un acces qui survit
+     * a sa desactivation — exactement le trou qu'on vient de fermer, rouvert
+     * ailleurs. Personne ne s'en apercevrait : aucun banc nominatif ne parle
+     * d'une route qui n'est pas encore ecrite.
+     *
+     * Le decompte ci-dessous a d'abord ete fait a la main, et il etait FAUX :
+     * `EnsureApprovedPartner` et `EnsureCapability` avaient ete comptes comme
+     * gardes parce que leur nom en avait l'air. Ils controlent l'approbation et
+     * une capacite, pas l'activite du compte. Les inclure masquait precisement
+     * les trous qu'on cherchait. D'ou la liste etablie en lisant chaque
+     * middleware, et d'ou ce banc plutot qu'une relecture periodique.
+     */
+    public function test_aucune_route_a_jeton_sanctum_n_echappe_au_controle_d_activite(): void
+    {
+        // Les SEULS middlewares du depot qui lisent `is_active`. Si on en
+        // ajoute un, il vient ici — et si l'un de ceux-la cesse de lire la
+        // colonne, c'est un autre banc qui doit tomber, pas celui-ci.
+        $gardes = [
+            EnsureActiveUser::class,
+            EnsurePartner::class,
+            EnsureStaff::class,
+            VerifyFirebaseToken::class,
+        ];
+
+        $alias = app('router')->getMiddleware();
+        $groupes = app('router')->getMiddlewareGroups();
+
+        // `gatherMiddleware()` rend des noms courts et des noms de groupes
+        // (`api`, `auth:sanctum`, `staff`...). On les resout en classes, en
+        // gardant le parametre : `auth:sanctum` et `auth:web` ne sont pas la
+        // meme chose.
+        $resoudre = function (array $noms) use ($alias, $groupes, &$resoudre): array {
+            $pile = [];
+            foreach ($noms as $nom) {
+                $base = explode(':', $nom, 2)[0];
+                $suffixe = substr($nom, strlen($base));
+
+                if (isset($groupes[$base])) {
+                    $pile = array_merge($pile, $resoudre($groupes[$base]));
+
+                    continue;
+                }
+
+                $pile[] = ($alias[$base] ?? $base).$suffixe;
+            }
+
+            return $pile;
+        };
+
+        $trous = [];
+
+        foreach (Route::getRoutes() as $route) {
+            $pile = $resoudre($route->gatherMiddleware());
+
+            if (! in_array(Authenticate::class.':sanctum', $pile, true)) {
+                continue;
+            }
+
+            foreach ($gardes as $garde) {
+                foreach ($pile as $entree) {
+                    if (str_starts_with($entree, $garde)) {
+                        continue 3;
+                    }
+                }
+            }
+
+            $trous[] = implode('|', $route->methods()).' '.$route->uri();
+        }
+
+        sort($trous);
+
+        $this->assertSame(
+            ['POST api/logout'],
+            $trous,
+            "La liste des routes a jeton Sanctum sans controle d'activite a change.\n"
+            ."AJOUTEE : un compte desactive garde un acces qui survit a sa desactivation.\n"
+            ."RETIREE : si c'est `logout`, un compte desactive ne peut plus nettoyer son\n"
+            ."propre jeton, et une session morte reste dans le coffre du telephone sans que\n"
+            ."rien ne vienne plus l'effacer. Les deux sens sont des regressions.",
         );
     }
 
