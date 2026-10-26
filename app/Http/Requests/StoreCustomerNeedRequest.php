@@ -44,6 +44,38 @@ class StoreCustomerNeedRequest extends FormRequest
 
             // ── Commun pièce + accessoire ─────────────────────────────
             'need_manufacturer_id' => ['nullable', 'exists:manufacturers,id'],
+
+            // ── DE QUOI RAPPELER, ET POURQUOI CE N'ETAIT PAS LA ─────────────
+            //
+            // Ces trois champs existaient en base, le modele Flutter les
+            // LISAIT et la liste du personnel les AFFICHAIT — mais aucun
+            // n'etait valide ici. `CustomerNeed::create($request->validated())`
+            // les jetait donc en silence : un numero envoye n'arrivait jamais
+            // en base.
+            //
+            // Mesure du defaut : un visiteur deposait un besoin, tout le
+            // personnel recevait une notification « Nouveau besoin client », et
+            // PERSONNE ne pouvait le rappeler. La route est publique, donc le
+            // deposant peut etre anonyme, et `firebase_uid` — le seul autre
+            // fil — est nullable lui aussi.
+            'contact_name'  => ['nullable', 'string', 'max:120'],
+            'contact_email' => ['nullable', 'string', 'email', 'max:180'],
+
+            // PLUSIEURS numeros, parce qu'au Burkina Faso un acheteur donne
+            // volontiers deux lignes de deux operateurs : l'une passe quand
+            // l'autre ne passe pas.
+            //
+            // `required` seulement quand le drapeau est arme. L'application
+            // PUBLIEE n'envoie aucun contact : l'exiger aujourd'hui ferait
+            // repondre 422 a chaque depot venant d'un telephone deja installe,
+            // et un besoin est une demande d'acheteur — exactement ce qu'on ne
+            // veut pas perdre. Voir `config/boutique.php` pour l'ordre
+            // d'armement.
+            'contact_phones' => [
+                config('boutique.besoin_telephone_obligatoire') ? 'required' : 'nullable',
+                'array', 'min:1', 'max:3',
+            ],
+            'contact_phones.*' => ['required', 'string', 'min:6', 'max:30'],
         ];
     }
 }

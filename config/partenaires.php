@@ -82,4 +82,46 @@ return [
 
     'espace_ouvert' => filter_var(env('PARTNER_SPACE_OPEN', false), FILTER_VALIDATE_BOOLEAN),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Marge de la boutique sur les prix proposes par un partenaire
+    |--------------------------------------------------------------------------
+    |
+    | Un pourcentage AJOUTE au prix que le partenaire propose. Il propose
+    | 4 500 000 ; a 10 %, le catalogue affiche 4 950 000, et le partenaire voit
+    | les trois nombres — son prix, le taux, le total.
+    |
+    | PAR DEFAUT : 0. Aucune marge n'est prise tant que ce reglage n'est pas
+    | arme, et une installation neuve ne doit pas inventer un prix que personne
+    | n'a decide.
+    |
+    | ── CE QUE LE TAUX TOUCHE ─────────────────────────────────────────────────
+    |
+    | Tous les prix d'un partenaire : le prix de vente d'un vehicule, ses deux
+    | tarifs de location, et le prix de vente d'une piece ou d'un accessoire.
+    |
+    | PAS la caution de location (`rental_deposit`) : une caution est
+    | remboursable, ce n'est pas un prix de vente. En prendre une marge
+    | reviendrait a facturer une somme qu'on rend.
+    |
+    | ── POURQUOI LE TOTAL EST FIGE A L'ENREGISTREMENT ─────────────────────────
+    |
+    | Le taux applique est stocke AVEC l'annonce, et le total calcule une fois.
+    | Changer ce reglage ne reprend donc PAS le catalogue : un acheteur ne voit
+    | jamais un prix bouger parce qu'un reglage a bouge, et un lien de partage
+    | deja envoye reste exact — ce depot a deja paye une page de partage qui
+    | annoncait un prix pour un vehicule vendu.
+    |
+    | Le taux est stocke et non relu depuis ce fichier pour la meme raison : six
+    | mois plus tard, afficher « marge 10 % » sur une annonce calculee a 8 %
+    | serait faux. Chaque annonce porte le taux qui l'a faite.
+    |
+    | Le nouveau taux s'applique aux annonces CREEES ou MODIFIEES ensuite. Une
+    | modification de prix recalcule donc au taux courant, ce qui est voulu : le
+    | partenaire vient de rouvrir son prix.
+    |
+    */
+
+    'marge_pourcentage' => (float) env('PARTNER_MARGIN_PERCENT', 0),
+
 ];

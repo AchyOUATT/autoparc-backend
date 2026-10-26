@@ -28,6 +28,7 @@ class CustomerNeed extends Model
         // Contact
         'contact_name',
         'contact_phone',
+        'contact_phones',
         'contact_email',
         'firebase_uid',
         'status',
@@ -41,6 +42,7 @@ class CustomerNeed extends Model
             'year_min'         => 'integer',
             'year_max'         => 'integer',
             'part_category_id' => 'integer',
+            'contact_phones'   => 'array',
         ];
     }
 

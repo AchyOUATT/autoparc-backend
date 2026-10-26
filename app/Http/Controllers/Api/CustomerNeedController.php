@@ -25,6 +25,17 @@ class CustomerNeedController extends Controller
     {
         $data         = $request->validated();
         $data['type'] = $data['type'] ?? 'vehicle'; // défaut véhicule si omis
+
+        // ── LE PREMIER NUMERO RESTE DANS L'ANCIENNE COLONNE ──────────────
+        //
+        // Ce n'est pas une redondance paresseuse. L'application PUBLIEE lit
+        // `contact_phone` et ignore `contact_phones` : cesser de l'ecrire
+        // ferait disparaitre le numero de l'ecran du personnel aujourd'hui
+        // installe — et c'est precisement l'ecran qui sert a rappeler
+        // quelqu'un.
+        if (! empty($data['contact_phones'])) {
+            $data['contact_phone'] = $data['contact_phones'][0];
+        }
         $need         = CustomerNeed::create($data);
 
         // ── Notifie tout le staff ─────────────────────────────────
