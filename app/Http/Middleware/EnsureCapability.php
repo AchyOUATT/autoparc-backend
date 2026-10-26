@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Exceptions\RefusMetier;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,7 +27,10 @@ class EnsureCapability
         // Un nom de capacite inconnu tombe dans le `default` de can() et
         // refuse : une faute de frappe ferme la route, elle ne l'ouvre pas.
         if (! $role || ! $role->can($capability)) {
-            abort(403, "Votre role ne permet pas cette action.");
+            // `permission_denied` et non `account_disabled` : la session
+            // reste VALABLE, c est l action qui est refusee. Le client ne
+            // doit surtout pas vider son coffre la-dessus.
+            throw RefusMetier::permissionRefusee('Votre role ne permet pas cette action.');
         }
 
         return $next($request);

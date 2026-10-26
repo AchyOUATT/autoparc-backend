@@ -180,6 +180,20 @@ class PartnerAuthenticationTest extends TestCase
         }
     }
 
+    /**
+     * CE TEST ATTENDAIT 403 ET ATTEND DESORMAIS 401 : c'est un changement
+     * voulu, pas une regression.
+     *
+     * `update()` passe par Eloquent, donc par `UserObserver`, qui revoque les
+     * jetons des que `is_active` passe de vrai a faux. Il n'y a plus de jeton a
+     * refuser : la requete suivante n'est plus autorisee du tout.
+     *
+     * Le 403 n'a pas disparu pour autant — il reste la reponse de l'autre
+     * chemin de desactivation, celui qui ne passe pas par Eloquent et laisse le
+     * jeton survivre. `SessionsDesactiveesTest` eprouve les deux cote a cote,
+     * et le 403 y porte le code `account_disabled` qui dit au client d'effacer
+     * sa session.
+     */
     public function test_un_compte_desactive_perd_l_acces_meme_avec_un_ancien_jeton(): void
     {
         $account = $this->partner('approved');
@@ -187,7 +201,10 @@ class PartnerAuthenticationTest extends TestCase
         $this->bearer($token)->getJson('/api/partner/me')->assertOk();
         $account->user->update(['is_active' => false]);
 
-        $this->bearer($token)->getJson('/api/partner/me')->assertForbidden();
+        Auth::forgetGuards();
+        $this->bearer($token)->getJson('/api/partner/me')->assertUnauthorized();
+
+        $this->assertSame(0, $account->user->tokens()->count(), 'Les jetons devaient etre revoques.');
     }
 
     public function test_firebase_ne_rattache_jamais_un_email_de_partenaire_ou_de_personnel(): void

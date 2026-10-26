@@ -153,7 +153,10 @@ Route::post('fcm-token/client', [FcmTokenController::class, 'storeClient'])
 
 /* ------------------- Commun a tout utilisateur connecte ----------------- */
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('me', [AuthController::class, 'me']);
+    // `actif` sur `me` SEULEMENT. Un compte desactive doit pouvoir nettoyer
+    // son propre jeton : lui refuser `logout` laisserait une session morte
+    // dans le coffre du telephone, que rien ne viendrait plus effacer.
+    Route::get('me', [AuthController::class, 'me'])->middleware('actif');
     Route::post('logout', [AuthController::class, 'logout']);
 });
 

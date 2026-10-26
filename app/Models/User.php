@@ -3,11 +3,19 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
+use App\Observers\UserObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * `UserObserver` revoque les jetons des qu'un compte passe a `is_active`
+ * faux par Eloquent. Son pendant, pour les desactivations qui ne passent pas
+ * par Eloquent, est le middleware `EnsureActiveUser`.
+ */
+#[ObservedBy(UserObserver::class)]
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
