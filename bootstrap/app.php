@@ -36,6 +36,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // conserve — le detail est en tete de routes/partage.php.
         then: function () {
             Route::middleware([
+                \Illuminate\Routing\Middleware\SubstituteBindings::class,
+                \App\Http\Middleware\EnsurePrivateSalesEnabled::class,
+                'throttle:partage',
+            ])->get('/annonces/{listing}', [\App\Http\Controllers\Api\PrivateVehicleListingController::class, 'share']);
+            Route::middleware([
                 // SubstituteBindings vit dans les groupes 'web' et 'api', pas
                 // dans la pile globale : sans lui, `Vehicle $vehicle` n'est plus
                 // resolu depuis l'identifiant de l'URL, et le controleur recoit
@@ -73,6 +78,7 @@ return Application::configure(basePath: dirname(__DIR__))
     $middleware->appendToGroup('api', 'throttle:api');
 
     $middleware->alias([
+        'private-sales' => \App\Http\Middleware\EnsurePrivateSalesEnabled::class,
         'staff'      => \App\Http\Middleware\EnsureStaff::class,
         'capability' => \App\Http\Middleware\EnsureCapability::class,
         'partner' => \App\Http\Middleware\EnsurePartner::class,

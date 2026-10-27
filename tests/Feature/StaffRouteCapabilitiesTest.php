@@ -51,7 +51,7 @@ class StaffRouteCapabilitiesTest extends TestCase
         ));
     }
 
-    public function test_la_consultation_reste_ouverte_sauf_les_dossiers_de_validation_des_partenaires(): void
+    public function test_la_consultation_reste_ouverte_sauf_les_dossiers_de_validation(): void
     {
         $verrouillees = [];
         // Ces dossiers contiennent les coordonnees et motifs de moderation,
@@ -59,6 +59,8 @@ class StaffRouteCapabilitiesTest extends TestCase
         $confidentielles = [
             'api/partner-applications' => 'manage-partners',
             'api/partner-applications/{partnerAccount}' => 'manage-partners',
+            // Unpublished private listings carry phone contacts and review reasons.
+            'api/private-listing-reviews' => 'manage-catalog',
         ];
 
         foreach ($this->staffRoutes() as $route) {

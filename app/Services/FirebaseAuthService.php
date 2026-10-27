@@ -87,6 +87,7 @@ class FirebaseAuthService
             'uid'            => $claims->get('sub'),
             'email'          => $claims->get('email'),
             'email_verified' => $claims->get('email_verified', false),
+            'phone_number'   => $claims->get('phone_number', null),
             'name'           => $claims->get('name'),
         ];
     }

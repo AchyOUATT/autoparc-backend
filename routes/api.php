@@ -46,6 +46,7 @@ Route::post('login', [AuthController::class, 'login'])
     ->middleware('throttle:login'); // staff uniquement : les clients passent par Firebase Auth cote Flutter
 
 require __DIR__.'/partner.php';
+require __DIR__.'/private-sales.php';
 
 
 /* ------------------- Plancher de version de l'application --------------- */

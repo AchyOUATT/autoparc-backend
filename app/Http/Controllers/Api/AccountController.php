@@ -44,6 +44,12 @@ class AccountController extends Controller
         $uid  = $request->attributes->get('firebase_uid');
 
         DB::transaction(function () use ($user, $uid) {
+            $photos = \App\Models\PrivateListingPhoto::whereHas('listing', fn ($q) => $q->where('user_id', $user->id))->get();
+            DB::afterCommit(function () use ($photos) {
+                foreach ($photos as $photo) {
+                    \Illuminate\Support\Facades\Storage::disk($photo->disk)->delete($photo->path);
+                }
+            });
             // Les vehicules sont en suppression douce : l'effacement du compte
             // doit etre definitif, on force donc la suppression reelle.
             OwnedVehicle::withTrashed()->where('user_id', $user->id)->forceDelete();
