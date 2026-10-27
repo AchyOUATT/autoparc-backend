@@ -21,9 +21,14 @@ class StorePartRequest extends \App\Http\Requests\StorePartRequest
         return MargePartenaire::CHAMPS_ARTICLE;
     }
 
+    protected function champDePrixNormal(): string
+    {
+        return 'selling_price';
+    }
+
     public function rules(): array
     {
-        return array_replace(parent::rules(), $this->partnerOwnershipRules(), [
+        return array_replace(parent::rules(), $this->partnerOwnershipRules(), $this->reglesDePromotion(), [
             'oem_numbers.*.brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'donor_vehicle_id' => [
                 'nullable', 'integer', 'required_if:condition,used',
@@ -34,6 +39,8 @@ class StorePartRequest extends \App\Http\Requests\StorePartRequest
 
     public function withValidator($validator): void
     {
+        $this->verifierLaPromotion($validator);
+
         $validator->after(function ($validator) {
             if ($validator->errors()->isNotEmpty()) {
                 return;

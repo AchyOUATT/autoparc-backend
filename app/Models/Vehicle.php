@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Observers\PromotionObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use App\Enums\RegistrationStatus;
 use App\Enums\Transmission;
 use App\Enums\VehicleAvailability;
@@ -15,6 +17,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[ObservedBy(PromotionObserver::class)]
 class Vehicle extends Model
 {
     use HasFactory, HasPartnerOwner, SoftDeletes;
@@ -43,7 +46,7 @@ class Vehicle extends Model
         'rental_monthly_rate', 'rental_deposit', 'rental_mileage_limit_per_day',
         'currency', 'price_negotiable', 'deal_type', 'site', 'location_id', 'description',
         'created_by', 'published_at', 'partner_id', 'owner_partner_account_id', 'partner_published_at',
-        'partner_pricing',
+        'partner_pricing', 'deal_price', 'deal_starts_at', 'deal_ends_at',
     ];
 
     protected function casts(): array
@@ -71,6 +74,12 @@ class Vehicle extends Model
             'published_at'             => 'datetime',
             'partner_published_at'     => 'datetime',
             'partner_pricing'          => 'array',
+            // La promotion : son prix dans le meme type que les autres
+            // prix, ses bornes en dates pour que la comparaison avec
+            // `now()` soit celle de Carbon et non celle de deux chaines.
+            'deal_price'               => 'decimal:2',
+            'deal_starts_at'           => 'datetime',
+            'deal_ends_at'             => 'datetime',
         ];
     }
 

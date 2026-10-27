@@ -106,8 +106,24 @@ final class TriPublic
             $sens = $defautSens;
         }
 
+        // ── UN PRIX SE TRIE SUR LE PRIX DU JOUR ────────────────────────
+        //
+        // Une annonce en promotion s'affiche a son prix remise. Classer sur
+        // la colonne brute la placerait apres une annonce plus chere, dans
+        // une liste rangee par prix croissant — l'acheteur verrait 3 900 000
+        // apres 4 200 000 et conclurait que le tri ne marche pas.
+        //
+        // Hors promotion, l'expression se reduit a la colonne : une annonce
+        // de la boutique se trie exactement comme avant.
+        if (in_array($colonne, self::PRIX, true)) {
+            return PrixEffectif::trier($query, $colonne, $sens);
+        }
+
         return $query->orderBy($colonne, $sens);
     }
+
+    /** Les colonnes de la liste blanche qui portent un prix de vente. */
+    private const PRIX = ['sale_price', 'selling_price'];
 
     /** Les colonnes qu'un acheteur peut comparer sur une annonce de vehicule. */
     public static function vehicules(): array

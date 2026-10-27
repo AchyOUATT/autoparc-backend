@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Observers\PromotionObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use App\Enums\PartCondition;
 use App\Enums\PartType;
 use App\Models\Concerns\HasPartnerOwner;
@@ -10,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[ObservedBy(PromotionObserver::class)]
 class Part extends Model
 {
     use HasFactory, HasPartnerOwner, SoftDeletes;
@@ -21,6 +24,7 @@ class Part extends Model
         'currency', 'vat_rate', 'stock_quantity', 'stock_alert_threshold',
         'storage_location', 'location_id', 'is_active', 'is_available',
         'owner_partner_account_id', 'partner_published_at', 'partner_pricing',
+        'deal_price', 'deal_starts_at', 'deal_ends_at',
     ];
 
     protected function casts(): array
@@ -28,6 +32,12 @@ class Part extends Model
         return [
             'partner_published_at' => 'datetime',
             'partner_pricing'      => 'array',
+            // La promotion : son prix dans le meme type que les autres
+            // prix, ses bornes en dates pour que la comparaison avec
+            // `now()` soit celle de Carbon et non celle de deux chaines.
+            'deal_price'           => 'decimal:2',
+            'deal_starts_at'       => 'datetime',
+            'deal_ends_at'         => 'datetime',
             'type'           => PartType::class,
             'condition'      => PartCondition::class,
             'cost_price'     => 'decimal:2',

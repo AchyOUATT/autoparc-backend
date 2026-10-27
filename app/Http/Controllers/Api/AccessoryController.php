@@ -13,6 +13,7 @@ use App\Models\AppNotification;
 use App\Models\ClientFcmToken;
 use App\Models\CustomerNeed;
 use App\Services\FcmService;
+use App\Support\PrixEffectif;
 use App\Support\TriPublic;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -46,7 +47,7 @@ class AccessoryController extends Controller
             ->search($request->string('q')->toString() ?: null)
             ->when($request->filled('category'), fn ($q) => $q->ofCategory($request->category))
             ->when($request->filled('manufacturer_id'), fn ($q) => $q->where('manufacturer_id', $request->manufacturer_id))
-            ->when($request->filled('price_max'), fn ($q) => $q->where('selling_price', '<=', $request->price_max))
+            ->when($request->filled('price_max'), fn ($q) => PrixEffectif::filtrer($q, 'selling_price', '<=', $request->price_max))
             ->when($request->filled('vehicle_model_id'), fn ($q) => $q->compatibleWithModel($request->integer('vehicle_model_id')))
             ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
             ->when($request->filled('city'), fn ($q) => $q->whereHas('location', fn ($l) => $l->where('city', $request->city)))
@@ -87,7 +88,7 @@ class AccessoryController extends Controller
             ->when($request->filled('manufacturer_id'), fn ($q) => $q->where('manufacturer_id', $request->manufacturer_id))
             ->when($request->boolean('in_stock'), fn ($q) => $q->inStock())
             ->when($request->boolean('low_stock'), fn ($q) => $q->lowStock())
-            ->when($request->filled('price_max'), fn ($q) => $q->where('selling_price', '<=', $request->price_max))
+            ->when($request->filled('price_max'), fn ($q) => PrixEffectif::filtrer($q, 'selling_price', '<=', $request->price_max))
             ->when($request->boolean('active_only', true), fn ($q) => $q->active())
             ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
             ->when($request->filled('city'), fn ($q) => $q->whereHas('location', fn ($l) => $l->where('city', $request->city)))

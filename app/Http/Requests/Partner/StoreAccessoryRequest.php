@@ -18,8 +18,22 @@ class StoreAccessoryRequest extends \App\Http\Requests\StoreAccessoryRequest
         return MargePartenaire::CHAMPS_ARTICLE;
     }
 
+    protected function champDePrixNormal(): string
+    {
+        return 'selling_price';
+    }
+
     public function rules(): array
     {
-        return array_replace(parent::rules(), $this->partnerOwnershipRules());
+        return array_replace(
+            parent::rules(),
+            $this->partnerOwnershipRules(),
+            $this->reglesDePromotion(),
+        );
+    }
+
+    public function withValidator($validator): void
+    {
+        $this->verifierLaPromotion($validator);
     }
 }

@@ -4,6 +4,8 @@ namespace App\Http\Requests\Partner;
 
 use App\Support\MargePartenaire;
 use App\Support\PartnerOwnership;
+use App\Support\PromotionPartenaire;
+use Illuminate\Validation\Validator;
 use Illuminate\Database\Eloquent\Model;
 
 trait AuthorizesPartnerCatalog
@@ -112,6 +114,69 @@ trait AuthorizesPartnerCatalog
      * @return list<string>
      */
     abstract protected function champsDePrix(): array;
+
+    /**
+     * Le prix normal qu'une promotion remise.
+     *
+     * `sale_price` pour un vehicule, `selling_price` pour un article. La
+     * promotion ne touche PAS les tarifs de location : une remise sur trois
+     * tarifs n'a pas de sens unique a afficher, et la bande des bonnes
+     * affaires comme la carte montrent un prix de vente. Un vehicule en
+     * location seule ne peut donc pas etre promu, et la validation le dit
+     * plutot que d'enregistrer une promotion invisible.
+     */
+    abstract protected function champDePrixNormal(): string;
+
+    /**
+     * Les regles de la promotion, a fusionner dans celles de la requete.
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    protected function reglesDePromotion(): array
+    {
+        return PromotionPartenaire::regles();
+    }
+
+    /**
+     * Le plafond de remise, verifie sur les prix que le vendeur a TAPES.
+     *
+     * Avant la marge, donc : voir `PromotionPartenaire` pour la raison. Et
+     * avant `validated()`, qui est ce qui applique la marge — ici on lit
+     * encore l'entree brute.
+     *
+     * A la MODIFICATION, le prix normal peut ne pas etre renvoye : on le
+     * reprend alors sur l'annonce enregistree, sans quoi une promotion
+     * seule serait refusee faute de point de comparaison.
+     */
+    protected function verifierLaPromotion(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            $annonce = $this->route($this->partnerRouteParameter());
+            $enregistre = $annonce instanceof Model
+                ? $annonce->getAttribute($this->champDePrixNormal())
+                : null;
+
+            // La promotion DEJA posee, pour que le garde porte sur l'etat
+            // final : une requete qui ne parle que du prix de vente peut
+            // creuser la remise d'une promotion en cours jusqu'a 73 %, et
+            // rien ne la verifierait. Voir `PromotionPartenaire::verifier`.
+            $promotion = $annonce instanceof Model
+                ? $annonce->getAttribute('deal_price')
+                : null;
+
+            PromotionPartenaire::verifier(
+                $validator,
+                $this->all(),
+                $this->champDePrixNormal(),
+                $enregistre === null ? null : (float) $enregistre,
+                $promotion === null ? null : (float) $promotion,
+            );
+        });
+    }
 
     /**
      * Les donnees validees, PRIX MAJORES.

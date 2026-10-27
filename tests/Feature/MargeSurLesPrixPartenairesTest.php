@@ -3,18 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\Accessory;
-use App\Models\Brand;
-use App\Models\EngineType;
 use App\Models\Part;
-use App\Models\PartCategory;
-use App\Models\PartnerAccount;
 use App\Models\User;
 use App\Models\Vehicle;
-use App\Models\VehicleModel;
 use App\Support\MargePartenaire;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\CreeDesAnnoncesPartenaires;
 use Tests\TestCase;
 
 /**
@@ -41,9 +36,8 @@ use Tests\TestCase;
  */
 class MargeSurLesPrixPartenairesTest extends TestCase
 {
+    use CreeDesAnnoncesPartenaires;
     use RefreshDatabase;
-
-    private PartnerAccount $compte;
 
     protected function setUp(): void
     {
@@ -333,102 +327,4 @@ class MargeSurLesPrixPartenairesTest extends TestCase
         $this->assertArrayNotHasKey('sale_price', $donnees['partner_pricing']['prix_proposes']);
     }
 
-    /**
-     * Oublier la session en cours.
-     *
-     * `Sanctum::actingAs` vaut pour TOUT le reste du banc : sans cette ligne,
-     * la requete « publique » qui suit porte encore le jeton du vendeur, et on
-     * mesure la vue du proprietaire en croyant mesurer celle d un acheteur.
-     */
-    private function oublierLaSession(): void
-    {
-        \Illuminate\Support\Facades\Auth::forgetGuards();
-    }
-
-    // ── Le decor ──────────────────────────────────────────────────────────
-
-    private function compteApprouve(): PartnerAccount
-    {
-        $user = User::factory()->create(['role' => 'partner', 'is_active' => true]);
-
-        return PartnerAccount::create([
-            'user_id' => $user->id,
-            'company_name' => 'Garage '.$user->id,
-            'contact_name' => 'Responsable',
-            'phone' => $this->numeroDePartenaire($user->id),
-            'status' => 'approved',
-        ]);
-    }
-
-    /** @param  array<string, mixed>  $champs */
-    private function vehicule(array $champs): array
-    {
-        $modele = $this->modele();
-
-        return array_merge([
-            'brand_id' => $modele->brand_id,
-            'vehicle_model_id' => $modele->id,
-            'engine_type_id' => EngineType::firstOrCreate(['code' => 'petrol'], ['label' => 'Essence'])->id,
-            'manufacturing_year' => 2020,
-            'vehicle_type' => 'passenger',
-            'registration_status' => 'registered',
-            'condition' => 'used',
-            'availability' => 'sale',
-        ], $champs);
-    }
-
-    /** @param  array<string, mixed>  $champs */
-    private function creerVehicule(array $champs): TestResponse
-    {
-        Sanctum::actingAs($this->compte->user, ['partner']);
-
-        return $this->postJson('/api/partner/vehicles', $this->vehicule($champs));
-    }
-
-    /** @param  array<string, mixed>  $champs */
-    private function modifierVehicule(int $id, array $champs): TestResponse
-    {
-        Sanctum::actingAs($this->compte->user, ['partner']);
-
-        // La modification exige la charge COMPLETE : `UpdateVehicleRequest`
-        // redemande l identite du vehicule. On renvoie donc le decor entier,
-        // plus le champ qu on change.
-        return $this->putJson('/api/partner/vehicles/'.$id, $this->vehicule($champs));
-    }
-
-    /** @param  array<string, mixed>  $champs */
-    private function creerPiece(array $champs): TestResponse
-    {
-        Sanctum::actingAs($this->compte->user, ['partner']);
-
-        return $this->postJson('/api/partner/parts', array_merge([
-            'name' => 'Filtre a huile',
-            'part_category_id' => PartCategory::firstOrCreate(['slug' => 'filtres'], ['name' => 'Filtres'])->id,
-            'type' => 'aftermarket',
-            'condition' => 'new',
-            'stock_quantity' => 4,
-        ], $champs));
-    }
-
-    /** @param  array<string, mixed>  $champs */
-    private function creerAccessoire(array $champs): TestResponse
-    {
-        Sanctum::actingAs($this->compte->user, ['partner']);
-
-        return $this->postJson('/api/partner/accessories', array_merge([
-            'name' => 'Camera de recul',
-            'category' => 'securite',
-            'stock_quantity' => 4,
-        ], $champs));
-    }
-
-    private function modele(): VehicleModel
-    {
-        $marque = Brand::firstOrCreate(['slug' => 'toyota'], ['name' => 'Toyota']);
-
-        return VehicleModel::firstOrCreate([
-            'brand_id' => $marque->id,
-            'slug' => 'corolla-test',
-        ], ['name' => 'Corolla', 'production_start' => 2010]);
-    }
 }

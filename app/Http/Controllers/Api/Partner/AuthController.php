@@ -10,6 +10,7 @@ use App\Models\PartnerAccount;
 use App\Models\User;
 use App\Support\MargePartenaire;
 use App\Support\NumeroDeTelephone;
+use App\Support\PromotionPartenaire;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -167,7 +168,15 @@ class AuthController extends Controller
             // C'est le taux du JOUR, pas celui d'une annonce : une annonce
             // deja enregistree porte le sien dans `partner_pricing`, et c'est
             // celui-la qu'on lui reaffiche.
-            'boutique' => ['marge_pourcentage' => MargePartenaire::taux()],
+            'boutique' => [
+                'marge_pourcentage' => MargePartenaire::taux(),
+
+                // Le plafond de remise, pour que le formulaire refuse AVANT
+                // d'envoyer. Un vendeur qui compose sa promotion doit voir
+                // « au-dela de 40 %, ce n'est pas accepte » pendant qu'il
+                // tape, et non recevoir un 422 apres coup.
+                'promotion_remise_max_pourcentage' => PromotionPartenaire::remiseMaximale(),
+            ],
         ];
     }
 }

@@ -30,13 +30,21 @@ namespace App\Support;
  */
 final class MargePartenaire
 {
-    /** Les prix d'un vehicule, caution exclue. */
+    /**
+     * Les prix d'un vehicule, caution exclue.
+     *
+     * `deal_price` en fait partie : la boutique garde sa marge sur le prix
+     * PROMOTIONNEL comme sur le prix normal. L'exclure reviendrait a lui faire
+     * payer la remise du vendeur — et, le taux etant uniforme, la remise que
+     * l'acheteur voit resterait la meme a quelques millemes pres.
+     */
     public const CHAMPS_VEHICULE = [
         'sale_price', 'rental_daily_rate', 'rental_weekly_rate', 'rental_monthly_rate',
+        'deal_price',
     ];
 
-    /** Le prix d'une piece ou d'un accessoire. */
-    public const CHAMPS_ARTICLE = ['selling_price'];
+    /** Le prix d'une piece ou d'un accessoire, promotion comprise. */
+    public const CHAMPS_ARTICLE = ['selling_price', 'deal_price'];
 
     /**
      * Le taux du jour, jamais negatif.

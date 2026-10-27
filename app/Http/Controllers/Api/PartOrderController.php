@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePartOrderRequest;
 use App\Http\Resources\PartOrderResource;
 use App\Models\AppNotification;
+use App\Support\PrixEffectif;
 use App\Models\Part;
 use App\Models\PartOrder;
 use App\Models\User;
@@ -50,6 +52,21 @@ class PartOrderController extends Controller
                     'reference'  => $this->references->next('CMD'),
                     'status'     => OrderStatus::Draft,
                     'created_by' => auth()->id(),
+
+                    // ── POURQUOI CETTE LIGNE EXISTE ────────────────────────
+                    //
+                    // La colonne a un DEFAUT en base, et un defaut SQL ne
+                    // remonte pas dans le modele en memoire : `create()` ne
+                    // relit pas la ligne. `payment_status` restait donc nul
+                    // sur l'objet rendu, et `PartOrderResource` fait
+                    // `$this->payment_status->value` — soit 500 sur CHAQUE
+                    // creation de commande, alors meme que la commande etait
+                    // bien enregistree. Le client concluait a un echec et
+                    // pouvait recommencer.
+                    //
+                    // Meme famille que le defaut de `UserFactory` sur
+                    // `is_active`, qui avait rendu 119 bancs rouges.
+                    'payment_status' => PaymentStatus::Pending,
                 ]
             ));
 
@@ -58,7 +75,19 @@ class PartOrderController extends Controller
 
             foreach ($data['items'] as $line) {
                 $part = Part::with('primaryOemNumber')->findOrFail($line['part_id']);
-                $unitPrice = $line['unit_price'] ?? (float) $part->selling_price;
+                // ── LE PRIX PAR DEFAUT EST LE PRIX DU JOUR ──────────────────
+                //
+                // La colonne porte le prix NORMAL : pendant une promotion,
+                // elle ne dit plus ce que l'acheteur doit payer. La laisser
+                // ici facturerait le plein tarif sur une piece dont la
+                // carte annonce une remise — c'est-a-dire un ecart d'argent
+                // entre ce qui est montre et ce qui est encaisse.
+                //
+                // `unit_price` envoye prime toujours : le personnel fixe un
+                // prix de ligne quand il le veut, et c'est son metier.
+                $unitPrice = $line['unit_price']
+                    ?? PrixEffectif::de($part, 'selling_price')
+                    ?? 0.0;
                 $discount  = $line['discount'] ?? 0;
                 $lineTotal = $unitPrice * $line['quantity'] - $discount;
 

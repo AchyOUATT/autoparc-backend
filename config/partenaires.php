@@ -125,4 +125,45 @@ return [
 
     'marge_pourcentage' => (float) env('PARTNER_MARGIN_PERCENT', 0),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Remise maximale d'une promotion partenaire
+    |--------------------------------------------------------------------------
+    |
+    | Un partenaire cree ses promotions LIBREMENT : pas d'approbation prealable,
+    | le personnel est notifie. C'est un choix delibere — faire valider chaque
+    | promotion par quelqu'un reviendrait a n'en avoir aucune, l'approbation
+    | arrivant apres l'occasion qu'elle visait.
+    |
+    | Ce choix laisse un trou, et ce reglage le ferme : sans plafond, un
+    | partenaire affiche son vehicule a 1 franc et occupe le haut de la bande
+    | des bonnes affaires. La notification ne l'apprend qu'APRES coup, quand
+    | des acheteurs ont deja vu la vitrine.
+    |
+    | PAR DEFAUT : 40 %. Une remise au-dela est refusee, et le vendeur le lit
+    | dans son formulaire avant l'envoi — pas apres.
+    |
+    | ── POURQUOI UN POURCENTAGE, ET NON UN PRIX PLANCHER ──────────────────────
+    |
+    | Un plancher en francs ne veut rien dire sur un catalogue qui va du filtre
+    | a huile a 3 000 au vehicule a 15 000 000. Le meme nombre serait inoperant
+    | d'un cote et interdirait toute promotion de l'autre.
+    |
+    | ── CE QUE LE PLAFOND NE FAIT PAS ─────────────────────────────────────────
+    |
+    | Il ne juge pas le prix NORMAL. Un partenaire qui gonfle son prix habituel
+    | pour afficher ensuite « -40 % » reste possible, et aucun pourcentage ne
+    | l'empeche : c'est au personnel, notifie, de le voir. Le plafond borne
+    | l'ECART, pas la sincerite du point de depart.
+    |
+    | ── LE CHANGER NE REPREND PAS LES PROMOTIONS EN COURS ────────────────────
+    |
+    | Comme pour la marge : une promotion deja enregistree garde sa remise. Un
+    | acheteur ne doit pas voir un prix bouger parce qu'un reglage a bouge, et
+    | une promotion annoncee pour une duree doit tenir cette duree.
+    |
+    */
+
+    'promotion_remise_max_pourcentage' => (float) env('PARTNER_PROMO_MAX_DISCOUNT_PERCENT', 40),
+
 ];

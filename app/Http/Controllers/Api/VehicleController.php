@@ -14,6 +14,7 @@ use App\Models\Vehicle;
 use App\Services\FcmService;
 use App\Services\ReferenceGenerator;
 use App\Support\PartnerOwnership;
+use App\Support\PrixEffectif;
 use App\Support\TriPublic;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,8 +51,15 @@ class VehicleController extends Controller
             ->when($request->filled('condition'), fn ($q) => $q->where('condition', $request->condition))
             ->when($request->filled('year_min'), fn ($q) => $q->where('manufacturing_year', '>=', $request->year_min))
             ->when($request->filled('year_max'), fn ($q) => $q->where('manufacturing_year', '<=', $request->year_max))
-            ->when($request->filled('price_min'), fn ($q) => $q->where('sale_price', '>=', $request->price_min))
-            ->when($request->filled('price_max'), fn ($q) => $q->where('sale_price', '<=', $request->price_max))
+            // ── LES BORNES DE PRIX PORTENT SUR LE PRIX DU JOUR ──────────
+            //
+            // Une promotion qui ne se retrouve pas dans la recherche filtree
+            // est une promotion invisible la ou elle sert. Un acheteur qui
+            // demande « moins de 4 000 000 » doit voir le vehicule a
+            // 4 500 000 promu a 3 900 000, et cesser de le voir des que la
+            // promotion finit. Voir App\Support\PrixEffectif.
+            ->when($request->filled('price_min'), fn ($q) => PrixEffectif::filtrer($q, 'sale_price', '>=', $request->price_min))
+            ->when($request->filled('price_max'), fn ($q) => PrixEffectif::filtrer($q, 'sale_price', '<=', $request->price_max))
             ->when($request->filled('consumption_max'), fn ($q) => $q->where('consumption_combined', '<=', $request->consumption_max))
             // Filtres specifiques aux vehicules importes
             ->when($request->filled('origin_country_id'), fn ($q) => $q->fromCountry((int) $request->origin_country_id))
@@ -67,7 +75,18 @@ class VehicleController extends Controller
             ->when($request->boolean('available_for_rent'), fn ($q) => $q->forRent()->inStock())
             // Mises en avant : `deal=1` renvoie toutes les promotions,
             // `deal_type=flash_sale` un type precis.
-            ->when($request->boolean('deal'), fn ($q) => $q->whereNotNull('deal_type'))
+            // `deal=1` rend DEUX choses : la pastille editoriale que le
+            // personnel pose (`deal_type`, qui ne change pas le prix) et la
+            // promotion a duree limitee d'un partenaire (`deal_price`, qui
+            // la baisse). Les deux alimentent la bande des bonnes affaires,
+            // et c'est bien ce que l'application publiee y attend.
+            //
+            // Une promotion PROGRAMMEE pour la semaine prochaine, ou finie
+            // hier, n'y figure pas : la fenetre est testee, pas seulement la
+            // presence d'un prix.
+            ->when($request->boolean('deal'), fn ($q) => $q->where(fn ($sous) => $sous
+                ->whereNotNull('deal_type')
+                ->orWhere(fn ($promo) => PrixEffectif::fenetreOuverte($promo))))
             ->when($request->filled('deal_type'), fn ($q) => $q->where('deal_type', $request->deal_type))
             // Tri borne a une liste blanche : `sort_by` et `sort_dir`
             // passaient bruts dans `orderBy`, ce qui rendait 500 sur un sens

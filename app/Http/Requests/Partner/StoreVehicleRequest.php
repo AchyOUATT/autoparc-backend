@@ -18,8 +18,24 @@ class StoreVehicleRequest extends \App\Http\Requests\StoreVehicleRequest
         return MargePartenaire::CHAMPS_VEHICULE;
     }
 
+    protected function champDePrixNormal(): string
+    {
+        return 'sale_price';
+    }
+
     public function rules(): array
     {
-        return array_replace(parent::rules(), $this->partnerOwnershipRules());
+        return array_replace(
+            parent::rules(),
+            $this->partnerOwnershipRules(),
+            $this->reglesDePromotion(),
+        );
+    }
+
+    public function withValidator($validator): void
+    {
+        parent::withValidator($validator);
+
+        $this->verifierLaPromotion($validator);
     }
 }

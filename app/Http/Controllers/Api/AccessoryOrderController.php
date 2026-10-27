@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAccessoryOrderRequest;
 use App\Http\Resources\AccessoryOrderResource;
 use App\Models\Accessory;
 use App\Models\AccessoryOrder;
 use App\Models\AppNotification;
+use App\Support\PrixEffectif;
 use App\Models\User;
 use App\Services\FcmService;
 use App\Services\ReferenceGenerator;
@@ -52,6 +54,21 @@ class AccessoryOrderController extends Controller
                     'created_by' => auth()->id(),
                     'ordered_at' => $data['ordered_at'] ?? now()->toDateString(),
                     'currency'   => 'XOF',
+
+                    // ── POURQUOI CETTE LIGNE EXISTE ────────────────────────
+                    //
+                    // La colonne a un DEFAUT en base, et un defaut SQL ne
+                    // remonte pas dans le modele en memoire : `create()` ne
+                    // relit pas la ligne. `payment_status` restait donc nul
+                    // sur l'objet rendu, et `PartOrderResource` fait
+                    // `$this->payment_status->value` — soit 500 sur CHAQUE
+                    // creation de commande, alors meme que la commande etait
+                    // bien enregistree. Le client concluait a un echec et
+                    // pouvait recommencer.
+                    //
+                    // Meme famille que le defaut de `UserFactory` sur
+                    // `is_active`, qui avait rendu 119 bancs rouges.
+                    'payment_status' => PaymentStatus::Pending,
                 ]
             ));
 
@@ -60,7 +77,19 @@ class AccessoryOrderController extends Controller
 
             foreach ($data['items'] as $line) {
                 $accessory = Accessory::findOrFail($line['accessory_id']);
-                $unitPrice = $line['unit_price'] ?? (float) $accessory->selling_price;
+                // ── LE PRIX PAR DEFAUT EST LE PRIX DU JOUR ──────────────────
+                //
+                // La colonne porte le prix NORMAL : pendant une promotion,
+                // elle ne dit plus ce que l'acheteur doit payer. La laisser
+                // ici facturerait le plein tarif sur un accessoire dont la
+                // carte annonce une remise — c'est-a-dire un ecart d'argent
+                // entre ce qui est montre et ce qui est encaisse.
+                //
+                // `unit_price` envoye prime toujours : le personnel fixe un
+                // prix de ligne quand il le veut, et c'est son metier.
+                $unitPrice = $line['unit_price']
+                    ?? PrixEffectif::de($accessory, 'selling_price')
+                    ?? 0.0;
                 $discount  = $line['discount'] ?? 0;
                 $lineTotal = $unitPrice * $line['quantity'] - $discount;
 
