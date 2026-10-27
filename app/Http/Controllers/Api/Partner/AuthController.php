@@ -8,6 +8,7 @@ use App\Http\Requests\RegisterPartnerRequest;
 use App\Http\Resources\PartnerAccountResource;
 use App\Models\PartnerAccount;
 use App\Models\User;
+use App\Support\MargePartenaire;
 use App\Support\NumeroDeTelephone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -150,6 +151,23 @@ class AuthController extends Controller
                 'role' => $user->role->value,
             ],
             'partner_account' => (new PartnerAccountResource($user->partnerAccount))->resolve($request),
+
+            // ── CE QUE LE VENDEUR DOIT SAVOIR AVANT DE PROPOSER UN PRIX ────
+            //
+            // La boutique ajoute un pourcentage aux prix qu'il propose. Sans
+            // le taux COURANT, son formulaire ne peut pas lui montrer le total
+            // avant qu'il n'enregistre : il decouvrirait le prix affiche apres
+            // coup, sur sa propre annonce.
+            //
+            // Le taux voyage avec le profil plutot que dans une route a part
+            // parce que l'application le lit deja a chaque ouverture, et le
+            // garde au coffre : la premiere annonce du jour ne demande donc
+            // aucun appel de plus.
+            //
+            // C'est le taux du JOUR, pas celui d'une annonce : une annonce
+            // deja enregistree porte le sien dans `partner_pricing`, et c'est
+            // celui-la qu'on lui reaffiche.
+            'boutique' => ['marge_pourcentage' => MargePartenaire::taux()],
         ];
     }
 }

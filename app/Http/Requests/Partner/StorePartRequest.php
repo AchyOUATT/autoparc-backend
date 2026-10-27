@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Partner;
 
 use App\Models\OemNumber;
+use App\Support\MargePartenaire;
 use App\Support\PartnerOwnership;
 use Illuminate\Validation\Rule;
 
@@ -13,6 +14,11 @@ class StorePartRequest extends \App\Http\Requests\StorePartRequest
     protected function partnerRouteParameter(): string
     {
         return 'part';
+    }
+
+    protected function champsDePrix(): array
+    {
+        return MargePartenaire::CHAMPS_ARTICLE;
     }
 
     public function rules(): array

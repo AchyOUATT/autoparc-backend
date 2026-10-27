@@ -97,8 +97,9 @@ return [
     |
     | ── CE QUE LE TAUX TOUCHE ─────────────────────────────────────────────────
     |
-    | Tous les prix d'un partenaire : le prix de vente d'un vehicule, ses deux
-    | tarifs de location, et le prix de vente d'une piece ou d'un accessoire.
+    | Tous les prix d'un partenaire : le prix de vente d'un vehicule, ses trois
+    | tarifs de location — jour, semaine, mois — et le prix de vente d'une piece
+    | ou d'un accessoire.
     |
     | PAS la caution de location (`rental_deposit`) : une caution est
     | remboursable, ce n'est pas un prix de vente. En prendre une marge

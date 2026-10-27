@@ -43,6 +43,7 @@ class Vehicle extends Model
         'rental_monthly_rate', 'rental_deposit', 'rental_mileage_limit_per_day',
         'currency', 'price_negotiable', 'deal_type', 'site', 'location_id', 'description',
         'created_by', 'published_at', 'partner_id', 'owner_partner_account_id', 'partner_published_at',
+        'partner_pricing',
     ];
 
     protected function casts(): array
@@ -69,6 +70,7 @@ class Vehicle extends Model
             'deal_type'                => VehicleDealType::class,
             'published_at'             => 'datetime',
             'partner_published_at'     => 'datetime',
+            'partner_pricing'          => 'array',
         ];
     }
 

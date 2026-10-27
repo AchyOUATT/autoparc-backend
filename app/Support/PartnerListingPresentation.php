@@ -60,6 +60,51 @@ final class PartnerListingPresentation
         ];
     }
 
+    /**
+     * Le detail de la marge, pour le vendeur et le personnel SEULS.
+     *
+     * ── POURQUOI IL N'EST PAS DANS LA RESSOURCE ───────────────────────────
+     *
+     * Parce qu'alors il faudrait penser a le retirer, et le retrait serait
+     * une liste blanche de plus a tenir a jour. Ici, il n'entre dans la
+     * reponse qu'apres `canSeePrivateData` : un acheteur ne peut pas le voir,
+     * meme si quelqu'un oublie une liste quelque part.
+     *
+     * Et ce qu'il contient n'est pas anodin : le prix que le vendeur a
+     * propose, donc la marge de la boutique, donc sa negociation.
+     *
+     * ── CE QU'IL REND QUAND IL N'Y A RIEN ─────────────────────────────────
+     *
+     * `null`. Les annonces d'avant ce lot n'ont pas de detail, et leur prix
+     * EST le prix propose : leur inventer un taux de 0 % laisserait croire
+     * qu'un calcul a eu lieu. Le vendeur voit son prix, sans ligne de marge.
+     *
+     * @return array{taux: float, prix_proposes: array<string, float>, total: array<string, float>}|null
+     */
+    private static function marge(Model $listing): ?array
+    {
+        $detail = $listing->getAttribute('partner_pricing');
+
+        if (! is_array($detail) || ! isset($detail['prix_proposes'])) {
+            return null;
+        }
+
+        // Le TOTAL vient de la colonne et non d'un calcul refait ici : c'est
+        // le prix reellement enregistre, celui que l'acheteur voit et sur
+        // lequel le catalogue trie. S'ils divergeaient — prix corrige a la
+        // main en base, par exemple — le vendeur doit voir le vrai.
+        $detail['total'] = [];
+        foreach (array_keys($detail['prix_proposes']) as $champ) {
+            $valeur = $listing->getAttribute($champ);
+
+            if ($valeur !== null) {
+                $detail['total'][$champ] = (float) $valeur;
+            }
+        }
+
+        return $detail;
+    }
+
     public static function present(array $data, Model $listing, Request $request, string $type): array
     {
         // Historical listings retain their existing response contract.
@@ -72,6 +117,7 @@ final class PartnerListingPresentation
         if (self::canSeePrivateData($listing, $request)) {
             $data['owner_partner_account_id'] = $listing->owner_partner_account_id;
             $data['partner_published_at'] = $listing->partner_published_at?->toIso8601String();
+            $data['partner_pricing'] = self::marge($listing);
 
             return $data;
         }

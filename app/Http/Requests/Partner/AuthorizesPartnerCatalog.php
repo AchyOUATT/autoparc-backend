@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Partner;
 
+use App\Support\MargePartenaire;
 use App\Support\PartnerOwnership;
 use Illuminate\Database\Eloquent\Model;
 
@@ -93,6 +94,54 @@ trait AuthorizesPartnerCatalog
             'owner_partner_account_id', 'partner_published_at', 'published_at',
             'created_by', 'user_id', 'location_id', 'partner_id',
             'reference', 'deal_type',
+
+            // La marge est calculee par le serveur, jamais recue. Sans ce
+            // garde, un partenaire enverrait `partner_pricing` lui-meme et
+            // declarerait le taux qu'il veut — y compris un taux nul affiche
+            // comme si la boutique l'avait consenti.
+            'partner_pricing',
         ], ['missing']);
+    }
+
+    /**
+     * Les prix que la boutique majore de sa marge.
+     *
+     * Chaque requete partenaire dit lesquels : un vehicule a un prix de vente
+     * et trois tarifs de location, un article n'a qu'un prix de vente.
+     *
+     * @return list<string>
+     */
+    abstract protected function champsDePrix(): array;
+
+    /**
+     * Les donnees validees, PRIX MAJORES.
+     *
+     * ── POURQUOI ICI, ET NON DANS LE CONTROLEUR ───────────────────────────
+     *
+     * Les controleurs partenaires delegent au controleur du PERSONNEL, qui
+     * fait `$data = $request->validated()`. Majorer ici, c'est donc majorer
+     * une fois pour la creation comme pour la modification, sans toucher au
+     * chemin du personnel — dont les prix ne doivent evidemment rien porter.
+     *
+     * ── POURQUOI LE PRIX MAJORE VA EN COLONNE ─────────────────────────────
+     *
+     * Parce que toutes les routes publiques qui trient ou filtrent par prix
+     * (`?price_max=`, le tri, la bande des bonnes affaires) lisent cette
+     * colonne. Y laisser le prix propose ferait repondre « moins de
+     * 5 000 000 » avec des annonces affichees a 5 500 000.
+     *
+     * Le prix propose et le taux partent dans `partner_pricing`, qui est ce
+     * qu'on reaffiche au partenaire — et qui reste juste quand le reglage
+     * change, puisqu'il est fige.
+     */
+    public function validated($key = null, $default = null)
+    {
+        $donnees = MargePartenaire::appliquer(parent::validated(), $this->champsDePrix());
+
+        // On applique la marge AVANT d'extraire la clef, et non l'inverse :
+        // `validated('sale_price')` doit rendre le meme nombre que
+        // `validated()['sale_price']`, sans quoi l'appelant obtient le prix
+        // propose en croyant lire le prix enregistre.
+        return $key === null ? $donnees : data_get($donnees, $key, $default);
     }
 }

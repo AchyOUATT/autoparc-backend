@@ -20,13 +20,14 @@ class Part extends Model
         'weight_kg', 'dimensions', 'warranty_months', 'cost_price', 'selling_price',
         'currency', 'vat_rate', 'stock_quantity', 'stock_alert_threshold',
         'storage_location', 'location_id', 'is_active', 'is_available',
-        'owner_partner_account_id', 'partner_published_at',
+        'owner_partner_account_id', 'partner_published_at', 'partner_pricing',
     ];
 
     protected function casts(): array
     {
         return [
             'partner_published_at' => 'datetime',
+            'partner_pricing'      => 'array',
             'type'           => PartType::class,
             'condition'      => PartCondition::class,
             'cost_price'     => 'decimal:2',
