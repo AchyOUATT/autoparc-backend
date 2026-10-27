@@ -21,11 +21,18 @@ use Tests\TestCase;
  *
  * Et `submit_need_page.dart` ne l'envoyait meme pas. Sa charge se limitait a
  * `type`, `description`, `budget_max` et le `firebase_uid` quand il y en avait
- * un. `POST /api/needs` etant une route PUBLIQUE, le deposant peut etre
- * anonyme.
+ * un.
  *
- * Resultat : un visiteur deposait un besoin, tout le personnel recevait une
- * notification « Nouveau besoin client », et personne ne pouvait le rappeler.
+ * QUI EST INJOIGNABLE, EXACTEMENT. Pas « un visiteur anonyme » : l'ecran de
+ * depot exige une connexion, son garde etant `!auth.isAuthenticated`. Mais ce
+ * garde laisse passer le PERSONNEL autant que les clients, et le
+ * `firebase_uid` ne part que `if (auth.isClient)`. Un membre du personnel qui
+ * saisit la demande de quelqu'un au comptoir n'envoyait donc AUCUN contact, et
+ * c'est le cas le plus courant. S'y ajoute l'appel direct a l'API, cette route
+ * n'ayant aucun middleware d'authentification.
+ *
+ * Un `firebase_uid` donne d'ailleurs un compte, pas un numero — et ici on
+ * rappelle au telephone.
  *
  * ── CE QUE CE BANC TIENT ──────────────────────────────────────────────────
  *

@@ -18,12 +18,24 @@ use Illuminate\Support\Facades\Schema;
  *
  * Et `submit_need_page.dart` ne l'envoyait meme pas : la charge se limitait a
  * `type`, `description`, `budget_max` et le `firebase_uid` quand il y en avait
- * un. La route `POST /api/needs` est publique, donc le deposant peut etre
- * anonyme.
+ * un.
  *
- * Resultat mesure : un visiteur depose un besoin, tout le personnel reçoit une
- * notification « Nouveau besoin client », et PERSONNE ne peut le rappeler. Le
- * seul fil etait `firebase_uid`, nullable lui aussi.
+ * ── QUI EST INJOIGNABLE, EXACTEMENT ───────────────────────────────────────
+ *
+ * Pas « un visiteur anonyme » : l'ecran de depot exige une connexion, son
+ * garde etant `!auth.isAuthenticated`. Mais ce garde laisse passer le
+ * PERSONNEL autant que les clients, et le `firebase_uid` ne part que
+ * `if (auth.isClient)`.
+ *
+ * Donc :
+ *   — un CLIENT depose, son `firebase_uid` part, on peut le retrouver ;
+ *   — un membre du PERSONNEL qui saisit la demande de quelqu'un au comptoir
+ *     n'envoie AUCUN contact, et c'est le cas le plus courant en pratique ;
+ *   — `POST /api/needs` n'a aucun middleware d'authentification, donc un
+ *     appel direct a l'API peut etre anonyme.
+ *
+ * Un `firebase_uid` donne d'ailleurs un compte, pas un numero — et ici on
+ * rappelle au telephone.
  *
  * ── POURQUOI UNE COLONNE DE PLUS, ET NON L'ELARGISSEMENT DE L'ANCIENNE ────
  *

@@ -53,11 +53,14 @@ class StoreCustomerNeedRequest extends FormRequest
             // les jetait donc en silence : un numero envoye n'arrivait jamais
             // en base.
             //
-            // Mesure du defaut : un visiteur deposait un besoin, tout le
-            // personnel recevait une notification « Nouveau besoin client », et
-            // PERSONNE ne pouvait le rappeler. La route est publique, donc le
-            // deposant peut etre anonyme, et `firebase_uid` — le seul autre
-            // fil — est nullable lui aussi.
+            // QUI EST INJOIGNABLE, EXACTEMENT. Pas « un visiteur anonyme » :
+            // l'ecran de depot exige une connexion. Mais son garde,
+            // `!auth.isAuthenticated`, laisse passer le PERSONNEL autant que
+            // les clients, et le `firebase_uid` ne part que `if (isClient)`.
+            // Un membre du personnel qui saisit la demande de quelqu'un au
+            // comptoir n'envoyait donc aucun contact — et c'est le cas le plus
+            // courant. S'y ajoute l'appel direct a l'API, cette route n'ayant
+            // aucun middleware d'authentification.
             'contact_name'  => ['nullable', 'string', 'max:120'],
             'contact_email' => ['nullable', 'string', 'email', 'max:180'],
 
