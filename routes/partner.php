@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\PartnerApplicationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Partner\AccessoryController;
 use App\Http\Controllers\Api\Partner\AuthController as PartnerAuthController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Partner\MediaController;
 use App\Http\Controllers\Api\Partner\PartController;
 use App\Http\Controllers\Api\Partner\StockController;
@@ -24,6 +25,19 @@ Route::prefix('partner')->name('partner.')->middleware('partner.space')->group(f
     Route::middleware(['auth:sanctum', 'partner'])->group(function () {
         Route::get('me', [PartnerAuthController::class, 'me'])->name('me');
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+
+        // ── LA BOITE AUX LETTRES DU PARTENAIRE ────────────────────────────
+        //
+        // HORS de `partner.approved`, et c'est voulu : un compte en attente
+        // doit pouvoir lire la notification qui lui annonce son approbation.
+        // L'y enfermer la rendrait illisible par celui a qui elle s'adresse.
+        //
+        // La DIFFUSION, elle, ne vise que les comptes approuves — voir
+        // `AppNotification::notifyAllPartners()`.
+        Route::get('notifications', [NotificationController::class, 'indexPartner'])->name('notifications.index');
+        Route::get('notifications/unread-count', [NotificationController::class, 'unreadCountPartner'])->name('notifications.unread');
+        Route::post('notifications/read-all', [NotificationController::class, 'markAllReadPartner'])->name('notifications.read-all');
+        Route::post('notifications/{notification}/read', [NotificationController::class, 'markReadPartner'])->name('notifications.read');
 
         Route::middleware('partner.approved')->group(function () {
             Route::apiResource('vehicles', VehicleController::class);

@@ -28,6 +28,76 @@ class NotificationController extends Controller
         return response()->json($notifications);
     }
 
+    // ── PARTENAIRE ────────────────────────────────────────────────────
+    //
+    // Mêmes quatre gestes que le personnel et que le client, sur la boîte du
+    // partenaire. Elle n'existait pas : `recipient_type` ne connaissait que
+    // `staff` et `client`, de sorte que rien ne pouvait leur être adressé.
+    //
+    // La boîte est désignée par l'identifiant de l'UTILISATEUR, et non par
+    // celui du compte partenaire : c'est l'utilisateur qui se connecte et qui
+    // lit, et `recipient_id` désigne partout celui qui lit.
+
+    /**
+     * Les notifications du partenaire connecté.
+     * GET /partner/notifications (auth:sanctum + partner)
+     */
+    public function indexPartner(Request $request): JsonResponse
+    {
+        $notifications = AppNotification::forPartner($request->user()->id)
+            ->orderByDesc('created_at')
+            ->paginate(30);
+
+        return response()->json($notifications);
+    }
+
+    /**
+     * Nombre de notifications non lues du partenaire connecté.
+     * GET /partner/notifications/unread-count
+     */
+    public function unreadCountPartner(Request $request): JsonResponse
+    {
+        $count = AppNotification::forPartner($request->user()->id)
+            ->unread()
+            ->count();
+
+        return response()->json(['count' => $count]);
+    }
+
+    /**
+     * Marque une notification du partenaire comme lue.
+     *
+     * Le contrôle d'appartenance est le MÊME que celui du personnel, et il
+     * doit l'être : sans lui, un partenaire marquerait lue la notification
+     * d'un autre — et, la route liant le modèle par son identifiant, il
+     * apprendrait au passage combien il y en a.
+     */
+    public function markReadPartner(Request $request, AppNotification $notification): JsonResponse
+    {
+        abort_unless(
+            $notification->recipient_type === 'partner' &&
+            $notification->recipient_id === (string) $request->user()->id,
+            403,
+        );
+
+        $notification->update(['read_at' => now()]);
+
+        return response()->json(['message' => 'Lu.']);
+    }
+
+    /**
+     * Marque toutes les notifications du partenaire comme lues.
+     * POST /partner/notifications/read-all
+     */
+    public function markAllReadPartner(Request $request): JsonResponse
+    {
+        AppNotification::forPartner($request->user()->id)
+            ->unread()
+            ->update(['read_at' => now()]);
+
+        return response()->json(['message' => 'Toutes lues.']);
+    }
+
     /**
      * Nombre de notifications non lues du staff connecté.
      * GET /notifications/unread-count (auth:sanctum + staff)

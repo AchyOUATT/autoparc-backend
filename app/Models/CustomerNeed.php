@@ -33,6 +33,7 @@ class CustomerNeed extends Model
         'firebase_uid',
         'status',
         'staff_notes',
+        'broadcast_at',
     ];
 
     protected function casts(): array
@@ -43,6 +44,7 @@ class CustomerNeed extends Model
             'year_max'         => 'integer',
             'part_category_id' => 'integer',
             'contact_phones'   => 'array',
+            'broadcast_at'     => 'datetime',
         ];
     }
 
