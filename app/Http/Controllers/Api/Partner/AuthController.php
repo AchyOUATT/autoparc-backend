@@ -31,7 +31,16 @@ class AuthController extends Controller
             ]);
             $account = PartnerAccount::create([
                 'user_id' => $user->id,
-                'company_name' => $data['company_name'],
+                // Pas de `trim(...) ?: null` ici : `TrimStrings` puis
+                // `ConvertEmptyStringsToNull`, tous deux actifs par defaut,
+                // ont deja transforme « ␣␣␣ » en null avant la validation. Le
+                // garde serait inatteignable — et un banc ne pourrait pas le
+                // tuer, donc il mentirait. Un banc tient cette chaine.
+                //
+                // Ce qui protege l'application publiee n'est pas ici mais dans
+                // `PartnerListingPresentation::seller()`, dont le `?:` couvre
+                // aussi la chaine vide ecrite directement en base.
+                'company_name' => $data['company_name'] ?? null,
                 'contact_name' => $data['contact_name'],
                 'phone' => $data['phone'],
                 'whatsapp' => $data['whatsapp'] ?? null,

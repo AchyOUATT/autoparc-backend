@@ -23,7 +23,12 @@ class RegisterPartnerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'company_name' => ['required', 'string', 'max:160'],
+            // Facultatif : un revendeur particulier n'a pas de raison sociale,
+            // et l'exiger le faisait inventer un nom ou abandonner l'inscription.
+            // Le nom PUBLIC se replie sur `contact_name` — voir
+            // `PartnerListingPresentation::seller()`, qui tient la garantie que
+            // l'API ne rend jamais null a l'application deja publiee.
+            'company_name' => ['nullable', 'string', 'max:160'],
             'contact_name' => ['required', 'string', 'max:120'],
             'phone' => ['required', 'string', 'max:40'],
             'whatsapp' => ['nullable', 'string', 'max:40'],
