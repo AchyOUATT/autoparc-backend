@@ -8,6 +8,7 @@ use App\Http\Requests\RegisterPartnerRequest;
 use App\Http\Resources\PartnerAccountResource;
 use App\Models\PartnerAccount;
 use App\Models\User;
+use App\Support\NumeroDeTelephone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,10 @@ class AuthController extends Controller
         return DB::transaction(function () use ($request, $data) {
             $user = User::create([
                 'name' => $data['contact_name'],
-                'email' => $data['email'],
+                // Nul quand le partenaire n'en a pas donne : c'est son numero
+                // qui l'identifie desormais. La colonne reste unique, donc
+                // deux comptes ne peuvent pas partager une adresse.
+                'email' => $data['email'] ?? null,
                 'password' => $data['password'],
                 'phone' => $data['phone'],
                 'role' => UserRole::Partner,
@@ -58,22 +62,58 @@ class AuthController extends Controller
         });
     }
 
+    /**
+     * Se connecter avec un NUMERO ou une adresse.
+     *
+     * ── POURQUOI DEUX CHAMPS ACCEPTES ─────────────────────────────────────
+     *
+     * Le courriel est devenu facultatif a l'inscription, donc l'identifiant
+     * d'un partenaire est desormais son numero. Mais l'application PUBLIEE sur
+     * le Play Store envoie `email`, et son propre validateur exige une forme
+     * d'adresse avant meme d'appeler : lui retirer ce champ deconnecterait du
+     * jour au lendemain tous les partenaires deja installes.
+     *
+     * `identifiant` est donc le nouveau nom, `email` reste accepte, et c'est
+     * la presence d'un « @ » qui decide de la colonne interrogee — non le nom
+     * du champ, pour qu'un numero envoye par un ancien binaire fonctionne s'il
+     * y parvient.
+     *
+     * Le message d'echec reste le MEME dans tous les cas, y compris quand
+     * l'identifiant n'existe pas : le distinguer dirait a un inconnu quels
+     * numeros sont enregistres chez nous.
+     */
     public function login(Request $request): JsonResponse
     {
+        $champ = $request->has('identifiant') ? 'identifiant' : 'email';
+
         $data = $request->validate([
-            'email' => ['required', 'email', 'max:255'],
+            $champ => ['required', 'string', 'max:255'],
             'password' => ['required', 'string', 'max:72'],
             'device_name' => ['nullable', 'string', 'max:100'],
         ]);
 
-        return DB::transaction(function () use ($request, $data) {
-            $user = User::query()
-                ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim($data['email']))])
-                ->lockForUpdate()
-                ->first();
+        $identifiant = trim((string) $data[$champ]);
+
+        return DB::transaction(function () use ($request, $data, $champ, $identifiant) {
+            $cle = NumeroDeTelephone::cle($identifiant);
+
+            // Un identifiant sans « @ » ni aucun chiffre ne designe rien. On
+            // ne cherche pas : interroger avec une cle nulle trouverait les
+            // comptes dont la colonne est nulle, c'est-a-dire n'importe qui.
+            $user = match (true) {
+                NumeroDeTelephone::estUnCourriel($identifiant) => User::query()
+                    ->whereRaw('LOWER(email) = ?', [mb_strtolower($identifiant)])
+                    ->lockForUpdate()
+                    ->first(),
+                $cle !== null => User::query()
+                    ->whereHas('partnerAccount', fn ($q) => $q->where('phone_key', $cle))
+                    ->lockForUpdate()
+                    ->first(),
+                default => null,
+            };
 
             if (! $user || ! Hash::check($data['password'], $user->password) || ! $user->isPartner() || ! $user->is_active) {
-                throw ValidationException::withMessages(['email' => ['Identifiants invalides ou compte desactive.']]);
+                throw ValidationException::withMessages([$champ => ['Identifiants invalides ou compte desactive.']]);
             }
 
             $account = $user->partnerAccount()->lockForUpdate()->first();

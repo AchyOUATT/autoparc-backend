@@ -38,4 +38,20 @@ abstract class TestCase extends BaseTestCase
 
         return $this->withHeader('Authorization', 'Bearer jeton-de-test');
     }
+
+    /**
+     * Un numero DISTINCT par compte partenaire.
+     *
+     * Le numero identifie un partenaire depuis que le courriel est facultatif,
+     * et `partner_accounts.phone_key` est unique. Les decors qui donnaient
+     * « +22670000000 » a chaque compte creaient donc un doublon des le
+     * deuxieme — ce qui est precisement ce que l'unicite doit interdire.
+     *
+     * Le derive de l'identifiant de l'utilisateur plutot que d'un aleatoire :
+     * un banc qui tombe doit tomber de la meme facon a chaque execution.
+     */
+    protected function numeroDePartenaire(int $userId): string
+    {
+        return '+2267'.str_pad((string) $userId, 7, '0', STR_PAD_LEFT);
+    }
 }

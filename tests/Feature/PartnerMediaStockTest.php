@@ -42,7 +42,7 @@ class PartnerMediaStockTest extends TestCase
             'user_id' => $user->id,
             'company_name' => 'Entreprise '.$user->id,
             'contact_name' => 'Contact de test',
-            'phone' => '+22670000000',
+            'phone' => $this->numeroDePartenaire($user->id),
             'status' => $status,
         ]);
 

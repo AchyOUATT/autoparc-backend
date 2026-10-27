@@ -46,10 +46,12 @@ class PartnerCatalogTest extends TestCase
 
     private function account(string $company): PartnerAccount
     {
+        $user = User::factory()->create(['role' => 'partner']);
+
         return PartnerAccount::create([
-            'user_id' => User::factory()->create(['role' => 'partner'])->id,
+            'user_id' => $user->id,
             'company_name' => $company, 'contact_name' => 'Responsable',
-            'phone' => '+22670000000', 'status' => 'approved',
+            'phone' => $this->numeroDePartenaire($user->id), 'status' => 'approved',
         ]);
     }
 

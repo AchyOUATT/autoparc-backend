@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\PartnerAccount;
 use App\Models\User;
+use App\Support\NumeroDeTelephone;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
@@ -30,10 +32,42 @@ class RegisterPartnerRequest extends FormRequest
             // l'API ne rend jamais null a l'application deja publiee.
             'company_name' => ['nullable', 'string', 'max:160'],
             'contact_name' => ['required', 'string', 'max:120'],
-            'phone' => ['required', 'string', 'max:40'],
+
+            // ── LE NUMERO EST L'IDENTIFIANT ────────────────────────────────
+            //
+            // Le courriel etant facultatif, c'est le numero qui dit de quel
+            // compte il s'agit a la connexion. Il ne peut donc plus servir a
+            // deux comptes — et la comparaison porte sur la forme NORMALISEE,
+            // sans quoi « +226 70 00 00 01 » et « +22670000001 » creeraient
+            // deux comptes sur une seule ligne.
+            'phone' => [
+                'bail', 'required', 'string', 'max:40',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $cle = NumeroDeTelephone::cle(is_string($value) ? $value : null);
+
+                    if ($cle === null) {
+                        $fail('Indiquez un numero de telephone.');
+
+                        return;
+                    }
+                    if (PartnerAccount::query()->where('phone_key', $cle)->exists()) {
+                        $fail('Ce numero est deja utilise par un compte partenaire.');
+                    }
+                },
+            ],
             'whatsapp' => ['nullable', 'string', 'max:40'],
+
+            // ── LE COURRIEL EST FACULTATIF ─────────────────────────────────
+            //
+            // Mesure faite : aucun courriel n'est envoye nulle part, toutes
+            // les notifications passent par `AppNotification`. L'adresse ne
+            // servait donc qu'a se connecter, et le numero le fait desormais.
+            //
+            // Elle reste UNIQUE quand elle est donnee : deux comptes ne
+            // peuvent pas la partager, sinon la connexion par courriel
+            // redeviendrait ambigue.
             'email' => [
-                'bail', 'required', 'string', 'email', 'max:255',
+                'bail', 'nullable', 'string', 'email', 'max:255',
                 function (string $attribute, mixed $value, \Closure $fail): void {
                     if (is_string($value) && User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($value)])->exists()) {
                         $fail('Cette adresse email est deja utilisee.');

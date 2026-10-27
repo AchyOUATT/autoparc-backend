@@ -40,7 +40,7 @@ class PartnerAuthenticationTest extends TestCase
             'user_id' => $user->id,
             'company_name' => 'Entreprise '.$user->id,
             'contact_name' => $user->name,
-            'phone' => '+22670000000',
+            'phone' => $this->numeroDePartenaire($user->id),
             'status' => $status,
         ])->load('user');
     }

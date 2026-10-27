@@ -35,7 +35,7 @@ class PartnerPublicCatalogTest extends TestCase
             'user_id' => $user->id,
             'company_name' => 'Garage du partenaire '.$user->id,
             'contact_name' => 'Contact prive',
-            'phone' => '+226 70 00 22 44',
+            'phone' => $this->numeroDePartenaire($user->id),
             'whatsapp' => '+226 71 00 22 44',
             'status' => $status,
             'review_reason' => 'NOTE-MODERATION-PRIVEE',
@@ -245,7 +245,9 @@ class PartnerPublicCatalogTest extends TestCase
 
             $this->assertStringContainsString($account->company_name, $html);
             $this->assertStringContainsString('https://wa.me/22671002244?text=', $html);
-            $this->assertStringContainsString('href="tel:+226 70 00 22 44"', $html);
+            // Le numero vient du compte et non d'une constante : chaque compte
+            // partenaire a desormais le sien, `phone_key` etant unique.
+            $this->assertStringContainsString('href="tel:'.$account->phone.'"', $html);
             $this->assertStringContainsString('photo-publique.jpg', $html);
             $this->assertStringNotContainsString('facture-privee.pdf', $html);
             $this->assertStringNotContainsString('22670009988', $html);

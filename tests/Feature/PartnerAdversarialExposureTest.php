@@ -22,11 +22,13 @@ class PartnerAdversarialExposureTest extends TestCase
 
     private function seller(string $name): PartnerAccount
     {
+        $user = User::factory()->create(['role' => UserRole::Partner]);
+
         return PartnerAccount::create([
-            'user_id' => User::factory()->create(['role' => UserRole::Partner])->id,
+            'user_id' => $user->id,
             'company_name' => $name,
             'contact_name' => 'Contact fictif',
-            'phone' => '0000000000',
+            'phone' => $this->numeroDePartenaire($user->id),
             'status' => 'approved',
         ]);
     }

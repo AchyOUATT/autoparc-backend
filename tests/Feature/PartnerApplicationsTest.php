@@ -20,7 +20,7 @@ class PartnerApplicationsTest extends TestCase
             'user_id' => $user->id,
             'company_name' => 'Entreprise a valider',
             'contact_name' => $user->name,
-            'phone' => '+22670000000',
+            'phone' => $this->numeroDePartenaire($user->id),
             'status' => 'pending',
         ])->load('user');
     }
