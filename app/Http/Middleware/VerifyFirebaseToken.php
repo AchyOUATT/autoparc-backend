@@ -59,6 +59,7 @@ class VerifyFirebaseToken
         // faisant contre null. La cloche n'a donc jamais fonctionne cote
         // client, sans que rien ne le signale ailleurs que dans les logs.
         $request->attributes->set('firebase_uid', $claims['uid']);
+        $request->attributes->set('firebase_verified_phone', $claims['phone_number'] ?? null);
 
         return $next($request);
     }

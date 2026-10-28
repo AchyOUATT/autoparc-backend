@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
+
+class PrivateVehicleListingResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        $private = (int) $request->user()?->id === (int) $this->user_id
+            || ($request->user()?->isStaff() && $request->user()->role->canManageCatalog());
+
+        // An allowlist prevents new private garage/moderation fields leaking into the public API.
+        return [
+            'id' => $this->id, 'seller_type' => 'private', 'title' => $this->title,
+            'brand_id' => $this->brand_id, 'vehicle_model_id' => $this->vehicle_model_id,
+            'model_libre' => $this->model_libre, 'trim_id' => $this->trim_id,
+            'engine_type_id' => $this->engine_type_id, 'drivetrain_id' => $this->drivetrain_id,
+            'color_id' => $this->color_id, 'vehicle_identity' => $this->vehicle_identity,
+            'year' => $this->year, 'mileage_km' => $this->mileage_km,
+            'price' => $this->price, 'currency' => $this->currency, 'city' => $this->city,
+            'fuel_type' => $this->fuel_type, 'transmission' => $this->transmission,
+            'description' => $this->description, 'seller_name' => $this->seller_name,
+            'phone' => $this->verified_phone, 'whatsapp_enabled' => $this->whatsapp_enabled,
+            'phone_verified' => $this->phone_verified_at !== null,
+            'published_at' => $this->published_at?->toIso8601String(),
+            'share_url' => rtrim(config('app.url'), '/').'/annonces/'.$this->id,
+            'photos' => $this->whenLoaded('photos', fn () => $this->photos->map(fn ($photo) => [
+                'id' => $photo->id, 'url' => Storage::disk($photo->disk)->url($photo->path),
+            ])->values()),
+            $this->mergeWhen($private, [
+                'status' => $this->status, 'review_reason' => $this->review_reason,
+                'revision' => $this->revision,
+                'owned_vehicle_id' => $this->owned_vehicle_id,
+            ]),
+        ];
+    }
+}
