@@ -44,10 +44,22 @@ class AccountController extends Controller
         $uid  = $request->attributes->get('firebase_uid');
 
         DB::transaction(function () use ($user, $uid) {
+            // DEUX FICHIERS PAR PHOTO, et pas un seul.
+            //
+            // Chaque photo d'annonce porte l'original ET la variante d'apercu
+            // bornee a 1200x630, celle qu'`og:image` sert a WhatsApp. N'effacer
+            // que `path` laissait donc derriere exactement le fichier qui a ete
+            // PUBLIE : une photo du vendeur survivait a l'effacement qu'il
+            // venait de demander. Et la cascade ayant emporte la ligne qui la
+            // designait, plus rien ne permettait de la nommer pour la retrouver.
+            //
+            // Meme geste que `PrivateVehicleListingController::deletePhoto`.
             $photos = \App\Models\PrivateListingPhoto::whereHas('listing', fn ($q) => $q->where('user_id', $user->id))->get();
             DB::afterCommit(function () use ($photos) {
                 foreach ($photos as $photo) {
-                    \Illuminate\Support\Facades\Storage::disk($photo->disk)->delete($photo->path);
+                    \Illuminate\Support\Facades\Storage::disk($photo->disk)->delete(
+                        array_values(array_filter([$photo->path, $photo->preview_path])),
+                    );
                 }
             });
             // Les vehicules sont en suppression douce : l'effacement du compte

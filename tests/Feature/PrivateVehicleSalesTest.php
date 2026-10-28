@@ -821,6 +821,167 @@ class PrivateVehicleSalesTest extends TestCase
         );
     }
 
+    /**
+     * Une annonce qui se termine emporte ses DEUX fichiers par photo.
+     *
+     * Sans cela, l'original et la variante d'apercu — celle qu'og:image a
+     * servie a WhatsApp — restaient lisibles par leur URL pour toujours, et le
+     * vendeur n'avait plus aucun moyen de les effacer : `editable()` exclut
+     * `withdrawn` et `sold`, donc son `deletePhoto` rend 422. Son seul recours
+     * etait de supprimer son compte entier.
+     *
+     * @requires extension gd
+     */
+    public function test_closing_a_listing_takes_both_files_of_every_photo(): void
+    {
+        $id = $this->postJson('/api/my/private-listings', $this->fields())->assertCreated()->json('data.id');
+        $this->post(
+            '/api/my/private-listings/'.$id.'/photos',
+            ['photos' => [UploadedFile::fake()->image('voiture.jpg', 1600, 1200)]],
+            ['Accept' => 'application/json'],
+        )->assertOk();
+
+        $photo = PrivateVehicleListing::findOrFail($id)->photos()->firstOrFail();
+        $this->assertNotNull($photo->preview_path, 'La variante doit exister pour que ce banc ait un sens.');
+        Storage::disk('public')->assertExists($photo->path);
+        Storage::disk('public')->assertExists($photo->preview_path);
+
+        $this->postJson('/api/my/private-listings/'.$id.'/withdraw')->assertOk();
+
+        $this->assertSame('withdrawn', PrivateVehicleListing::findOrFail($id)->status);
+        $this->assertSame(0, PrivateVehicleListing::findOrFail($id)->photos()->count());
+        Storage::disk('public')->assertMissing($photo->path);
+        Storage::disk('public')->assertMissing($photo->preview_path);
+    }
+
+    /**
+     * Le personnel peut retirer UNE photo d'une annonce qui n'est plus editable.
+     *
+     * `reject()` retire la page ; le fichier restait sur un disque public. Pour
+     * une photo qu'il fallait retirer, le retrait etait donc cosmetique — et
+     * personne ne pouvait l'effacer, le `deletePhoto` du proprietaire exigeant
+     * une annonce editable.
+     *
+     * Le banc tient aussi les deux choix qui comptent : le motif du refus
+     * SURVIT — `resetReview()` l'effacerait et renverrait l'annonce en
+     * brouillon —, et la revision bouge, parce qu'un ecran ouvert doit savoir
+     * que le contenu a change avant de decider.
+     *
+     * @requires extension gd
+     */
+    public function test_staff_can_remove_one_photo_from_a_listing_that_is_no_longer_editable(): void
+    {
+        // Le vrai parcours, parce qu'un envoi de photo appelle `resetReview()`
+        // et remet l'annonce en brouillon : on la republie avant de la refuser.
+        $listing = $this->listing('draft');
+        $this->post(
+            '/api/my/private-listings/'.$listing->id.'/photos',
+            ['photos' => [UploadedFile::fake()->image('interieur.jpg', 1600, 1200)]],
+            ['Accept' => 'application/json'],
+        )->assertOk();
+        // `->last()` et non `orderByDesc('id')` : la relation `photos()` du
+        // modele porte deja `->orderBy('id')`, donc un ordre inverse ajoute
+        // une SECONDE clause — `ORDER BY id ASC, id DESC` — ou la premiere
+        // gagne. On recuperait la photo de fixture, sans apercu.
+        $photo = $listing->photos()->get()->last();
+        $this->assertNotNull($photo->preview_path);
+
+        $this->postJson('/api/my/private-listings/'.$listing->id.'/submit', [
+            'owner_confirmed' => true, 'contact_consent' => true,
+        ])->assertOk();
+
+        $this->anonymous();
+        Sanctum::actingAs(User::factory()->create(['role' => 'manager']));
+        $this->postJson('/api/private-listing-reviews/'.$listing->id.'/approve', [
+            'revision' => $listing->fresh()->revision,
+        ])->assertOk();
+
+        // Le personnel refuse l'annonce publiee : la page part, le fichier reste.
+        $this->postJson('/api/private-listing-reviews/'.$listing->id.'/reject', [
+            'revision' => $listing->fresh()->revision,
+            'reason' => 'La deuxième photo montre une plaque d’immatriculation.',
+        ])->assertOk();
+        Storage::disk('public')->assertExists($photo->path);
+
+        // Le proprietaire POURRAIT l'effacer — `editable()` inclut `rejected` —
+        // mais le moderateur ne peut pas en dependre : une photo illicite doit
+        // partir tout de suite, pas quand le vendeur voudra bien s'en occuper.
+        $avant = $listing->fresh()->revision;
+
+        // Le personnel agit donc lui-meme.
+        $this->anonymous();
+        Sanctum::actingAs(User::factory()->create(['role' => 'manager', 'firebase_uid' => 'moderateur-2']));
+        $this->deleteJson('/api/private-listing-reviews/'.$listing->id.'/photos/'.$photo->id)->assertOk();
+
+        Storage::disk('public')->assertMissing($photo->path);
+        Storage::disk('public')->assertMissing($photo->preview_path);
+        $frais = $listing->fresh();
+        $this->assertSame('rejected', $frais->status, 'Le retrait d’un fichier ne renvoie pas l’annonce en brouillon.');
+        $this->assertStringContainsString('immatriculation', (string) $frais->review_reason, 'Le motif du refus doit survivre.');
+        $this->assertGreaterThan($avant, $frais->revision);
+    }
+
+    /**
+     * Supprimer son compte emporte la VARIANTE autant que l'original.
+     *
+     * CE BANC EXISTE PARCE QUE J'AI INTRODUIT LE DEFAUT. La migration qui
+     * ajoute `preview_path` est de ce chantier ; `AccountController::destroy`
+     * n'effacait que `path`. Le fichier qui survivait etait donc exactement
+     * celui qui avait ete PUBLIE — c'est la variante qu'og:image sert a
+     * WhatsApp — et la cascade ayant emporte la ligne qui le designait, plus
+     * rien ne permettait de le nommer pour aller le chercher. Une photo du
+     * vendeur restait en ligne apres l'effacement qu'il venait de demander.
+     *
+     * @requires extension gd
+     */
+    public function test_deleting_an_account_takes_the_preview_as_well_as_the_original(): void
+    {
+        $id = $this->postJson('/api/my/private-listings', $this->fields())->assertCreated()->json('data.id');
+        $this->post(
+            '/api/my/private-listings/'.$id.'/photos',
+            ['photos' => [UploadedFile::fake()->image('voiture.jpg', 1600, 1200)]],
+            ['Accept' => 'application/json'],
+        )->assertOk();
+
+        $photo = PrivateVehicleListing::findOrFail($id)->photos()->get()->last();
+        $this->assertNotNull($photo->preview_path);
+        Storage::disk('public')->assertExists($photo->path);
+        Storage::disk('public')->assertExists($photo->preview_path);
+
+        $this->deleteJson('/api/my/account')->assertOk();
+
+        $this->assertDatabaseCount('private_vehicle_listings', 0);
+        Storage::disk('public')->assertMissing($photo->path);
+        Storage::disk('public')->assertMissing($photo->preview_path);
+    }
+
+    /**
+     * Et cette route ne touche que les photos de l'annonce visee.
+     *
+     * Sans la borne, un identifiant de photo appartenant a une autre annonce
+     * serait efface par qui a la capacite, depuis n'importe quelle annonce.
+     */
+    public function test_staff_photo_removal_is_bounded_to_the_listing(): void
+    {
+        $listing = $this->listing('published');
+        $autre = $this->listing('pending', User::factory()->create([
+            'role' => 'client', 'firebase_uid' => 'autre-vendeur',
+        ]));
+        $photoDeLAutre = $autre->photos()->firstOrFail();
+
+        $this->anonymous();
+        Sanctum::actingAs(User::factory()->create(['role' => 'manager']));
+        $this->deleteJson('/api/private-listing-reviews/'.$listing->id.'/photos/'.$photoDeLAutre->id)
+            ->assertNotFound();
+        $this->assertSame(1, $autre->photos()->count());
+
+        // Et un role sans la capacite n'y accede pas du tout.
+        $this->anonymous();
+        Sanctum::actingAs(User::factory()->create(['role' => 'viewer']));
+        $this->deleteJson('/api/private-listing-reviews/'.$listing->id.'/photos/'.$listing->photos()->firstOrFail()->id)
+            ->assertForbidden();
+    }
+
     /** Des pixels completement transparents, avec du noir dessous, et un carre opaque au centre. */
     private function pngTransparentSurDuNoir(): string
     {

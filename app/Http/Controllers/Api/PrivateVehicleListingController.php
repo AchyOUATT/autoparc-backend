@@ -164,6 +164,37 @@ class PrivateVehicleListingController extends Controller
             if ($status === 'sold') {
                 abort_unless($locked->status === 'published', 422, 'Seule une annonce publiée peut être marquée vendue.');
             }
+
+            // UNE ANNONCE QUI SE TERMINE EMPORTE SES PHOTOS.
+            //
+            // Sans cela, les fichiers restaient lisibles publiquement par leur
+            // URL — original ET variante d'apercu, celle qu'og:image a servie a
+            // WhatsApp — pour toujours. Et le vendeur n'avait plus AUCUN moyen
+            // de les effacer : `editable()` exclut `withdrawn` et `sold`, donc
+            // `deletePhoto` rend 422, et son seul recours etait de supprimer
+            // son compte entier. Quelqu'un qui retire son annonce demande que
+            // ses photos cessent d'etre publiques ; il ne demande pas de perdre
+            // son compte pour l'obtenir.
+            //
+            // CE QUE CELA COUTE, assume : la fiche d'une annonce vendue ou
+            // retiree n'a plus de photos dans la liste du vendeur. L'annonce
+            // reste, comme trace, sans ses images. L'alternative — garder les
+            // lignes en effacant les fichiers — afficherait des vignettes
+            // cassees, ce qui est pire qu'une absence.
+            //
+            // Les fichiers partent APRES validation de la transaction : si elle
+            // echoue, l'annonce et ses photos restent coherentes.
+            $photos = $locked->photos()->get();
+            $fichiers = $photos
+                ->flatMap(fn ($photo) => array_filter([$photo->path, $photo->preview_path]))
+                ->values()
+                ->all();
+            $disque = (string) ($photos->first()->disk ?? config('media.disk', 'public'));
+            $locked->photos()->delete();
+            if ($fichiers !== []) {
+                DB::afterCommit(fn () => Storage::disk($disque)->delete($fichiers));
+            }
+
             $locked->update(['status' => $status, 'active_user_id' => null, 'published_at' => null, 'revision' => $locked->revision + 1]);
         });
 

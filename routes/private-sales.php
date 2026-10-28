@@ -28,5 +28,12 @@ Route::middleware('private-sales')->group(function () {
         Route::get('/', [Reviews::class, 'index']);
         Route::post('{listing}/approve', [Reviews::class, 'approve']);
         Route::post('{listing}/reject', [Reviews::class, 'reject']);
+        // Le seul chemin par lequel une photo illicite quitte le stockage.
+        // `reject` retire la PAGE ; sans cette route, le fichier restait
+        // lisible par son URL et personne dans l'application ne pouvait
+        // l'effacer — `deletePhoto` du proprietaire exige une annonce
+        // editable, ce qu'une annonce refusee publiee n'est plus.
+        Route::delete('{listing}/photos/{photo}', [Reviews::class, 'destroyPhoto'])
+            ->whereNumber('photo');
     });
 });
