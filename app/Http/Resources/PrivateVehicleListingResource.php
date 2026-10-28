@@ -35,6 +35,13 @@ class PrivateVehicleListingResource extends JsonResource
                 'status' => $this->status, 'review_reason' => $this->review_reason,
                 'revision' => $this->revision,
                 'owned_vehicle_id' => $this->owned_vehicle_id,
+                // Le numero SAISI, distinct du `phone` plus haut, qui est le
+                // numero VERIFIE. Deux lecteurs en ont besoin et aucun n'est le
+                // public : le vendeur, pour relire et corriger ce qu'il a tape,
+                // et le moderateur, pour savoir quel numero composer — avant
+                // qu'aucune verification n'existe, donc quand `phone` est vide.
+                'phone_claimed' => $this->phone,
+                'phone_verified_at' => $this->phone_verified_at?->toIso8601String(),
             ]),
         ];
     }

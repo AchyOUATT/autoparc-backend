@@ -49,7 +49,14 @@
     @foreach($listing->photos as $photo)
         <img src="{{ \Illuminate\Support\Facades\Storage::disk($photo->disk)->url($photo->path) }}" alt="Photo du véhicule" loading="lazy">
     @endforeach
-    <p>{{ $listing->seller_name }} · Téléphone vérifié</p>
+    {{-- « Téléphone vérifié » est une affirmation, pas une décoration : elle
+         dit au visiteur qu'une personne d'AutoParc a appelé ce numéro et que
+         le vendeur a confirmé avoir déposé l'annonce. `approve()` l'exige pour
+         publier, donc elle est vraie de toute annonce servie ici — mais on la
+         pose sur la DONNÉE et non sur cette garantie, pour qu'elle disparaisse
+         d'elle-même si le chemin de publication change un jour. Une mention de
+         confiance qui survit à ce qui la fondait est pire que son absence. --}}
+    <p>{{ $listing->seller_name }}@if($listing->phone_verified_at) · Téléphone vérifié@endif</p>
     <a href="tel:{{ $listing->verified_phone }}">Appeler le vendeur</a>
     @if($listing->whatsapp_enabled)
         <a href="https://wa.me/{{ ltrim($listing->verified_phone, '+') }}">Contacter sur WhatsApp</a>

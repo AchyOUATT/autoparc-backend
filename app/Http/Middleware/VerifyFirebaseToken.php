@@ -59,7 +59,24 @@ class VerifyFirebaseToken
         // faisant contre null. La cloche n'a donc jamais fonctionne cote
         // client, sans que rien ne le signale ailleurs que dans les logs.
         $request->attributes->set('firebase_uid', $claims['uid']);
-        $request->attributes->set('firebase_verified_phone', $claims['phone_number'] ?? null);
+
+        // `firebase_verified_phone` A ETE RETIRE D'ICI, et il ne faut pas le
+        // remettre sans savoir ce qu'il portait.
+        //
+        // Cet attribut etait la PREUVE de possession d'un numero : la
+        // revendication `phone_number` d'un jeton Firebase, obtenue par une
+        // verification SMS, et le module d'annonces entre particuliers ne
+        // lisait le numero du vendeur que la — jamais le formulaire, jamais
+        // `User.phone`. La verification par SMS est abandonnee au profit d'un
+        // appel passe par le personnel pendant la moderation, et
+        // `verifyPhoneNumber` n'a plus aucun appelant dans l'application.
+        //
+        // L'attribut ne serait donc plus qu'une case toujours nulle, qui a
+        // l'air d'une preuve. Un mecanisme de confiance qui survit a ce qui le
+        // fondait est pire que son absence : quelqu'un s'y adosserait. La
+        // preuve vit maintenant dans deux colonnes que le formulaire ne peut
+        // pas ecrire, `verified_phone` et `phone_verified_at`, posees par le
+        // seul `approve()`. Voir docs/ventes-particuliers.md.
 
         return $next($request);
     }

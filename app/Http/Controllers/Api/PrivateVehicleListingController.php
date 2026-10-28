@@ -91,6 +91,19 @@ class PrivateVehicleListingController extends Controller
         DB::transaction(function () use ($listing, $data) {
             $locked = PrivateVehicleListing::whereKey($listing->id)->lockForUpdate()->firstOrFail();
             $this->requireEditable($locked);
+
+            // CHANGER DE NUMERO ANNULE L'APPEL DEJA PASSE.
+            //
+            // Sinon la verification d'hier couvrirait le numero de ce soir : il
+            // suffirait de se faire appeler sur une ligne a soi, puis de
+            // remplacer le numero par celui de quelqu'un d'autre. Toute autre
+            // modification — un prix, une ville, une photo — laisse l'appel
+            // valable, pour que le personnel n'ait pas a rappeler le meme
+            // vendeur a chaque retouche.
+            if (($data['phone'] ?? null) !== $locked->phone) {
+                $locked->forceFill(['verified_phone' => null, 'phone_verified_at' => null]);
+            }
+
             $locked->fill($data);
             $locked->resetReview();
         });
@@ -102,18 +115,28 @@ class PrivateVehicleListingController extends Controller
     {
         $this->authorizeOwner($request, $listing);
         $request->validate(['owner_confirmed' => ['required', 'accepted'], 'contact_consent' => ['required', 'accepted']]);
-        // This number comes only from the verified Firebase ID token, never the form or User.phone.
-        $phone = $request->attributes->get('firebase_verified_phone');
-        if (! is_string($phone) || ! preg_match('/^\+[1-9][0-9]{7,14}$/D', $phone)) {
-            throw ValidationException::withMessages(['phone' => 'Vérifiez votre téléphone par SMS avant d’envoyer l’annonce.']);
-        }
-
-        DB::transaction(function () use ($listing, $phone) {
+        DB::transaction(function () use ($listing) {
             $locked = PrivateVehicleListing::whereKey($listing->id)->lockForUpdate()->firstOrFail();
             abort_unless(in_array($locked->status, ['draft', 'rejected'], true), 422, 'Cette annonce ne peut pas être envoyée dans son état actuel.');
             abort_unless($locked->photos()->exists(), 422, 'Ajoutez au moins une photo.');
+
+            // LE NUMERO DOIT ETRE COMPOSABLE, et c'est tout ce que l'envoi
+            // exige : la verification, elle, est le geste du moderateur.
+            //
+            // Ce controle double celui de `validateFields` a dessein. Une
+            // annonce creee avant la bascule du SMS vers l'appel n'a pas de
+            // `phone` du tout — la colonne est nullable —, et elle peut encore
+            // etre envoyee. Sans ce garde, elle arriverait en moderation avec
+            // un numero vide, donc impossible a appeler, donc impossible a
+            // publier : un cul-de-sac silencieux.
+            if (! is_string($locked->phone) || ! preg_match('/^\+[1-9][0-9]{7,14}$/D', $locked->phone)) {
+                throw ValidationException::withMessages([
+                    'phone' => 'Indiquez le numéro où vous joindre, avec l’indicatif, par exemple +22670000000.',
+                ]);
+            }
+
             $locked->update([
-                'status' => 'pending', 'verified_phone' => $phone, 'phone_verified_at' => now(),
+                'status' => 'pending',
                 'submitted_at' => now(), 'review_reason' => null, 'reviewed_by' => null,
                 'revision' => $locked->revision + 1,
             ]);
@@ -322,6 +345,16 @@ class PrivateVehicleListingController extends Controller
             'city' => ['required', 'string', 'max:100'],
             'description' => ['required', 'string', 'min:20', 'max:5000'],
             'seller_name' => ['required', 'string', 'max:80'],
+            // Le numero que le vendeur SAISIT. La preuve, elle, reste dans
+            // `verified_phone` et `phone_verified_at`, qui sont plus bas dans
+            // la liste `prohibited` : le formulaire ne peut pas se declarer
+            // verifie lui-meme. Seul `approve()` ecrit la preuve, et seulement
+            // apres qu'un moderateur a affirme avoir appele.
+            //
+            // E.164 stricte, la meme expression qu'employait `submit()` quand
+            // le numero venait du jeton Firebase : un numero qu'on ne peut pas
+            // composer ne vaut rien a un moderateur qui doit appeler.
+            'phone' => ['required', 'string', 'regex:/^\+[1-9][0-9]{7,14}$/'],
             'transmission' => ['nullable', Rule::in(Transmission::values())],
             'whatsapp_enabled' => ['required', 'boolean'],
         ];

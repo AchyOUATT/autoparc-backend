@@ -56,6 +56,7 @@ class PrivateVehicleSalesTest extends TestCase
             'price' => 4500000, 'city' => 'Ouagadougou',
             'description' => 'Véhicule entretenu, disponible pour une visite.',
             'seller_name' => 'Vendeur particulier', 'whatsapp_enabled' => true,
+            'phone' => '+22670000000',
         ], $extra);
     }
 
@@ -83,11 +84,18 @@ class PrivateVehicleSalesTest extends TestCase
     {
         $id = $this->postJson('/api/my/private-listings', $this->fields())->assertCreated()->assertJsonPath('data.status', 'draft')->json('data.id');
         $this->post('/api/my/private-listings/'.$id.'/photos', ['photos' => [UploadedFile::fake()->image('voiture.jpg', 800, 600)]], ['Accept' => 'application/json'])->assertOk();
+        // L'envoi ne verifie rien : le numero saisi est la, la preuve n'y est
+        // pas encore. C'est le moderateur qui appellera.
         $this->postJson('/api/my/private-listings/'.$id.'/submit', ['owner_confirmed' => true, 'contact_consent' => true])
-            ->assertOk()->assertJsonPath('data.status', 'pending')->assertJsonPath('data.phone', '+22670000000');
+            ->assertOk()->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.phone_claimed', '+22670000000')
+            ->assertJsonPath('data.phone', null);
         $this->getJson('/api/private-listings/'.$id)->assertNotFound();
         Sanctum::actingAs(User::factory()->create(['role' => 'manager']));
-        $this->postJson('/api/private-listing-reviews/'.$id.'/approve', ['revision' => PrivateVehicleListing::findOrFail($id)->revision])->assertOk();
+        $this->postJson('/api/private-listing-reviews/'.$id.'/approve', [
+            'revision' => PrivateVehicleListing::findOrFail($id)->revision,
+            'phone_verified' => true,
+        ])->assertOk()->assertJsonPath('data.phone', '+22670000000');
         $this->anonymous();
         $this->getJson('/api/private-listings/'.$id)->assertOk()->assertJsonPath('data.seller_type', 'private')
             ->assertJsonMissingPath('data.user_id')->assertJsonMissingPath('data.status')->assertJsonMissingPath('data.owned_vehicle_id')
@@ -178,15 +186,157 @@ class PrivateVehicleSalesTest extends TestCase
         $this->postJson('/api/my/private-listings', $this->fields())->assertUnprocessable();
     }
 
-    public function test_only_token_phone_proof_counts_and_consents_are_required(): void
+    /**
+     * Le formulaire ne peut pas se declarer verifie lui-meme.
+     *
+     * C'etait la propriete la plus solide du module quand le numero venait
+     * d'un jeton Firebase, et la bascule vers l'appel ne doit pas la perdre :
+     * le vendeur ecrit `phone`, jamais `verified_phone` ni `phone_verified_at`.
+     * Les deux restent dans la liste `prohibited`, et un envoi ne pose aucune
+     * preuve — seul `approve()` le fait, apres l'appel.
+     *
+     * Les consentements restent exiges : sans eux, pas d'envoi.
+     */
+    public function test_the_form_can_never_declare_its_own_phone_verified(): void
     {
         $listing = $this->listing();
-        $this->seller->update(['phone' => '+22670000000']);
-        $this->client(phone: null);
-        $this->postJson('/api/my/private-listings/'.$listing->id.'/submit', ['owner_confirmed' => true, 'contact_consent' => true, 'phone' => '+22670000000'])
-            ->assertUnprocessable()->assertJsonValidationErrors('phone');
+        $listing->forceFill(['verified_phone' => null, 'phone_verified_at' => null])->save();
+
+        // Poser la preuve par le formulaire est refuse, a la creation...
+        $this->putJson('/api/my/private-listings/'.$listing->id, $this->fields([
+            'verified_phone' => '+22676000000', 'phone_verified_at' => now()->toIso8601String(),
+        ]))->assertUnprocessable()->assertJsonValidationErrors(['verified_phone', 'phone_verified_at']);
+
+        // Les consentements restent exiges, et refuser arrete l'envoi.
+        $this->postJson('/api/my/private-listings/'.$listing->id.'/submit', ['owner_confirmed' => false])
+            ->assertUnprocessable();
+        $this->assertSame('draft', $listing->fresh()->status);
+
+        // ...et un envoi en regle ne pose aucune preuve de son cote.
+        $this->postJson('/api/my/private-listings/'.$listing->id.'/submit', [
+            'owner_confirmed' => true, 'contact_consent' => true,
+        ])->assertOk()->assertJsonPath('data.status', 'pending');
+        $this->assertNull($listing->fresh()->verified_phone);
+        $this->assertNull($listing->fresh()->phone_verified_at);
+    }
+
+    /**
+     * Publier exige que le moderateur affirme avoir appele.
+     *
+     * La verification par SMS prouvait la possession par cryptographie ;
+     * l'appel la prouve par un geste humain, et un geste n'a de valeur que
+     * s'il est exige puis consigne. Ce banc tient les deux bouts : sans
+     * l'affirmation l'annonce ne se publie pas, et avec elle le numero saisi
+     * devient le numero verifie, date et attribue a son moderateur.
+     */
+    public function test_publishing_demands_the_moderator_assert_the_call(): void
+    {
+        $listing = $this->listing('pending');
+        $listing->forceFill(['verified_phone' => null, 'phone_verified_at' => null])->save();
+        $moderateur = User::factory()->create(['role' => 'manager']);
+        Sanctum::actingAs($moderateur);
+
+        // Sans l'affirmation : refus, et l'annonce reste en attente.
+        $this->postJson('/api/private-listing-reviews/'.$listing->id.'/approve', [
+            'revision' => $listing->fresh()->revision,
+        ])->assertUnprocessable();
+        $this->assertSame('pending', $listing->fresh()->status);
+        $this->assertNull($listing->fresh()->phone_verified_at);
+
+        // Une case refusee ne vaut pas mieux qu'une case absente.
+        $this->postJson('/api/private-listing-reviews/'.$listing->id.'/approve', [
+            'revision' => $listing->fresh()->revision, 'phone_verified' => false,
+        ])->assertUnprocessable();
+        $this->assertSame('pending', $listing->fresh()->status);
+
+        // Avec l'affirmation : le numero saisi devient le numero verifie.
+        $this->postJson('/api/private-listing-reviews/'.$listing->id.'/approve', [
+            'revision' => $listing->fresh()->revision, 'phone_verified' => true,
+        ])->assertOk();
+        $frais = $listing->fresh();
+        $this->assertSame('published', $frais->status);
+        $this->assertSame($frais->phone, $frais->verified_phone);
+        $this->assertNotNull($frais->phone_verified_at);
+        $this->assertSame($moderateur->id, $frais->reviewed_by);
+    }
+
+    /**
+     * Changer de numero annule l'appel deja passe ; tout le reste le conserve.
+     *
+     * Sans cela, la verification d'hier couvrirait le numero de ce soir : il
+     * suffirait de se faire appeler sur une ligne a soi, puis de remplacer le
+     * numero par celui de quelqu'un d'autre. C'est le seul detournement que la
+     * bascule du SMS vers l'appel rend possible, et c'est donc le seul garde
+     * qu'elle rend indispensable.
+     *
+     * L'autre moitie compte autant, pour le personnel : une retouche de prix
+     * ne doit PAS obliger a rappeler le meme vendeur.
+     */
+    public function test_changing_the_number_voids_the_call_but_other_edits_keep_it(): void
+    {
+        $listing = $this->listing('published');
+        $this->assertNotNull($listing->phone_verified_at);
+
+        // Une retouche qui ne touche pas au numero : l'appel reste valable.
+        $this->putJson('/api/my/private-listings/'.$listing->id, $this->fields(['price' => 3900000]))->assertOk();
+        $apresPrix = $listing->fresh();
+        $this->assertNotNull($apresPrix->phone_verified_at, 'Un prix corrige ne doit pas obliger a rappeler le vendeur.');
+        $this->assertSame('+22670000000', $apresPrix->verified_phone);
+
+        // Le vendeur renvoie, et le moderateur republie SANS reaffirmer
+        // l'appel : c'est toute la raison de distinguer les deux colonnes.
+        $this->postJson('/api/my/private-listings/'.$listing->id.'/submit', [
+            'owner_confirmed' => true, 'contact_consent' => true,
+        ])->assertOk()->assertJsonPath('data.status', 'pending');
+
+        $this->anonymous();
+        Sanctum::actingAs(User::factory()->create(['role' => 'manager']));
+        $this->postJson('/api/private-listing-reviews/'.$listing->id.'/approve', [
+            'revision' => $listing->fresh()->revision,
+        ])->assertOk();
+        $this->assertSame('published', $listing->fresh()->status);
+
+        // Changer le numero, en revanche, efface la preuve.
+        $this->anonymous();
         $this->client();
-        $this->postJson('/api/my/private-listings/'.$listing->id.'/submit', ['owner_confirmed' => false])->assertUnprocessable();
+        $this->putJson('/api/my/private-listings/'.$listing->id, $this->fields(['phone' => '+22676543210']))->assertOk();
+        $apresNumero = $listing->fresh();
+        $this->assertNull($apresNumero->verified_phone, 'Un numero change ne doit pas heriter de l appel precedent.');
+        $this->assertNull($apresNumero->phone_verified_at);
+
+        // Et il faut donc un nouvel appel pour republier.
+        $this->postJson('/api/my/private-listings/'.$listing->id.'/submit', [
+            'owner_confirmed' => true, 'contact_consent' => true,
+        ])->assertOk();
+        $this->anonymous();
+        Sanctum::actingAs(User::factory()->create(['role' => 'manager', 'firebase_uid' => 'moderateur-2']));
+        $this->postJson('/api/private-listing-reviews/'.$listing->id.'/approve', [
+            'revision' => $listing->fresh()->revision,
+        ])->assertUnprocessable();
+        $this->assertSame('pending', $listing->fresh()->status);
+    }
+
+    /**
+     * Un numero qu'on ne peut pas composer ne vaut rien a qui doit appeler.
+     *
+     * Le controle vit a deux endroits a dessein. `validateFields` le pose sur
+     * le formulaire ; `submit()` le repose sur la ligne VERROUILLEE, parce
+     * qu'une annonce creee avant cette bascule n'a pas de `phone` du tout — la
+     * colonne est nullable — et arriverait sinon en moderation avec un numero
+     * vide, impossible a appeler donc impossible a publier.
+     */
+    public function test_an_undialable_number_is_refused_by_the_form_and_by_the_submission(): void
+    {
+        // Par le formulaire : le format local ne passe pas.
+        $this->postJson('/api/my/private-listings', $this->fields(['phone' => '70000000']))
+            ->assertUnprocessable()->assertJsonValidationErrors('phone');
+
+        // Par l'envoi : une annonce anterieure a la bascule n'a aucun numero.
+        $listing = $this->listing();
+        $listing->forceFill(['phone' => null])->save();
+        $this->postJson('/api/my/private-listings/'.$listing->id.'/submit', [
+            'owner_confirmed' => true, 'contact_consent' => true,
+        ])->assertUnprocessable()->assertJsonValidationErrors('phone');
         $this->assertSame('draft', $listing->fresh()->status);
     }
 
@@ -507,6 +657,7 @@ class PrivateVehicleSalesTest extends TestCase
         Sanctum::actingAs(User::factory()->create(['role' => 'manager']));
         $this->postJson('/api/private-listing-reviews/'.$id.'/approve', [
             'revision' => PrivateVehicleListing::findOrFail($id)->revision,
+            'phone_verified' => true,
         ])->assertOk();
         $this->anonymous();
 
@@ -520,6 +671,9 @@ class PrivateVehicleSalesTest extends TestCase
         $page->assertSee('property="og:image:width" content="'.$photo->preview_width.'"', false);
         $page->assertSee('property="og:image:height" content="'.$photo->preview_height.'"', false);
         $page->assertSee('name="twitter:card"', false);
+        // La mention de confiance : elle est posee sur `phone_verified_at`, et
+        // c'est `approve()` qui garantit qu'une annonce publiee le porte.
+        $page->assertSee('Téléphone vérifié');
         $page->assertSee('property="og:url" content="'.rtrim((string) config('app.url'), '/').'/annonces/'.$id.'"', false);
         // Et surtout : l'original n'est PAS ce que le robot recoit.
         $page->assertDontSee('property="og:image" content="'.Storage::disk('public')->url($photo->path).'"', false);

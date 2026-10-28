@@ -14,9 +14,21 @@ de contacts vers un partenaire n’est prévu.
   énergie/boîte facultatives, description, nom affiché, téléphone vérifié et photos.
 - Le garage reste privé : aucun VIN, immatriculation, assurance, historique de
   carburant ou entretien n’est copié dans l’annonce.
-- Envoi après au moins une photo, vérification du téléphone et consentement à
-  publier le contact. La preuve téléphonique vient exclusivement du jeton signé
-  Firebase, jamais d’un numéro déclaré dans le formulaire.
+- Envoi après au moins une photo, un numéro joignable et le consentement à
+  publier le contact. Le vendeur SAISIT son numéro ; l’envoi ne le vérifie pas.
+- Le numéro est vérifié PAR APPEL, par le personnel, pendant la modération.
+  Deux colonnes le distinguent et il ne faut pas les confondre : `phone` est ce
+  que le vendeur a tapé, `verified_phone` et `phone_verified_at` sont ce qu’un
+  modérateur a confirmé. Les deux dernières restent dans la liste `prohibited`
+  du formulaire : un vendeur ne peut pas se déclarer vérifié lui-même, et seul
+  `approve()` les écrit. Changer de numéro efface la vérification ; toute autre
+  retouche la conserve, pour ne pas rappeler le même vendeur à chaque prix
+  corrigé.
+- CE QUE LE MODÉRATEUR DOIT DEMANDER AU TÉLÉPHONE : « est-ce VOUS qui avez
+  déposé cette annonce ? », et non « est-ce votre numéro ? ». La vérification
+  par SMS rendait impossible de déposer une annonce avec le numéro de quelqu’un
+  d’autre ; l’appel ne l’attrape que si l’on pose cette question-là. C’est la
+  seule chose qui sépare ce dispositif d’une case cochée pour rien.
 - Validation/refus par le personnel autorisé à gérer le catalogue. Un refus est
   expliqué au vendeur. Une annonce publiée peut aussi être retirée par ce personnel.
 - Modifier le texte, le prix ou les photos retire la publication et demande une
@@ -52,12 +64,22 @@ avant de décider de leur intégration.
 4. Dans la copie mobile : `flutter pub get`, puis lancer avec
    `--dart-define=ENABLE_PRIVATE_SALES=true` et
    `--dart-define=API_BASE_URL=http://ADRESSE_LOCALE:8000/api`.
-5. Sur Firebase de développement, activer l’authentification téléphonique et
-   configurer les applications Android. Utiliser d’abord les numéros fictifs et
-   codes de test configurés dans Firebase ; les tests automatisés n’envoient aucun SMS.
+Aucune configuration Firebase supplémentaire n’est nécessaire : la vérification
+du numéro ne passe plus par un SMS. `verifyPhoneNumber` n’a plus aucun appelant
+dans l’application, et l’attribut `firebase_verified_phone` a été retiré du
+middleware — voir le commentaire qui y explique pourquoi il ne faut pas le
+remettre. Le jeton Firebase ne sert plus qu’à l’authentification du client.
 
-La vérification ajoute le téléphone au compte client déjà connecté. Elle ne crée
-pas un second compte et ne connecte pas le vendeur sous une autre identité.
+5. Pour éprouver la modération, il faut deux comptes : un client qui dépose, et
+   un membre du personnel autorisé à gérer le catalogue qui approuve. Publier
+   demande `phone_verified` à vrai dans l’appel d’approbation, c’est-à-dire
+   l’affirmation que l’appel a été passé.
+
+VERIFICATION PAR APPEL, CE QUE CELA COÛTE ET CE QUE CELA ÉVITE. Cela supprime le
+plan Firebase payant, le budget par message, la politique de régions SMS, le
+quota et la question d’App Check. En échange, chaque annonce demande un appel
+humain, la file de modération porte donc un délai réel, et la vérification ne
+vaut que ce que vaut la consigne donnée à celui qui appelle.
 
 ## Contrat d’API ajouté
 
@@ -104,8 +126,10 @@ Analyse mobile : `dart analyze lib/features/private_sales`.
 
 Ces tests vérifient les formulaires, autorisations, états, confidentialité,
 modération et appels d’API. Ils utilisent une base SQLite en mémoire, de fausses
-preuves Firebase et un stockage local de test. Ils ne prouvent pas une livraison
-réelle de SMS, une installation Android ou une concurrence réelle sur PostgreSQL.
+preuves Firebase et un stockage local de test. Ils ne prouvent pas une
+installation Android ni une concurrence réelle sur PostgreSQL. Ils ne prouvent
+pas non plus qu’un appel a réellement lieu : aucun code ne peut l’établir, et
+c’est pourquoi la consigne de l’appel est écrite plus haut.
 Ces vérifications resteront à faire sur un environnement de développement avant
 toute mise en service. Le stock professionnel et les versions obligatoires de
 l’application ne sont pas modifiés par cette fonction.
