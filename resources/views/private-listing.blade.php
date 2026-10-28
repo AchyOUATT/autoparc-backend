@@ -17,6 +17,24 @@
     <meta property="og:url" content="{{ $url }}">
     <link rel="canonical" href="{{ $url }}">
 
+    {{-- PAS D'INDEXATION, et c'est la seule partie vraiment irréversible de
+         cette page.
+
+         Elle porte le nom, la ville et le téléphone d'un particulier. Une
+         annonce retirée rend 404 — `share()` exige `published()` —, mais un
+         cache de moteur de recherche, lui, ne se reprend pas : le numéro
+         resterait trouvable après le retrait, et le cycle de vie que la
+         documentation décrit serait démenti par Google plutôt que par notre
+         code.
+
+         DANS LA VUE ET JAMAIS DANS robots.txt. Un `Disallow` y serait respecté
+         par `facebookexternalhit`, et tuerait la vignette WhatsApp — c'est-à-
+         dire la raison d'être de cette page. La balise, elle, écarte les
+         moteurs sans gêner les robots d'aperçu, qui ne lisent que l'en-tête
+         Open Graph. `public/robots.txt` reste donc « Disallow: » (tout
+         autorisé) et ne doit pas être touché pour ce motif. --}}
+    <meta name="robots" content="noindex, nofollow">
+
     @if($apercu)
         {{-- La variante bornee a 1200x630, et l'original seulement a defaut.
              Servir l'original tel quel laissait le lien partir SANS vignette :

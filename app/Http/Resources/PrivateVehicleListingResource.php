@@ -24,7 +24,37 @@ class PrivateVehicleListingResource extends JsonResource
             'price' => $this->price, 'currency' => $this->currency, 'city' => $this->city,
             'fuel_type' => $this->fuel_type, 'transmission' => $this->transmission,
             'description' => $this->description, 'seller_name' => $this->seller_name,
-            'phone' => $this->verified_phone, 'whatsapp_enabled' => $this->whatsapp_enabled,
+            // LE NUMERO N'EST PAS DANS LA LISTE, et ce n'est pas une precaution
+            // de style.
+            //
+            // `GET private-listings` ne porte ni `firebase` ni `auth:sanctum`
+            // (routes/private-sales.php) et rend vingt fiches par page sous un
+            // plafond de 120 requetes par minute. Avec le numero dans chaque
+            // fiche, c'etait un annuaire de particuliers burkinabe — nom, ville,
+            // telephone — moissonnable sans compte, a raison d'un seul appel
+            // pour vingt vendeurs.
+            //
+            // LA CONDITION, ET POURQUOI CELLE-LA. Pas `$request->user() !== null`
+            // : aucun intergiciel ne resout de compte sur ces routes, et les
+            // boutons « Appeler » et « WhatsApp » disparaitraient pour TOUS les
+            // acheteurs. C'est la presence du parametre de route qui separe la
+            // liste de la fiche : l'index n'a pas de `{listing}`, la fiche et la
+            // page de partage en ont un. L'acheteur qui ouvre une annonce a donc
+            // le numero, celui qui parcourt la liste ne l'a pas.
+            //
+            // CE QUE CELA NE FERME PAS, et il faut le savoir : la fiche reste
+            // publique, et les identifiants sont sequentiels. Un moissonneur
+            // obstine passe d'un appel pour vingt vendeurs a un appel par
+            // vendeur. C'est un cout multiplie par vingt, pas une porte fermee.
+            // La porte ne se ferme qu'en posant `firebase` sur la lecture
+            // publique — une decision de produit, pas une correction : voir
+            // docs/ventes-particuliers.md, qui soutient aujourd'hui que le
+            // telephone verifie est public.
+            'phone' => $this->when(
+                $private || $request->route('listing') !== null,
+                $this->verified_phone,
+            ),
+            'whatsapp_enabled' => $this->whatsapp_enabled,
             'phone_verified' => $this->phone_verified_at !== null,
             'published_at' => $this->published_at?->toIso8601String(),
             'share_url' => rtrim(config('app.url'), '/').'/annonces/'.$this->id,

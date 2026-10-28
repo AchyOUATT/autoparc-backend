@@ -731,6 +731,96 @@ class PrivateVehicleSalesTest extends TestCase
         $this->assertSame('draft', $autre->fresh()->status);
     }
 
+    /**
+     * La liste publique n'est pas un annuaire de particuliers.
+     *
+     * `GET private-listings` ne porte aucune authentification et rend vingt
+     * fiches par page. Avec le numero dans chacune, un seul appel livrait le
+     * nom, la ville et le telephone de vingt vendeurs burkinabe — et les
+     * identifiants sont sequentiels. Le numero vit donc sur la FICHE, d'ou l'on
+     * appelle, et pas dans la liste, qu'on parcourt.
+     *
+     * Les quatre lecteurs sont ici, parce que c'est l'ecart entre eux qui est
+     * la correction : l'inconnu sur la liste, l'inconnu sur la fiche, le
+     * vendeur sur sa propre liste, le moderateur sur la sienne.
+     */
+    public function test_the_public_list_is_not_a_directory_of_private_sellers(): void
+    {
+        $listing = $this->listing('published');
+        $this->anonymous();
+
+        // L'inconnu qui parcourt la liste n'a pas les numeros.
+        $this->getJson('/api/private-listings')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $listing->id)
+            ->assertJsonPath('data.0.city', 'Ouagadougou')
+            ->assertJsonMissingPath('data.0.phone')
+            ->assertJsonMissingPath('data.0.phone_claimed');
+
+        // Mais celui qui ouvre une annonce peut appeler : c'est tout l'objet
+        // de la page, et le bouton disparaitrait sans cela.
+        $this->getJson('/api/private-listings/'.$listing->id)
+            ->assertOk()->assertJsonPath('data.phone', '+22670000000')
+            ->assertJsonMissingPath('data.phone_claimed');
+
+        // Le vendeur voit son propre numero saisi, meme dans une liste.
+        $this->client();
+        $this->getJson('/api/my/private-listings')
+            ->assertOk()->assertJsonPath('data.0.phone_claimed', '+22670000000');
+
+        // Et le moderateur aussi : c'est le numero qu'il doit composer, et
+        // c'est pour lui que `phone_claimed` existe — il doit appeler AVANT
+        // qu'aucune verification existe, donc quand `phone` est encore vide.
+        // Son index ne liste que les annonces en attente, d'ou la seconde.
+        $enAttente = $this->listing('pending', User::factory()->create([
+            'role' => 'client', 'firebase_uid' => 'vendeur-en-attente',
+        ]));
+        $enAttente->forceFill(['verified_phone' => null, 'phone_verified_at' => null])->save();
+
+        $this->anonymous();
+        Sanctum::actingAs(User::factory()->create(['role' => 'manager']));
+        $this->getJson('/api/private-listing-reviews')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $enAttente->id)
+            ->assertJsonPath('data.0.phone_claimed', '+22670000000')
+            // Et `phone` est la, VIDE : le moderateur voit donc exactement ce
+            // qui est vrai — un numero a appeler, et aucune verification.
+            ->assertJsonPath('data.0.phone', null);
+    }
+
+    /**
+     * La page de partage n'entre pas dans un moteur de recherche.
+     *
+     * C'est la seule partie irreversible : une annonce retiree rend 404, mais
+     * un cache de moteur ne se reprend pas, et le numero d'un particulier
+     * resterait trouvable apres le retrait.
+     *
+     * La balise est dans la VUE et non dans robots.txt : un `Disallow` serait
+     * respecte par `facebookexternalhit` et tuerait la vignette WhatsApp, donc
+     * la raison d'etre de la page. Ce banc tient les deux cotes.
+     *
+     * @requires extension gd
+     */
+    public function test_the_share_page_refuses_indexing_without_breaking_previews(): void
+    {
+        $listing = $this->listing('published');
+
+        $page = $this->get('/annonces/'.$listing->id)->assertOk();
+        $page->assertSee('name="robots" content="noindex, nofollow"', false);
+        // Et l'en-tete d'apercu reste servi : c'est ce que lit le robot de
+        // WhatsApp, qui ne regarde pas la balise robots.
+        $page->assertSee('property="og:title"', false);
+
+        // robots.txt doit rester permissif, pour la meme raison. On le lit sur
+        // le disque et non par une requete : c'est un fichier statique, servi
+        // par le serveur web et jamais par Laravel, qui rend donc 404 en test.
+        $this->assertStringNotContainsString(
+            'Disallow: /',
+            (string) file_get_contents(public_path('robots.txt')),
+            'Un Disallow serait respecte par facebookexternalhit et tuerait la vignette WhatsApp.',
+        );
+    }
+
     /** Des pixels completement transparents, avec du noir dessous, et un carre opaque au centre. */
     private function pngTransparentSurDuNoir(): string
     {
