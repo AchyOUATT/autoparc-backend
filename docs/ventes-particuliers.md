@@ -33,7 +33,9 @@ de contacts vers un partenaire n’est prévu.
 ## Fonction désactivée par défaut
 
 Le serveur répond 404 sur les routes de cette fonction tant que
-`PRIVATE_SALES_ENABLED` ne vaut pas `true`. Les contrôles d’authentification
+`PRIVATE_SALES_ENABLED` n’a pas une valeur affirmative reconnue (`true`, `1`,
+`on` ou `yes`, sans distinction de casse). Absente, vide, `no`, `off`, `non`
+ou inconnue, la valeur laisse le module fermé. Les contrôles d’authentification
 peuvent rendre 401 avant ce contrôle pour une requête non authentifiée.
 
 L’application ne montre ni entrée ni route de cette fonction sans la constante
@@ -73,8 +75,11 @@ saisie. Les libellés publics sont un instantané : un renommage du catalogue ne
 modifie pas une annonce déjà validée. Aucun défaut de finition n’est pris pour
 une caractéristique constatée du véhicule.
 
-La migration additive `2026_10_27_000002` garde lisibles les premiers brouillons
+La migration additive `2026_10_27_000008` garde lisibles les premiers brouillons
 locaux ; leurs références devront être sélectionnées à la prochaine modification.
+La création porte le numéro `2026_10_27_000007`. Ces deux numéros évitent les
+collisions avec les autres migrations du 27 octobre lors de la fusion.
+Pour retester les migrations renommées, utiliser une base de test neuve.
 
 - Lecture publique : `GET /api/private-listings`, `GET /api/private-listings/{id}`.
 - Gestion client Firebase : `GET/POST /api/my/private-listings`,
