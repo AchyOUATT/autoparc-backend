@@ -126,6 +126,47 @@ class ErrorReportingTest extends TestCase
     }
 
     /**
+     * Un refus d'authentification est un 401, avec ou sans en-tete Accept.
+     *
+     * CE QUE CE BANC EMPECHE DE REVENIR, et ce n'etait pas qu'un code faux.
+     *
+     * `withMiddleware()` pose un defaut dans le framework
+     * (ApplicationBuilder.php:291) : `redirectGuestsTo(fn () => route('login'))`.
+     * Et `Authenticate::unauthenticated()` fait
+     * `$request->expectsJson() ? null : $this->redirectTo($request)` — le
+     * rappel n'est donc appele QUE si l'appelant n'a pas demande du JSON. Il
+     * cherchait alors la route nommee `login`, qui n'existe pas dans cette API,
+     * et `route()` levait une RouteNotFoundException AVANT que le rendu des
+     * erreurs n'intervienne. La MEME route, non authentifiee, rendait donc 401
+     * avec `Accept: application/json` et 500 sans.
+     *
+     * Le `shouldRenderJsonWhen` declare pour tout `api/*` ne pouvait rien : il
+     * intervient apres. C'est pourquoi la correction est
+     * `redirectGuestsTo(null)` dans bootstrap/app.php, et non une reponse
+     * ecrite a la main — on garde ainsi la forme exacte du 401, reference
+     * comprise.
+     *
+     * Et le cout reel n'etait pas le code : un refus normal passait pour une
+     * panne serveur, et chaque appel ecrivait une trace complete dans le
+     * journal, seule fenetre de diagnostic sur une instance sans shell. Un
+     * sondage de la production avec `curl` sans en-tete a suffi a faire croire
+     * le site casse alors qu'il allait bien.
+     */
+    public function test_un_refus_d_authentification_ne_devient_pas_une_erreur_serveur(): void
+    {
+        // Sans en-tete Accept : c'est le chemin qui rendait 500.
+        $this->get('/api/brands')
+            ->assertStatus(401)
+            ->assertJsonPath('message', 'Unauthenticated.')
+            ->assertHeader(AssignRequestId::HEADER);
+
+        // Et avec, qui marchait deja : les deux doivent dire la meme chose.
+        $this->getJson('/api/brands')
+            ->assertStatus(401)
+            ->assertJsonPath('message', 'Unauthenticated.');
+    }
+
+    /**
      * Un refus d'authentification ne depend pas du compte de service Firebase.
      *
      * Le middleware recevait le service par son constructeur : le conteneur le

@@ -67,6 +67,37 @@ return Application::configure(basePath: dirname(__DIR__))
     // travers lui, ce qui est le cas sur Render.
     $middleware->trustProxies(at: '*');
 
+    // PAS DE REDIRECTION VERS UNE PAGE DE CONNEXION QUI N'EXISTE PAS.
+    //
+    // Sans cette ligne, un appel non authentifie sur n'importe quelle route
+    // d'API rendait 500 au lieu de 401 — et ecrivait a chaque fois une trace
+    // complete dans le journal.
+    //
+    // LE MECANISME, parce qu'il n'est pas dans notre code et qu'on le cherche
+    // longtemps. `withMiddleware()` pose un defaut, dans le framework :
+    // ApplicationBuilder.php:291, `redirectGuestsTo(fn () => route('login'))`.
+    // Et `Authenticate::unauthenticated()` fait
+    // `$request->expectsJson() ? null : $this->redirectTo($request)` : le
+    // rappel n'est donc appele QUE si l'appelant n'a pas demande du JSON. Il
+    // cherche alors la route nommee `login`, qui n'existe pas ici — cette API
+    // n'a que `POST api/login`, sans nom — et `route()` leve une
+    // RouteNotFoundException AVANT que le rendu des erreurs n'intervienne.
+    //
+    // D'ou le symptome : la MEME route, non authentifiee, rend 401 avec
+    // `Accept: application/json` et 500 sans. Le `shouldRenderJsonWhen` pose
+    // plus bas declare pourtant du JSON pour tout `api/*` ; il ne pouvait rien,
+    // puisque l'exception se produisait plus tot.
+    //
+    // Ce que ca coutait n'est pas qu'un code faux : un refus normal passait
+    // pour une panne serveur. C'est ce qui m'a fait croire la production cassee
+    // alors qu'elle allait bien, et chaque appel de ce genre remplissait le
+    // journal — la seule fenetre de diagnostic sur une instance sans shell.
+    //
+    // `null` est explicitement prevu par le framework (Middleware.php,
+    // `redirectGuestsTo` remplace null par `fn () => null`). Le gestionnaire
+    // rend alors du JSON pour `api/*`, et un 401 sans corps ailleurs.
+    $middleware->redirectGuestsTo(null);
+
     // Toute requete d'API porte une reference, y compris celles qui echouent
     // avant d'atteindre un controleur.
     $middleware->prependToGroup('api', \App\Http\Middleware\AssignRequestId::class);
