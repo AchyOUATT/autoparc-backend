@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CatalogSyncController;
 use App\Http\Controllers\Api\CompatibilityController;
+use App\Http\Controllers\Api\ContactSettingsController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\CustomerNeedController;
 use App\Http\Controllers\Api\FcmTokenController;
@@ -54,6 +55,7 @@ require __DIR__.'/partner.php';
 // celle-la qu'il s'agit d'avertir — donc jamais derriere 'firebase' ni
 // 'auth:sanctum' : un 401 la laisserait croire que tout va bien.
 Route::get('app/version', AppVersionController::class);
+Route::get('app/contact', [ContactSettingsController::class, 'show']);
 
 /* ---------------------- Catalogue public (lecture) ---------------------- */
 Route::prefix('catalog')->group(function () {
@@ -222,6 +224,11 @@ Route::middleware('firebase')->prefix('my')->group(function () {
 Route::middleware(['auth:sanctum', 'staff'])->group(function () {
 
     Route::get('dashboard', [DashboardController::class, 'index']);
+
+    Route::get('settings/contact', [ContactSettingsController::class, 'show'])
+        ->middleware('capability:manage-settings');
+    Route::put('settings/contact', [ContactSettingsController::class, 'update'])
+        ->middleware('capability:manage-settings');
 
     // --- Referentiels
     Route::apiResource('brands', BrandController::class)

@@ -29,6 +29,7 @@ class UserRoleCapabilitiesTest extends TestCase
             'manage-orders'    => ['manage-orders',    [UserRole::Admin, UserRole::Manager, UserRole::Sales]],
             'manage-customers' => ['manage-customers', [UserRole::Admin, UserRole::Manager, UserRole::Sales]],
             'manage-partners'  => ['manage-partners',  [UserRole::Admin, UserRole::Manager]],
+            'manage-settings'  => ['manage-settings',  [UserRole::Admin, UserRole::Manager]],
             'broadcast'        => ['broadcast',        [UserRole::Admin, UserRole::Manager]],
         ];
     }
