@@ -151,16 +151,28 @@ services:
       # des gens qui n'ont pas l'application : bouton WhatsApp et bouton
       # d'appel.
       #
-      # Ces valeurs vivent AUSSI en dur dans l'application mobile
-      # (lib/core/utils/contact_info.dart), et c'est volontaire — la page web
-      # doit répondre sans l'application, l'application doit pouvoir appeler
-      # sans le serveur. Elles doivent donc changer ENSEMBLE : un numéro
-      # modifié d'un seul côté laisse l'autre moitié des clients appeler
-      # l'ancien, et un bouton d'appel ne rend pas d'erreur.
+      # VALEURS INITIALES SEULEMENT, et c'est le piège de ce bloc.
       #
-      # `sync: false` pour la même raison que le plancher de version : le
-      # numéro se corrige depuis le tableau de bord, sans reconstruire l'image.
-      # Non renseignées, config/boutique.php sert les coordonnées en service.
+      # Dès le PREMIER enregistrement dans « Paramètres · Contact AutoParc »
+      # (dans l'application, rôles admin et manager), le numéro conservé en
+      # base devient la source unique du web ET du mobile, et ces deux clés ne
+      # sont plus lues du tout — voir app/Services/AutoParcContact.php et
+      # docs/contact-autoparc.md.
+      #
+      # Les changer ensuite N'A AUCUN EFFET : pas d'erreur, pas de ligne de
+      # journal, et la page /v/86 continue d'afficher l'ancien numéro. Le plan
+      # gratuit n'ouvre pas de Shell pour aller voir la table, donc rien
+      # n'explique le silence. Le numéro se corrige AU BACK-OFFICE, pas ici.
+      #
+      # Il n'existe aucun chemin de retour vers ces clés : aucune route ne
+      # supprime le réglage. Y revenir demanderait d'effacer la ligne
+      # `contact_phone` de `app_settings`, donc un accès à la base.
+      #
+      # `sync: false` pour la même raison que le plancher de version. Non
+      # renseignées, config/boutique.php sert les coordonnées en service — et
+      # si la valeur posée ici n'est pas composable, l'API sert un dernier
+      # recours en le journalisant, plutôt qu'un numéro que l'application
+      # refuse de lire.
       - key: BOUTIQUE_TELEPHONE
         sync: false          # forme internationale du lien tel: ; défaut : +22675570484
       - key: BOUTIQUE_WHATSAPP

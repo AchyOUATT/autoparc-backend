@@ -11,6 +11,7 @@ use App\Models\Accessory;
 use App\Models\Media;
 use App\Models\Part;
 use App\Models\Vehicle;
+use App\Services\AutoParcContact;
 use App\Support\ArticlePartage;
 use App\Support\PartnerListingPresentation;
 use App\Support\PartnerMedia;
@@ -351,9 +352,10 @@ class ArticleController extends Controller
         );
 
         $seller = PartnerListingPresentation::seller($source);
-        $phone = $seller === null ? config('boutique.telephone') : $seller['phone'];
+        $contact = $seller === null ? app(AutoParcContact::class)->coordinates() : null;
+        $phone = $seller === null ? $contact['phone'] : $seller['phone'];
         $whatsapp = $seller === null
-            ? config('boutique.whatsapp')
+            ? $contact['whatsapp']
             : ($seller['whatsapp'] ?: $phone);
         $whatsapp = preg_replace('/\D+/', '', (string) $whatsapp);
 

@@ -90,6 +90,12 @@ enum UserRole: string
         return in_array($this, [self::Admin, self::Manager], true);
     }
 
+    /** Parametres publics de l'application. */
+    public function canManageSettings(): bool
+    {
+        return in_array($this, [self::Admin, self::Manager], true);
+    }
+
     /**
      * Envoyer une notification a tous les clients.
      *
@@ -117,6 +123,7 @@ enum UserRole: string
             'manage-orders' => $this->canManageOrders(),
             'manage-customers' => $this->canManageCustomers(),
             'manage-partners' => $this->canManagePartners(),
+            'manage-settings' => $this->canManageSettings(),
             'broadcast' => $this->canBroadcast(),
             default => false,
         };
