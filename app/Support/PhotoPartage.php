@@ -41,30 +41,64 @@ final class PhotoPartage
      */
     public static function depuis(?Media $media): ?self
     {
-        if ($media === null || ! self::cheminExploitable($media->path)) {
+        if ($media === null) {
             return null;
         }
 
-        $disque = (string) $media->disk;
+        return self::depuisUnFichier(
+            disque:        (string) $media->disk,
+            chemin:        $media->path,
+            cheminApercu:  $media->preview_path,
+            largeurApercu: $media->preview_width,
+            hauteurApercu: $media->preview_height,
+            typeOriginal:  $media->mime_type,
+        );
+    }
+
+    /**
+     * La MEME decision, pour un fichier qui n'est pas un `media`.
+     *
+     * Les photos d'annonces de particuliers vivent dans leur propre table, avec
+     * les memes colonnes mais un autre modele. Tout ce que cette classe sait —
+     * preferer la variante bornee a 1200x630, encoder le chemin segment par
+     * segment, refuser un disque dont l'adresse n'est pas joignable par un
+     * robot, rejeter les chemins vides et le « 0 » de la corruption mesuree —
+     * est un defaut paye une fois. Il ne doit pas etre a payer une seconde dans
+     * un second rendu de page.
+     *
+     * D'ou une fabrique nommee plutot qu'un second `depuis` : `depuis(Media)`
+     * garde son type et delegue ici, et la decision reste a UN seul endroit.
+     */
+    public static function depuisUnFichier(
+        string $disque,
+        ?string $chemin,
+        ?string $cheminApercu = null,
+        ?int $largeurApercu = null,
+        ?int $hauteurApercu = null,
+        ?string $typeOriginal = null,
+    ): ?self {
+        if (! self::cheminExploitable($chemin)) {
+            return null;
+        }
 
         if (! self::adressePublique($disque)) {
             return null;
         }
 
-        if (self::cheminExploitable($media->preview_path)) {
+        if (self::cheminExploitable($cheminApercu)) {
             return new self(
-                url:     self::url($disque, (string) $media->preview_path),
-                largeur: $media->preview_width,
-                hauteur: $media->preview_height,
+                url:     self::url($disque, (string) $cheminApercu),
+                largeur: $largeurApercu,
+                hauteur: $hauteurApercu,
                 type:    VignetteApercu::TYPE,
             );
         }
 
         return new self(
-            url:  self::url($disque, (string) $media->path),
+            url:  self::url($disque, (string) $chemin),
             // Aucune dimension : celles de l'original ne sont pas enregistrees,
             // et les lire exigerait de telecharger le fichier a chaque rendu.
-            type: ((string) $media->mime_type) !== '' ? (string) $media->mime_type : null,
+            type: ((string) $typeOriginal) !== '' ? (string) $typeOriginal : null,
         );
     }
 

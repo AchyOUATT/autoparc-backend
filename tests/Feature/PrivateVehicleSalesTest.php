@@ -391,4 +391,205 @@ class PrivateVehicleSalesTest extends TestCase
             ->assertJsonMissingPath('data.engine_code')->assertJsonMissingPath('data.motorisation_id');
         $this->assertStringNotContainsString('PRIVATE-', json_encode(PrivateVehicleListing::firstOrFail()->vehicle_identity));
     }
+
+    /**
+     * Le parcours que l'ecran propose doit aller jusqu'au bout.
+     *
+     * L'ecran annonce « Photos (x/10) » et envoie une requete par photo. Tant
+     * que ces requetes partageaient `throttle:public-write` avec la creation
+     * et l'envoi — `ThrottleRequests` construit sa cle sans la route, donc un
+     * seul seau de dix par minute — la DOUZIEME requete d'un depot complet
+     * tombait en 429, et le refus arrivait des la neuvieme photo.
+     *
+     * Ce banc est celui qu'aucun test de la branche ne faisait : les autres
+     * envoient une photo a la fois et n'atteignent jamais le plafond.
+     */
+    public function test_a_full_ten_photo_listing_still_reaches_the_submit_route(): void
+    {
+        $id = $this->postJson('/api/my/private-listings', $this->fields())->assertCreated()->json('data.id');
+
+        for ($i = 1; $i <= 10; $i++) {
+            $this->post(
+                '/api/my/private-listings/'.$id.'/photos',
+                ['photos' => [UploadedFile::fake()->image('photo'.$i.'.jpg', 800, 600)]],
+                ['Accept' => 'application/json'],
+            )->assertOk();
+        }
+
+        $this->postJson('/api/my/private-listings/'.$id.'/submit', [
+            'owner_confirmed' => true, 'contact_consent' => true,
+        ])->assertOk()->assertJsonPath('data.status', 'pending');
+    }
+
+    /**
+     * Le seau des photos garde un plafond, et c'est le SIEN.
+     *
+     * Sans ce banc, retirer purement et simplement le limiteur de la route
+     * laisserait le banc precedent au vert. Les deux se tiennent : l'un dit
+     * que le parcours normal passe, l'autre que le plafond existe toujours.
+     *
+     * Le limiteur tourne AVANT le controleur, donc une requete refusee pour
+     * defaut de validation compte elle aussi — c'est ce qui permet de remplir
+     * le seau sans GD et sans ecrire vingt fichiers.
+     */
+    public function test_the_photo_route_keeps_a_ceiling_of_its_own_without_closing_the_submit_route(): void
+    {
+        $id = $this->postJson('/api/my/private-listings', $this->fields())->assertCreated()->json('data.id');
+
+        for ($i = 1; $i <= 20; $i++) {
+            $this->postJson('/api/my/private-listings/'.$id.'/photos', [])->assertUnprocessable();
+        }
+        $this->postJson('/api/my/private-listings/'.$id.'/photos', [])->assertStatus(429);
+
+        // Et le seau plein des photos ne ferme pas l'envoi : ce sont deux
+        // seaux distincts. Le 422 vient de l'annonce sans photo, pas du debit.
+        $this->postJson('/api/my/private-listings/'.$id.'/submit', [
+            'owner_confirmed' => true, 'contact_consent' => true,
+        ])->assertUnprocessable();
+    }
+
+    /**
+     * Une photo a canal alpha ne doit pas ressortir en pave noir.
+     *
+     * `UploadedFile::fake()->image('x.png')` produit un PNG OPAQUE : c'est
+     * pour cela qu'aucun banc du depot ne voyait le defaut. Celui-ci fabrique
+     * donc la vraie chose — des pixels completement transparents avec du noir
+     * stocke dessous, ce que Skia laisse quand image_picker redimensionne un
+     * bitmap a canal alpha — et relit le fichier ecrit.
+     *
+     * @requires extension gd
+     */
+    public function test_a_transparent_photo_is_flattened_onto_white_instead_of_black(): void
+    {
+        $id = $this->postJson('/api/my/private-listings', $this->fields())->assertCreated()->json('data.id');
+
+        $this->post(
+            '/api/my/private-listings/'.$id.'/photos',
+            ['photos' => [UploadedFile::fake()->createWithContent('transparente.png', $this->pngTransparentSurDuNoir())]],
+            ['Accept' => 'application/json'],
+        )->assertOk();
+
+        $photo = PrivateVehicleListing::findOrFail($id)->photos()->firstOrFail();
+        $stocke = imagecreatefromstring(Storage::disk('public')->get($photo->path));
+        $coin = imagecolorsforindex($stocke, imagecolorat($stocke, 2, 2));
+        $centre = imagecolorsforindex($stocke, imagecolorat($stocke, 20, 20));
+        imagedestroy($stocke);
+
+        $this->assertGreaterThan(240, $coin['red'], 'Le transparent doit devenir blanc, pas noir.');
+        $this->assertGreaterThan(240, $coin['green']);
+        $this->assertGreaterThan(240, $coin['blue']);
+        // Et l'image elle-meme survit : le carre opaque est toujours rouge.
+        $this->assertGreaterThan(180, $centre['red']);
+        $this->assertLessThan(80, $centre['green']);
+    }
+
+    /**
+     * La page de partage sert la VARIANTE, pas l'original.
+     *
+     * Le banc existant ne verifiait que `assertSee('Toyota Corolla')`, donc
+     * l'en-tete Open Graph n'etait eprouve par rien — et il servait l'original
+     * de 2048 px, que WhatsApp refuse : le lien partait sans vignette, c'est-a-
+     * dire sans la seule chose qui le distingue d'un lien nu.
+     *
+     * @requires extension gd
+     */
+    public function test_the_share_page_serves_the_bounded_preview_and_declares_its_size(): void
+    {
+        $id = $this->postJson('/api/my/private-listings', $this->fields())->assertCreated()->json('data.id');
+        $this->post(
+            '/api/my/private-listings/'.$id.'/photos',
+            ['photos' => [UploadedFile::fake()->image('voiture.jpg', 2048, 1536)]],
+            ['Accept' => 'application/json'],
+        )->assertOk();
+        $this->postJson('/api/my/private-listings/'.$id.'/submit', [
+            'owner_confirmed' => true, 'contact_consent' => true,
+        ])->assertOk();
+        Sanctum::actingAs(User::factory()->create(['role' => 'manager']));
+        $this->postJson('/api/private-listing-reviews/'.$id.'/approve', [
+            'revision' => PrivateVehicleListing::findOrFail($id)->revision,
+        ])->assertOk();
+        $this->anonymous();
+
+        $photo = PrivateVehicleListing::findOrFail($id)->photos()->firstOrFail();
+        $this->assertNotNull($photo->preview_path, 'La variante doit etre fabriquee au depot.');
+        $this->assertLessThanOrEqual(1200, $photo->preview_width);
+        $this->assertLessThanOrEqual(630, $photo->preview_height);
+
+        $page = $this->get('/annonces/'.$id)->assertOk();
+        $page->assertSee('property="og:image" content="'.Storage::disk('public')->url($photo->preview_path).'"', false);
+        $page->assertSee('property="og:image:width" content="'.$photo->preview_width.'"', false);
+        $page->assertSee('property="og:image:height" content="'.$photo->preview_height.'"', false);
+        $page->assertSee('name="twitter:card"', false);
+        $page->assertSee('property="og:url" content="'.rtrim((string) config('app.url'), '/').'/annonces/'.$id.'"', false);
+        // Et surtout : l'original n'est PAS ce que le robot recoit.
+        $page->assertDontSee('property="og:image" content="'.Storage::disk('public')->url($photo->path).'"', false);
+    }
+
+    /**
+     * Le verrou de version refuse une decision prise sur une version perimee.
+     *
+     * La garde existait et fonctionnait, mais aucun banc ne la mesurait : on
+     * pouvait retirer les deux `abort_unless(..., 409, ...)` du controleur de
+     * moderation et la suite restait au vert. Le depot pose pourtant comme
+     * regle que chaque garde est eprouvee, et docs/ventes-particuliers.md
+     * annonce cette protection au personnel.
+     *
+     * Les deux chemins qui comptent sont ici : deux moderateurs qui decident
+     * sur la meme version, et une edition du vendeur glissee entre l'ouverture
+     * de la liste et la decision.
+     */
+    public function test_a_decision_taken_on_a_stale_revision_is_refused(): void
+    {
+        $listing = $this->listing('pending');
+        $perimee = $listing->revision;
+        Sanctum::actingAs(User::factory()->create(['role' => 'manager']));
+
+        // Premier moderateur : il publie, et la revision bouge.
+        $this->postJson('/api/private-listing-reviews/'.$listing->id.'/approve', ['revision' => $perimee])->assertOk();
+        $this->assertNotSame($perimee, $listing->fresh()->revision);
+
+        // Second moderateur, meme ecran, meme version : refuse.
+        $this->postJson('/api/private-listing-reviews/'.$listing->id.'/reject', [
+            'revision' => $perimee, 'reason' => 'Les photos ne montrent pas l’intérieur.',
+        ])->assertStatus(409);
+        $this->assertSame('published', $listing->fresh()->status);
+
+        // Et l'edition du vendeur, glissee entre l'ouverture de la liste par le
+        // moderateur et sa decision. Un AUTRE vendeur : l'index UNIQUE sur
+        // `active_user_id` n'accepte qu'une annonce en cours par compte, et
+        // c'est voulu.
+        $autreVendeur = User::factory()->create(['role' => 'client', 'firebase_uid' => 'autre-vendeur']);
+        $autre = $this->listing('pending', $autreVendeur);
+        $vue = $autre->revision;
+
+        // Par l'API du proprietaire, et non par le modele : c'est `update` qui
+        // appelle `resetReview`, et c'est `resetReview` qui bouge la revision.
+        $this->anonymous();
+        $this->client($autreVendeur);
+        $this->putJson('/api/my/private-listings/'.$autre->id, $this->fields(['city' => 'Bobo-Dioulasso']))->assertOk();
+        $this->assertNotSame($vue, $autre->fresh()->revision);
+
+        $this->anonymous();
+        Sanctum::actingAs(User::factory()->create(['role' => 'manager', 'firebase_uid' => 'autre-moderateur']));
+        $this->postJson('/api/private-listing-reviews/'.$autre->id.'/approve', ['revision' => $vue])->assertStatus(409);
+        // Le refus tombe sur la REVISION, avant le controle de statut : rien
+        // n'est publie, et l'annonce reste la ou l'edition l'a remise.
+        $this->assertSame('draft', $autre->fresh()->status);
+    }
+
+    /** Des pixels completement transparents, avec du noir dessous, et un carre opaque au centre. */
+    private function pngTransparentSurDuNoir(): string
+    {
+        $image = imagecreatetruecolor(40, 40);
+        imagesavealpha($image, true);
+        imagealphablending($image, false);
+        imagefill($image, 0, 0, imagecolorallocatealpha($image, 0, 0, 0, 127));
+        imagefilledrectangle($image, 15, 15, 24, 24, imagecolorallocatealpha($image, 220, 30, 30, 0));
+        ob_start();
+        imagepng($image);
+        $png = (string) ob_get_clean();
+        imagedestroy($image);
+
+        return $png;
+    }
 }

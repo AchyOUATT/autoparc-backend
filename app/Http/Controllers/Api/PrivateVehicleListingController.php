@@ -15,7 +15,9 @@ use App\Models\Trim;
 use App\Models\User;
 use App\Models\VehicleModel;
 use App\Support\PartnerMedia;
+use App\Support\PhotoPartage;
 use App\Support\VehicleClassification;
+use App\Support\VignetteApercu;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -163,15 +165,69 @@ class PrivateVehicleListingController extends Controller
                 foreach ($request->file('photos') as $photo) {
                     $image = imagecreatefromstring(file_get_contents($photo->getRealPath()));
                     abort_unless($image !== false, 422, 'Photo illisible.');
-                    // Re-encoding strips GPS/EXIF metadata before the photo becomes public.
-                    ob_start();
-                    imagejpeg($image, null, 88);
-                    $bytes = ob_get_clean();
+                    // Le reencodage retire les metadonnees GPS/EXIF avant que
+                    // la photo devienne publique.
+                    //
+                    // APLATISSEMENT SUR DU BLANC, et pourquoi il faut y penser
+                    // ici alors que la photo vient d'un appareil.
+                    //
+                    // La validation accepte `png` et `webp`, et ce n'est pas
+                    // theorique : image_picker_android redimensionne, et son
+                    // ImageResizer decide du format de sortie avec
+                    // `boolean saveAsPNG = bitmap.hasAlpha();`. Une capture,
+                    // un visuel recu par messagerie, un montage arrivent donc
+                    // en PNG a canal alpha. GD ecrit alors le RGB stocke SOUS
+                    // l'alpha, et ce que Skia laisse sous un pixel
+                    // completement transparent est du noir : la photo
+                    // ressortait en pave noir dans l'annonce, sur la page de
+                    // partage et dans l'apercu WhatsApp.
+                    //
+                    // C'est le meme defaut que VignetteApercu a deja paye et
+                    // corrige — « un logo de piece sur fond transparent
+                    // sortait en pave noir dans la conversation » —, et ce
+                    // sont ses trois lignes qu'on reprend ici.
+                    $opaque = imagecreatetruecolor(imagesx($image), imagesy($image));
+                    abort_unless($opaque !== false, 503, 'Le stockage des photos est indisponible.');
+                    imagefill($opaque, 0, 0, imagecolorallocate($opaque, 255, 255, 255));
+                    imagecopyresampled(
+                        $opaque, $image,
+                        0, 0, 0, 0,
+                        imagesx($image), imagesy($image),
+                        imagesx($image), imagesy($image),
+                    );
                     imagedestroy($image);
+                    ob_start();
+                    imagejpeg($opaque, null, 88);
+                    $bytes = ob_get_clean();
+                    imagedestroy($opaque);
                     $path = 'private-listings/'.$locked->id.'/'.Str::uuid().'.jpg';
                     $paths[] = $path;
                     abort_unless(Storage::disk($disk)->put($path, $bytes, 'public'), 503, 'La photo n’a pas pu être enregistrée. Réessayez.');
-                    $locked->photos()->create(['disk' => $disk, 'path' => $path]);
+
+                    // LA VARIANTE DE L'APERCU, fabriquee au depot.
+                    //
+                    // C'est elle qu'og:image sert, et sans elle le lien partage
+                    // arrive sans photo : WhatsApp refuse la vignette au-dela
+                    // de quelques centaines de ko, la ou l'original pese pres
+                    // de 700 ko. Le compte et la mesure sont dans
+                    // VignetteApercu et docker/php/depot-de-photos.ini.
+                    //
+                    // `generer` ne leve jamais et rend `null` a chaque
+                    // empechement — GD absent, image trop grande pour la
+                    // memoire, encodeur sans JPEG : le depot doit aboutir meme
+                    // quand la variante echoue, et la page retombe alors sur
+                    // l'original, qui donne un apercu mediocre mais existant.
+                    $apercu = VignetteApercu::generer($disk, $path);
+                    if ($apercu !== null) {
+                        $paths[] = $apercu['chemin'];
+                    }
+
+                    $locked->photos()->create([
+                        'disk' => $disk, 'path' => $path,
+                        'preview_path' => $apercu['chemin'] ?? null,
+                        'preview_width' => $apercu['largeur'] ?? null,
+                        'preview_height' => $apercu['hauteur'] ?? null,
+                    ]);
                 }
                 $locked->resetReview();
             });
@@ -194,7 +250,10 @@ class PrivateVehicleListingController extends Controller
             $image = $locked->photos()->whereKey($photo)->firstOrFail();
             $image->delete();
             $locked->resetReview();
-            DB::afterCommit(fn () => Storage::disk($image->disk)->delete($image->path));
+            // La variante part avec l'original : la laisser derriere ferait
+            // grossir le stockage de fichiers que plus rien ne designe.
+            $fichiers = array_values(array_filter([$image->path, $image->preview_path]));
+            DB::afterCommit(fn () => Storage::disk($image->disk)->delete($fichiers));
         });
 
         return new PrivateVehicleListingResource($listing->refresh()->load('photos'));
@@ -204,8 +263,30 @@ class PrivateVehicleListingController extends Controller
     {
         abort_unless(PrivateVehicleListing::published()->whereKey($listing->id)->exists(), 404);
 
-        return response()->view('private-listing', ['listing' => $listing->load('photos')])
-            ->header('Cache-Control', 'no-store');
+        $listing->load('photos');
+        $couverture = $listing->photos->first();
+
+        return response()->view('private-listing', [
+            'listing' => $listing,
+            // Ce que l'apercu sert, et ses dimensions : la variante bornee a
+            // 1200x630 quand elle existe, l'original sinon, et `null` quand le
+            // disque n'offre aucune adresse qu'un robot puisse atteindre. Toute
+            // cette decision vit dans PhotoPartage, qui l'a payee une fois pour
+            // le catalogue — voir `depuisUnFichier`.
+            'apercu' => $couverture === null ? null : PhotoPartage::depuisUnFichier(
+                disque: (string) $couverture->disk,
+                chemin: $couverture->path,
+                cheminApercu: $couverture->preview_path,
+                largeurApercu: $couverture->preview_width,
+                hauteurApercu: $couverture->preview_height,
+            ),
+            // L'adresse vient de la CONFIGURATION et jamais de la requete :
+            // `url()->current()` suit `X-Forwarded-Host`, auquel
+            // `trustProxies(at: '*')` fait confiance, et un en-tete fourni par
+            // l'appelant placerait donc l'adresse de son choix dans l'apercu.
+            // Meme regle que ArticleController::adresse().
+            'url' => rtrim((string) config('app.url'), '/').'/annonces/'.$listing->id,
+        ])->header('Cache-Control', 'no-store');
     }
 
     private function authorizeOwner(Request $request, PrivateVehicleListing $listing): void

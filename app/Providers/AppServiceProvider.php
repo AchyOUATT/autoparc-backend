@@ -61,6 +61,33 @@ class AppServiceProvider extends ServiceProvider
 
     public const ECRITURE_PUBLIQUE_CLE_GLOBALE = 'ecriture-publique:tout-le-monde';
 
+    /**
+     * Photos par minute pour UN vendeur.
+     *
+     * Une annonce accepte dix photos et le formulaire en envoie une par
+     * requete. Vingt, c'est donc le lot complet plus un reessai entier du
+     * lot : le plafond ne doit jamais tomber sur un vendeur qui fait ce que
+     * l'ecran lui propose, et le vrai plafond du nombre de photos est tenu
+     * par le controleur (`max:10` par requete, puis
+     * `photos()->count() + count(...) > 10` qui rend 422).
+     */
+    public const DEPOT_DE_PHOTOS_PAR_MINUTE = 20;
+
+    /**
+     * Photos par minute pour tout le monde.
+     *
+     * Ici le plafond ne protege pas contre un abus mais contre la physique de
+     * l'hebergement : `php artisan serve` est mono-processus et serialise la
+     * phase script, et docker/php/depot-de-photos.ini mesure 8,76 s pour dix
+     * photos de 2048 px — soit environ 0,9 s de script bloque par photo.
+     * Soixante par minute, c'est deja 54 des 60 secondes passees a reencoder.
+     * Au-dela, l'instance ne sert plus personne : un 429 qui dit d'attendre
+     * une minute vaut mieux qu'un delai d'attente que personne ne comprend.
+     */
+    public const DEPOT_DE_PHOTOS_PAR_MINUTE_GLOBAL = 60;
+
+    public const DEPOT_DE_PHOTOS_CLE_GLOBALE = 'depot-de-photos:tout-le-monde';
+
     public function register(): void
     {
         //
@@ -291,6 +318,62 @@ class AppServiceProvider extends ServiceProvider
                 ->by(self::ECRITURE_PUBLIQUE_CLE_GLOBALE)
                 ->response($this->refus(
                     'Trop de demandes en cours. Patientez une minute avant de reessayer.'
+                )),
+        ]);
+
+        // ── Depot des photos d'une annonce de particulier ───────────────────
+        //
+        // POURQUOI UN LIMITEUR A PART
+        //
+        // `ThrottleRequests` construit sa cle avec `md5($nom.$cle_du_by)`,
+        // SANS la route : toutes les routes qui portent le meme
+        // `throttle:public-write` puisent dans un seul seau. Les trois
+        // ecritures d'un depot d'annonce y etaient accrochees ensemble, et le
+        // formulaire envoie une requete par photo : un brouillon + dix photos
+        // + un envoi = douze requetes sur un plafond de dix. Le refus tombait
+        // des la NEUVIEME photo, c'est-a-dire sur le parcours que l'ecran
+        // propose lui-meme (« Photos (x/10) ») — pas sur un abus.
+        //
+        // POURQUOI PAR COMPTE, ET NON PAR ADRESSE
+        //
+        // `public-write` est cle sur l'adresse parce que ses appelants n'ont
+        // pas de compte : deposer un besoin, demander un compte partenaire.
+        // Cette route-ci est derriere `firebase`, qui pose le resolveur
+        // d'utilisateur (VerifyFirebaseToken::50) : l'appelant est connu, donc
+        // le motif de la cle par adresse ne s'y applique pas. Et la cle par
+        // adresse etait ici nuisible, pas seulement inutile : avec
+        // `trustProxies(at: '*')`, deux vendeurs derriere le NAT d'un operateur
+        // burkinabe partagent une adresse — c'est le depot lui-meme qui le
+        // decrit pour le limiteur `partage` plus bas. Elle ne bornait pas
+        // l'abuseur, qui pose l'en-tete qu'il veut ; elle ne penalisait que le
+        // vendeur honnete.
+        //
+        // Precedent du depot : `POST partner/vehicles/{vehicle}/media`, la
+        // route analogue a photos multiples, ne porte aucun plafond de route et
+        // vit sous `throttle:api`, cle sur le compte.
+        //
+        // CE QU'ON N'A PAS FAIT, ET POURQUOI
+        //
+        // Regrouper les dix photos en une requete aurait aussi ferme le defaut,
+        // et c'etait la premiere idee. Mais dix reencodages GD dans UNE
+        // `DB::transaction` tenant `lockForUpdate` echangent un 429 reparable
+        // contre deux maux pires : le site entier gele le temps du lot — la
+        // phase script est serialisee, « pendant ces secondes-la, personne
+        // d'autre n'est servi », docker/php/depot-de-photos.ini:169 — et le
+        // `catch (\Throwable)` du controleur supprime tous les chemins ecrits,
+        // donc un depassement en cours de lot perd les DIX photos au lieu d'en
+        // garder neuf. Une requete par photo reste le bon decoupage ; c'est le
+        // seau qu'il fallait corriger.
+        RateLimiter::for('depot-de-photos', fn (Request $request) => [
+            Limit::perMinute(self::DEPOT_DE_PHOTOS_PAR_MINUTE)
+                ->by('depot-de-photos:'.($request->user()?->id ?: $request->ip()))
+                ->response($this->refus(
+                    'Trop de photos envoyees en meme temps. Patientez une minute avant de reessayer.'
+                )),
+            Limit::perMinute(self::DEPOT_DE_PHOTOS_PAR_MINUTE_GLOBAL)
+                ->by(self::DEPOT_DE_PHOTOS_CLE_GLOBALE)
+                ->response($this->refus(
+                    'Trop de photos en cours de depot. Patientez une minute avant de reessayer.'
                 )),
         ]);
 

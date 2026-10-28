@@ -16,7 +16,11 @@ Route::middleware('private-sales')->group(function () {
         Route::post('{listing}/submit', [Listings::class, 'submit'])->middleware('throttle:public-write');
         Route::post('{listing}/withdraw', [Listings::class, 'withdraw']);
         Route::post('{listing}/sold', [Listings::class, 'sold']);
-        Route::post('{listing}/photos', [Listings::class, 'upload'])->middleware('throttle:public-write');
+        // Seau a part : `throttle:public-write` est cle sur l'adresse et
+        // partage entre toutes les routes qui le portent, donc les dix photos
+        // d'un depot y epuisaient le plafond avant l'envoi. Voir
+        // AppServiceProvider, limiteur `depot-de-photos`.
+        Route::post('{listing}/photos', [Listings::class, 'upload'])->middleware('throttle:depot-de-photos');
         Route::delete('{listing}/photos/{photo}', [Listings::class, 'deletePhoto'])->whereNumber('photo');
     });
 
