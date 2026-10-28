@@ -12,6 +12,26 @@ de contacts vers un partenaire n’est prévu.
 - Création directe ou préremplissage choisi depuis « Mon garage ».
 - Informations publiques : titre, année, kilométrage, prix XOF, ville,
   énergie/boîte facultatives, description, nom affiché, téléphone vérifié et photos.
+- MAIS LE TÉLÉPHONE N’EST PAS DANS LA LISTE. Il est servi sur la fiche
+  (`GET private-listings/{id}`) et sur la page de partage, pas sur l’index
+  (`GET private-listings`). La condition est la présence du paramètre de route,
+  dans `PrivateVehicleListingResource` : on appelle depuis une fiche, on ne
+  parcourt pas une liste pour téléphoner. Vingt fiches par page et aucune
+  authentification en faisaient sinon un annuaire de particuliers moissonnable
+  d’un seul appel. Ne pas « simplifier » cette condition sans lire le
+  commentaire qui l’accompagne : `$request->user() !== null` ferait disparaître
+  les boutons d’appel pour tous les acheteurs, aucun intergiciel ne résolvant
+  de compte sur ces routes.
+- Et la fiche reste publique : les identifiants sont séquentiels, donc un
+  moissonneur obstiné passe d’un appel pour vingt vendeurs à un appel par
+  vendeur. Fermer vraiment la porte demande de poser `firebase` sur la lecture
+  publique — une décision de produit, qui contredirait la ligne ci-dessus, et
+  qui n’est pas prise.
+- La page de partage porte `noindex, nofollow`. C’est la seule partie
+  irréversible : une annonce retirée rend 404, mais un cache de moteur de
+  recherche ne se reprend pas. La balise est dans la vue et JAMAIS dans
+  `robots.txt`, qu’un `Disallow` ferait respecter par `facebookexternalhit` —
+  ce qui tuerait la vignette WhatsApp, donc la raison d’être de la page.
 - Le garage reste privé : aucun VIN, immatriculation, assurance, historique de
   carburant ou entretien n’est copié dans l’annonce.
 - Envoi après au moins une photo, un numéro joignable et le consentement à
