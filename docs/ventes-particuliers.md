@@ -1,4 +1,4 @@
-# Vente de véhicules entre particuliers — préparation locale
+# Vente de véhicules entre particuliers
 
 Cette fonction est isolée du stock AutoParc et de l’espace professionnel.
 Aucun accompagnement par un partenaire, aucune commission ni aucun transfert
@@ -73,6 +73,17 @@ peuvent rendre 401 avant ce contrôle pour une requête non authentifiée.
 L’application ne montre ni entrée ni route de cette fonction sans la constante
 de compilation `ENABLE_PRIVATE_SALES=true`. Cela permet d’examiner les changements
 avant de décider de leur intégration.
+
+Le déploiement Render décrit dans `render.yaml` fournit maintenant explicitement
+`PRIVATE_SALES_ENABLED=true`. Les builds Android de diffusion doivent aussi porter
+`--dart-define=ENABLE_PRIVATE_SALES=true`. Cela ouvre les entrées du module dans
+les nouvelles versions de l’application ; une ancienne version déjà installée
+ne peut pas recevoir cette constante à distance.
+
+Sur un service Render existant, synchroniser le Blueprint ou ajouter cette
+variable dans son environnement, puis redémarrer/déployer le service. Le cache
+de configuration Laravel est reconstruit au démarrage. Confirmer ensuite une
+réponse 200 sur `GET /api/private-listings`, même si la liste est vide.
 
 ## Mise en route sur une base locale jetable
 
