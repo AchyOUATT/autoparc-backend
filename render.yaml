@@ -123,6 +123,12 @@ services:
       - key: MOBILE_STORE_URL
         sync: false          # fiche Play ; défaut : bf.autoparc.app
 
+      # ── Annonces des particuliers ───────────────────────────────────
+      # Activation explicite pour ce service. La configuration PHP reste
+      # fermee si la variable est absente ou invalide dans un autre environnement.
+      - key: PRIVATE_SALES_ENABLED
+        value: "true"
+
       # ── Interrupteur de l'espace partenaire ─────────────────────────
       #
       # NE PAS METTRE À `true` AVANT D'AVOIR FAIT LES DEUX ÉTAPES CI-DESSOUS.
