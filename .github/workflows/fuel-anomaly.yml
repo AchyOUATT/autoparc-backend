@@ -33,11 +33,11 @@ jobs:
     steps:
       - name: Verifier la configuration
         env:
-          URL: ${{ secrets.TASKS_URL }}
+          URL: ${{ secrets.TASKS_URL || 'https://autoparc-backend.onrender.com/api/tasks/reminders' }}
           JETON: ${{ secrets.TASKS_SECRET }}
         run: |
           if [ -z "$URL" ] || [ -z "$JETON" ]; then
-            echo "::error::Les secrets TASKS_URL et TASKS_SECRET doivent etre definis dans le depot."
+            echo "::error::Le secret TASKS_SECRET doit etre defini dans le depot et correspondre a Render. TASKS_URL est facultatif pour ce service."
             exit 1
           fi
 
@@ -46,7 +46,7 @@ jobs:
         # deduit comme dans le reveil d'instance du workflow voisin, plutot que
         # d'ajouter un second secret a tenir en phase avec le premier.
         env:
-          URL: ${{ secrets.TASKS_URL }}
+          URL: ${{ secrets.TASKS_URL || 'https://autoparc-backend.onrender.com/api/tasks/reminders' }}
           JETON: ${{ secrets.TASKS_SECRET }}
           A_BLANC: ${{ inputs.dry_run }}
         run: |

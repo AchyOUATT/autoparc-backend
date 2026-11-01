@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Services\FcmService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -40,29 +42,46 @@ class ScheduledTasksTest extends TestCase
         );
     }
 
+    public static function tachesExposees(): array
+    {
+        return [
+            'rappels' => ['reminders', 'reminders:maintenance'],
+            'consommation' => ['fuel', 'alerts:fuel-anomaly'],
+        ];
+    }
+
+    public static function nomsTaches(): array
+    {
+        return array_map(fn (array $tache) => [$tache[0]], self::tachesExposees());
+    }
+
     // ── La garde ─────────────────────────────────────────────────────
 
-    public function test_sans_secret_configure_la_route_est_fermee(): void
+    #[DataProvider('nomsTaches')]
+    public function test_sans_secret_configure_la_route_est_fermee(string $tache): void
     {
         // Le cas qui compte. Un oubli de variable d'environnement doit fermer
         // la porte, jamais l'ouvrir — y compris quand l'appelant n'envoie rien.
         $this->avecSecret(null);
+        Artisan::shouldReceive('call')->never();
 
-        $this->declencher(null)->assertStatus(401);
-        $this->declencher('')->assertStatus(401);
-        $this->declencher('nimporte quoi')->assertStatus(401);
+        $this->declencher(null, $tache)->assertStatus(401);
+        $this->declencher('', $tache)->assertStatus(401);
+        $this->declencher('nimporte quoi', $tache)->assertStatus(401);
     }
 
-    public function test_un_jeton_absent_ou_faux_est_refuse(): void
+    #[DataProvider('nomsTaches')]
+    public function test_un_jeton_absent_ou_faux_est_refuse(string $tache): void
     {
         // Trois tentatives seulement : le plafond de cadence compte AUSSI les
         // appels refuses, ce qui est voulu — c'est ce qui freine un essai de
         // force brute sur le jeton.
         $this->avecSecret();
+        Artisan::shouldReceive('call')->never();
 
-        $this->declencher(null)->assertStatus(401);
-        $this->declencher('')->assertStatus(401);
-        $this->declencher('presque-le-bon')->assertStatus(401);
+        $this->declencher(null, $tache)->assertStatus(401);
+        $this->declencher('', $tache)->assertStatus(401);
+        $this->declencher('presque-le-bon', $tache)->assertStatus(401);
     }
 
     public function test_un_prefixe_correct_ne_suffit_pas(): void
@@ -110,12 +129,34 @@ class ScheduledTasksTest extends TestCase
         $this->assertStringContainsString("n'a ete emis", $reponse->json('output'));
     }
 
+    #[DataProvider('tachesExposees')]
+    public function test_chaque_tache_exposee_transmet_le_mode_a_blanc_sans_notification(string $tache, string $commande): void
+    {
+        $this->avecSecret();
+        $this->mock(FcmService::class, function ($mock) {
+            $mock->shouldNotReceive('sendToToken');
+            $mock->shouldNotReceive('sendToTokens');
+        });
+        Artisan::shouldReceive('call')->once()->with($commande, ['--dry-run' => true])->andReturn(0);
+        Artisan::shouldReceive('output')->once()->andReturn("Rien n'a ete emis.\n");
+
+        $this->declencher(self::SECRET, $tache, ['dry_run' => true])
+            ->assertOk()
+            ->assertJsonPath('task', $tache)
+            ->assertJsonPath('command', $commande)
+            ->assertJsonPath('dry_run', true)
+            ->assertJsonPath('exit_code', 0)
+            ->assertJsonPath('output', "Rien n'a ete emis.");
+        $this->assertDatabaseCount('app_notifications', 0);
+    }
+
     public function test_une_tache_inconnue_n_est_pas_une_commande_arbitraire(): void
     {
         // La route ne doit jamais devenir un « lance ce que tu veux » : seuls
         // les noms declares passent, et la contrainte est posee sur la route
         // elle-meme.
         $this->avecSecret();
+        Artisan::shouldReceive('call')->never();
 
         $this->declencher(self::SECRET, tache: 'migrate-fresh')->assertNotFound();
         $this->declencher(self::SECRET, tache: 'db:wipe')->assertNotFound();
@@ -126,12 +167,14 @@ class ScheduledTasksTest extends TestCase
         // Trois par minute : un ordonnanceur appelle une fois par jour, et la
         // tache balaie le parc entier.
         $this->avecSecret();
+        Artisan::shouldReceive('call')->times(3)->withAnyArgs()->andReturn(0);
+        Artisan::shouldReceive('output')->times(3)->andReturn('Tache terminee.');
 
         for ($i = 0; $i < 3; $i++) {
-            $this->declencher(self::SECRET)->assertOk();
+            $this->declencher(self::SECRET, $i % 2 === 0 ? 'reminders' : 'fuel')->assertOk();
         }
 
-        $this->declencher(self::SECRET)->assertStatus(429);
+        $this->declencher(self::SECRET, 'fuel')->assertStatus(429);
     }
 
     public function test_un_echec_de_la_commande_remonte_en_erreur(): void
@@ -144,6 +187,18 @@ class ScheduledTasksTest extends TestCase
 
         $this->declencher(self::SECRET)
             ->assertStatus(500)
+            ->assertJsonPath('exit_code', 1);
+    }
+
+    public function test_un_echec_de_l_alerte_carburant_remonte_en_erreur(): void
+    {
+        $this->avecSecret();
+        Artisan::shouldReceive('call')->once()->with('alerts:fuel-anomaly', [])->andReturn(1);
+        Artisan::shouldReceive('output')->once()->andReturn('Echec de la tache.');
+
+        $this->declencher(self::SECRET, 'fuel')
+            ->assertStatus(500)
+            ->assertJsonPath('task', 'fuel')
             ->assertJsonPath('exit_code', 1);
     }
 }

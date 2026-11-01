@@ -73,9 +73,26 @@ URL, identifiant lorsqu’il existe, empreinte du contenu, année ou période,
 protocole, valeurs originales et dates disponibles. Pour une agrégation,
 conserver aussi la requête/les filtres, l’effectif et la limitation de
 l’extraction. Une date ou une licence absente ne reçoit pas une valeur supposée.
-Les contenus de source importés sont archivés sur le disque local Laravel dans
-`consumption-sources/<sha256>` ; la provenance conserve leur empreinte pour
-permettre l’examen d’un résultat même si le fichier distant est republié.
+Les contenus de source importés sont archivés dans la table privée
+`consumption_source_archives`, adressés par leur empreinte SHA-256. Le contenu
+est compressé en gzip puis encodé en base64 ; sa taille originale et sa date
+d’archivage sont conservées. Le service d’archives décode le contenu et vérifie
+son empreinte à la lecture. Le descripteur d’archive dans la provenance permet
+de retrouver ces octets même si le fichier distant est republié.
+
+Sur Render, `CONSUMPTION_SOURCE_ARCHIVE_STORE=database` conserve ces pièces
+dans PostgreSQL plutôt que dans le conteneur éphémère. Elles ne sont ni
+publiées par une API, ni placées dans le compartiment public des photos.
+L’archive est consultable uniquement par un opérateur disposant d’un accès
+interne autorisé. Les sauvegardes et la conservation de la base doivent inclure
+cette table ; compression et déduplication réduisent le volume sans supprimer
+le besoin de capacité. Voir [la procédure Render](render-reliability.md).
+
+Une empreinte ne reconstitue pas un fichier perdu. Les archives écrites
+auparavant dans `consumption-sources/<sha256>` sur un conteneur déjà remplacé
+restent indisponibles. Un réimport du contenu vérifié peut recréer une archive
+manquante ; il ne doit ni réécrire une ancienne cote, ni substituer une autre
+révision à celle sélectionnée par le propriétaire.
 
 `consumption_imports` distingue les exécutions, leur source, leur périmètre,
 leur état, leurs fichiers et leurs dates. Un import local ou partiel ne

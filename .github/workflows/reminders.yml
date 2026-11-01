@@ -47,11 +47,11 @@ jobs:
     steps:
       - name: Verifier la configuration
         env:
-          URL: ${{ secrets.TASKS_URL }}
+          URL: ${{ secrets.TASKS_URL || 'https://autoparc-backend.onrender.com/api/tasks/reminders' }}
           JETON: ${{ secrets.TASKS_SECRET }}
         run: |
           if [ -z "$URL" ] || [ -z "$JETON" ]; then
-            echo "::error::Les secrets TASKS_URL et TASKS_SECRET doivent etre definis dans le depot."
+            echo "::error::Le secret TASKS_SECRET doit etre defini dans le depot et correspondre a Render. TASKS_URL est facultatif pour ce service."
             exit 1
           fi
 
@@ -61,14 +61,14 @@ jobs:
         # que l'appel qui compte ne se perde pas dans ce delai, et on ignore son
         # resultat — c'est un reveil, pas une verification.
         env:
-          URL: ${{ secrets.TASKS_URL }}
+          URL: ${{ secrets.TASKS_URL || 'https://autoparc-backend.onrender.com/api/tasks/reminders' }}
         run: |
           base="${URL%/api/*}"
           curl -s -o /dev/null --max-time 120 "${base}/api/catalog/part-categories" || true
 
       - name: Lancer les rappels
         env:
-          URL: ${{ secrets.TASKS_URL }}
+          URL: ${{ secrets.TASKS_URL || 'https://autoparc-backend.onrender.com/api/tasks/reminders' }}
           JETON: ${{ secrets.TASKS_SECRET }}
           A_BLANC: ${{ inputs.dry_run }}
         run: |

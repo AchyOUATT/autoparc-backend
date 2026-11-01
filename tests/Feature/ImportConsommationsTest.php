@@ -5,12 +5,12 @@ namespace Tests\Feature;
 use App\Models\Brand;
 use App\Models\Motorisation;
 use App\Models\VehicleModel;
+use App\Services\ConsumptionSourceArchive;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -85,7 +85,8 @@ class ImportConsommationsTest extends TestCase
         $this->assertSame('model_year', $camry->year_kind);
         $this->assertNull($camry->verified_at);
         $this->assertSame(hash_file('sha256', $this->extrait()), $camry->provenance['file_sha256']);
-        Storage::disk('local')->assertExists('consumption-sources/'.$camry->provenance['file_sha256']);
+        $this->assertSame('verified', $camry->provenance['archive']['status']);
+        $this->assertSame(file_get_contents($this->extrait()), app(ConsumptionSourceArchive::class)->read($camry->provenance['file_sha256']));
     }
 
     public function test_la_meme_voiture_a_deux_cotes_selon_sa_motorisation(): void
@@ -304,6 +305,42 @@ class ImportConsommationsTest extends TestCase
         $this->artisan('catalog:import-consommations', ['--si-plus-vieux-que' => 180])
             ->doesntExpectOutputToContain('rien a faire')->assertSuccessful();
         Http::assertSentCount(2);
+    }
+
+    public function test_un_import_recent_anterieur_aux_archives_durables_est_repris(): void
+    {
+        $this->canadaDisponible();
+        $this->artisan('catalog:import-consommations')->assertSuccessful();
+        $run = DB::table('consumption_imports')->latest('id')->first();
+        $files = json_decode($run->files, true);
+        unset($files['archive_store']);
+        DB::table('consumption_imports')->where('id', $run->id)->update(['files' => json_encode($files)]);
+        DB::table('consumption_source_archives')->delete();
+
+        $this->canadaDisponible();
+        $this->artisan('catalog:import-consommations', ['--si-plus-vieux-que' => 180])
+            ->doesntExpectOutputToContain('rien a faire')->assertSuccessful();
+
+        Http::assertSentCount(2);
+        $this->assertDatabaseCount('consumption_source_archives', 1);
+        $this->assertDatabaseCount('motorisations', 6);
+        $this->assertSame(2, DB::table('consumption_imports')->where('status', 'complete')->count());
+    }
+
+    public function test_un_import_recent_repare_une_archive_manquante_apres_restauration(): void
+    {
+        $this->canadaDisponible();
+        $this->artisan('catalog:import-consommations')->assertSuccessful();
+        $ids = Motorisation::orderBy('id')->pluck('id')->all();
+        DB::table('consumption_source_archives')->delete();
+
+        $this->canadaDisponible();
+        $this->artisan('catalog:import-consommations', ['--si-plus-vieux-que' => 180])
+            ->doesntExpectOutputToContain('rien a faire')->assertSuccessful();
+
+        Http::assertSentCount(2);
+        $this->assertDatabaseCount('consumption_source_archives', 1);
+        $this->assertSame($ids, Motorisation::orderBy('id')->pluck('id')->all());
     }
 
     public function test_une_table_vide_passe_la_garde(): void

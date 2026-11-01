@@ -40,15 +40,21 @@ class ScheduledTaskController extends Controller
     /** Les taches declenchables, et la commande artisan de chacune. */
     private const TACHES = [
         'reminders' => 'reminders:maintenance',
-        'fuel'      => 'alerts:fuel-anomaly',
+        'fuel' => 'alerts:fuel-anomaly',
     ];
+
+    /** The router and the dispatcher must expose the same finite task list. */
+    public static function allowedTasks(): array
+    {
+        return array_keys(self::TACHES);
+    }
 
     public function run(Request $request, string $tache): JsonResponse
     {
         if (! $this->autorise($request)) {
             Log::warning('Declenchement de tache refuse', [
                 'tache' => $tache,
-                'ip'    => $request->ip(),
+                'ip' => $request->ip(),
             ]);
 
             return response()->json(['message' => 'Jeton de tache invalide.'], 401);
@@ -66,22 +72,22 @@ class ScheduledTaskController extends Controller
         $sortie = trim(Artisan::output());
 
         Log::info('Tache planifiee executee', [
-            'tache'   => $tache,
+            'tache' => $tache,
             'dry_run' => $dryRun,
-            'code'    => $code,
-            'sortie'  => $sortie,
+            'code' => $code,
+            'sortie' => $sortie,
         ]);
 
         return response()->json([
-            'task'     => $tache,
-            'command'  => $commande,
-            'dry_run'  => $dryRun,
+            'task' => $tache,
+            'command' => $commande,
+            'dry_run' => $dryRun,
             'exit_code' => $code,
 
             // Renvoyee telle quelle : c'est elle qui s'affiche dans le journal
             // GitHub Actions, et qui permet de voir combien de rappels sont
             // partis sans avoir a ouvrir quoi que ce soit d'autre.
-            'output'   => $sortie,
+            'output' => $sortie,
         ], $code === 0 ? 200 : 500);
     }
 
