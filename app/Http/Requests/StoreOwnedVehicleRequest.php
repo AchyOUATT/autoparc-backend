@@ -58,6 +58,11 @@ class StoreOwnedVehicleRequest extends FormRequest
             }
         }
 
+        if (is_string($this->input('specification_market'))) {
+            $market = strtoupper(trim($this->input('specification_market')));
+            $this->merge(['specification_market' => $market === '' ? null : $market]);
+        }
+
         if (is_string($this->input('model_libre'))) {
             $this->merge(['model_libre' => trim((string) $this->input('model_libre'))]);
         }
@@ -85,6 +90,9 @@ class StoreOwnedVehicleRequest extends FormRequest
             'color_id'           => ['nullable', 'exists:colors,id'],
 
             'manufacturing_year' => ['required', 'integer', 'min:1950', 'max:'.(now()->year + 1)],
+            // Explicit specification values: never inferred from registration or manufacture.
+            'model_year' => ['nullable', 'integer', 'min:1950', 'max:'.(now()->year + 1)],
+            'specification_market' => ['nullable', 'string', 'max:20', 'regex:/^[A-Z0-9_-]+$/'],
             'vin'                => ['nullable', 'string', 'size:17'],
             // Code moteur fourni par le decodage VIN (NHTSA) ou saisi manuellement.
             // Exemples : "1NZ", "K20", "OM651". Max 20 chars, tout format accepte.
@@ -124,6 +132,23 @@ class StoreOwnedVehicleRequest extends FormRequest
                 $this->only(['brand_id', 'vehicle_model_id', 'trim_id', 'motorisation_id']),
                 $this->route('ownedVehicle'),
             );
+
+            // Reject a newly selected incompatible reference. A retained older
+            // choice remains an audit trail when the owner corrects the engine;
+            // the response reassesses it and removes its primary value.
+            if ($validator->errors()->isEmpty() && $this->filled('motorisation_id')) {
+                $reference = \App\Models\Motorisation::find($this->input('motorisation_id'));
+                $vehicle = $this->route('ownedVehicle')?->replicate() ?? new \App\Models\OwnedVehicle;
+                $vehicle->fill($this->only(array_keys($this->rules())));
+                $vehicle->unsetRelations();
+                $references = app(\App\Services\ConsumptionReference::class);
+                if ($reference !== null && $references->contradictions($reference, $references->context($vehicle)) !== []) {
+                    $validator->errors()->add('motorisation_id', 'Cette reference contredit les caracteristiques du vehicule.');
+                }
+                if ($reference?->reference_status === 'withdrawn') {
+                    $validator->errors()->add('motorisation_id', 'Cette reference a ete retiree.');
+                }
+            }
         });
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\CotesOfficielles;
 use App\Support\PartnerListingPresentation;
 use App\Support\PartnerMedia;
 use App\Support\PhotoPartage;
@@ -80,12 +81,11 @@ class VehicleResource extends JsonResource
                 'co2_g_km'            => $this->co2_g_km,
                 'fuel_tank_liters'    => $this->fuel_tank_liters,
 
-                // Fourchette officielle du modele, sur la fiche detaillee
-                // uniquement. Une annonce connait son modele et son
-                // millesime, rarement sa motorisation : annoncer une valeur
-                // unique reviendrait a choisir un moteur au hasard pour le
-                // compte de l'acheteur.
-                'official'            => $this->resource->cotesOfficielles,
+                // Historical range retired: it mixed engines, markets and
+                // protocols under the first source's name. Seller-entered
+                // consumption above remains separate and unchanged.
+                'official'            => null,
+                'references'          => $this->consumptionReferences($request),
             ],
 
             'commercial' => [
@@ -254,5 +254,21 @@ class VehicleResource extends JsonResource
         ];
 
         return PartnerListingPresentation::present($data, $this->resource, $request, 'vehicle');
+    }
+
+    private function consumptionReferences(Request $request): array
+    {
+        if ($this->resource->cotesOfficielles === null) {
+            return [];
+        }
+
+        // Do not alter the request context shared with any other resource.
+        $referenceRequest = $request->duplicate();
+        $referenceRequest->attributes->set('consumption_reference_context', CotesOfficielles::context($this->resource));
+
+        return array_map(
+            fn ($reference) => (new MotorisationResource($reference))->resolve($referenceRequest),
+            $this->resource->cotesOfficielles,
+        );
     }
 }

@@ -7,7 +7,10 @@ use App\Models\Motorisation;
 use App\Models\VehicleModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Factory;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -42,6 +45,23 @@ class ImportConsommationsTest extends TestCase
         ))->assertSuccessful();
     }
 
+    private function canadaDisponible(array $resources = [], ?string $content = null): void
+    {
+        Http::swap(new Factory);
+        Http::fake([
+            'open.canada.ca/*' => Http::response(['result' => [
+                'license_id' => 'test-license', 'license_title' => 'Source-provided license',
+                'license_url' => 'https://license.example.test',
+                'resources' => $resources ?: [[
+                    'id' => 'resource-2013',
+                    'url' => 'https://exemple.test/adjusted-5-cycle-fuel-consumption-ratings.csv',
+                    'name' => 'Adjusted five-cycle ratings',
+                ]],
+            ]]),
+            'exemple.test/*' => Http::response($content ?? file_get_contents($this->extrait())),
+        ]);
+    }
+
     public function test_les_cotes_sont_lues_avec_leurs_valeurs(): void
     {
         $this->importer();
@@ -59,7 +79,13 @@ class ImportConsommationsTest extends TestCase
         $this->assertSame('X', $camry->fuel_code);
         $this->assertSame(190, $camry->co2_g_km);
         $this->assertSame('nrcan', $camry->source);
-        $this->assertSame('5-cycle', $camry->cycle);
+        $this->assertSame('unknown', $camry->cycle);
+        $this->assertSame('unknown', $camry->method);
+        $this->assertSame('CA', $camry->market);
+        $this->assertSame('model_year', $camry->year_kind);
+        $this->assertNull($camry->verified_at);
+        $this->assertSame(hash_file('sha256', $this->extrait()), $camry->provenance['file_sha256']);
+        Storage::disk('local')->assertExists('consumption-sources/'.$camry->provenance['file_sha256']);
     }
 
     public function test_la_meme_voiture_a_deux_cotes_selon_sa_motorisation(): void
@@ -97,27 +123,33 @@ class ImportConsommationsTest extends TestCase
         $this->assertSame($premier, Motorisation::count());
     }
 
-    public function test_une_cote_corrigee_a_la_source_est_mise_a_jour(): void
+    public function test_une_correction_cree_une_revision_sans_modifier_l_ancienne(): void
     {
         $this->importer();
-
-        Motorisation::where('model_raw', 'Camry')->where('engine_l', 2.5)
-            ->update(['consumption_combined' => 99.9]);
-
-        $this->importer();
-
-        $this->assertEqualsWithDelta(
-            8.2,
-            (float) Motorisation::where('model_raw', 'Camry')->where('engine_l', 2.5)->value('consumption_combined'),
-            0.01,
-        );
+        $ancienne = Motorisation::where('model_raw', 'Camry')->where('engine_l', 2.5)->firstOrFail();
+        $path = tempnam(sys_get_temp_dir(), 'nrcan-revision-');
+        try {
+            file_put_contents($path, str_replace('9.5,6.6,8.2,', '9.5,6.6,8.4,', file_get_contents($this->extrait())));
+            $this->artisan('catalog:import-consommations', ['--fichier' => [$path]])->assertSuccessful();
+            $nouvelle = Motorisation::where('identity_key', $ancienne->identity_key)->where('id', '!=', $ancienne->id)->firstOrFail();
+            $this->assertNotSame($ancienne->id, $nouvelle->id);
+            $this->assertEquals(8.2, (float) $ancienne->fresh()->consumption_combined);
+            $this->assertEquals(8.4, (float) $nouvelle->consumption_combined);
+            $this->assertTrue($ancienne->fresh()->is_current, 'Sans chronologie source, les deux references restent des alternatives.');
+            // Re-reading an old file does not silently reactivate its revision.
+            $this->importer();
+            $this->assertTrue($ancienne->fresh()->is_current, 'Sans chronologie source, les deux references restent des alternatives.');
+            $this->assertTrue($nouvelle->fresh()->is_current);
+        } finally {
+            unlink($path);
+        }
     }
 
     public function test_le_rattachement_choisit_le_modele_le_plus_precis(): void
     {
         $toyota = Brand::create(['name' => 'Toyota']);
-        $camry  = VehicleModel::create(['brand_id' => $toyota->id, 'name' => 'Camry']);
-        $rav4   = VehicleModel::create(['brand_id' => $toyota->id, 'name' => 'RAV4']);
+        $camry = VehicleModel::create(['brand_id' => $toyota->id, 'name' => 'Camry']);
+        $rav4 = VehicleModel::create(['brand_id' => $toyota->id, 'name' => 'RAV4']);
 
         $this->importer();
 
@@ -248,19 +280,30 @@ class ImportConsommationsTest extends TestCase
     // source se derobe, parce qu'un journal de deploiement est le seul organe
     // d'observation dont dispose un plan sans Shell.
 
-    public function test_la_garde_d_age_evite_de_retelecharger(): void
+    public function test_la_garde_d_age_evite_de_retelecharger_un_catalogue_complet(): void
+    {
+        $this->canadaDisponible();
+        $this->artisan('catalog:import-consommations')->assertSuccessful();
+        $reference = Motorisation::firstOrFail();
+        $this->assertSame('adjustment', $reference->method);
+        $this->assertSame('5-cycle', $reference->cycle);
+        $this->assertSame('test-license', $reference->provenance['license_id']);
+        $this->assertNull($reference->verified_at);
+        $this->assertDatabaseHas('consumption_imports', ['source' => 'nrcan', 'scope' => 'catalogue', 'status' => 'complete']);
+        Http::fake();
+        $this->artisan('catalog:import-consommations', ['--si-plus-vieux-que' => 180])
+            ->expectsOutputToContain('rien a faire')->assertSuccessful();
+        Http::assertNothingSent();
+    }
+
+    public function test_un_fichier_local_ne_certifie_pas_la_fraicheur_de_la_source(): void
     {
         $this->importer();
-
-        Http::fake();
-
+        $this->assertDatabaseHas('consumption_imports', ['scope' => 'local_files', 'status' => 'partial']);
+        $this->canadaDisponible();
         $this->artisan('catalog:import-consommations', ['--si-plus-vieux-que' => 180])
-            ->expectsOutputToContain('rien a faire')
-            ->assertSuccessful();
-
-        // La vraie promesse n'est pas le message, c'est l'absence d'appel :
-        // c'est le telechargement qu'on evite, pas l'ecriture.
-        Http::assertNothingSent();
+            ->doesntExpectOutputToContain('rien a faire')->assertSuccessful();
+        Http::assertSentCount(2);
     }
 
     public function test_une_table_vide_passe_la_garde(): void
@@ -273,19 +316,14 @@ class ImportConsommationsTest extends TestCase
         $this->assertSame(6, Motorisation::count());
     }
 
-    public function test_des_cotes_trop_vieilles_relancent_l_import(): void
+    public function test_un_journal_ancien_relance_l_import_meme_si_les_lignes_sont_recentes(): void
     {
-        $this->importer();
-        Motorisation::query()->update(['updated_at' => now()->subDays(400)]);
-
-        // Ressources naturelles Canada republie chaque millesime : une table
-        // non vide ne doit pas interdire la mise a jour pour autant.
-        $this->importer(['--si-plus-vieux-que' => 180]);
-
-        $this->assertTrue(
-            Motorisation::query()->max('updated_at') > now()->subMinute(),
-            'Un import qui a eu lieu rafraichit la date, donc repousse la garde.',
-        );
+        $this->canadaDisponible();
+        $this->artisan('catalog:import-consommations')->assertSuccessful();
+        DB::table('consumption_imports')->update(['completed_at' => now()->subDays(400)]);
+        Motorisation::query()->update(['updated_at' => now()]);
+        $this->artisan('catalog:import-consommations', ['--si-plus-vieux-que' => 180])->assertSuccessful();
+        $this->assertSame(2, DB::table('consumption_imports')->where('status', 'complete')->count());
     }
 
     public function test_un_age_de_zero_jour_force_l_import(): void
@@ -370,7 +408,7 @@ class ImportConsommationsTest extends TestCase
         Http::fake(['*' => Http::response(['results' => []])]);
 
         $this->artisan('catalog:import-consommations', [
-            '--source'            => 'eea',
+            '--source' => 'eea',
             '--si-plus-vieux-que' => 180,
         ])
             ->doesntExpectOutputToContain('rien a faire')
@@ -381,11 +419,11 @@ class ImportConsommationsTest extends TestCase
     {
         // Une cote europeenne fraiche, et rien du cote canadien.
         Motorisation::create([
-            'source'     => 'eea',
-            'cycle'      => 'wltp',
+            'source' => 'eea',
+            'cycle' => 'wltp',
             'model_year' => 2024,
-            'make_raw'   => 'Toyota',
-            'model_raw'  => 'Hilux',
+            'make_raw' => 'Toyota',
+            'model_raw' => 'Hilux',
         ]);
 
         Http::fake();
@@ -393,7 +431,7 @@ class ImportConsommationsTest extends TestCase
         // Le canadien n'a jamais tourne : sa garde doit laisser passer, meme
         // si la table porte une ligne ecrite a l'instant par l'autre source.
         $this->artisan('catalog:import-consommations', [
-            '--fichier'           => [$this->extrait()],
+            '--fichier' => [$this->extrait()],
             '--si-plus-vieux-que' => 180,
         ])->assertSuccessful();
 
@@ -408,10 +446,10 @@ class ImportConsommationsTest extends TestCase
         Http::fake();
 
         $this->artisan('catalog:import-consommations', [
-            '--fichier'           => [$this->extrait()],
+            '--fichier' => [$this->extrait()],
             '--si-plus-vieux-que' => 180,
         ])
-            ->expectsOutputToContain('rien a faire')
+            ->doesntExpectOutputToContain('rien a faire')
             ->assertSuccessful();
 
         Http::assertNothingSent();
@@ -419,15 +457,58 @@ class ImportConsommationsTest extends TestCase
 
     public function test_le_journal_nomme_la_source_qu_il_saute(): void
     {
-        // Deux lignes identiques dans un journal de deploiement laisseraient
-        // croire qu'un seul import a ete saute. Le plan gratuit de Render
-        // n'offre pas de Shell : ce journal est le seul organe d'observation.
-        $this->importer();
+        $this->canadaDisponible();
+        $this->artisan('catalog:import-consommations')->assertSuccessful();
 
         Http::fake();
 
         $this->artisan('catalog:import-consommations', ['--si-plus-vieux-que' => 180])
             ->expectsOutputToContain('Cotes nrcan importees')
             ->assertSuccessful();
+    }
+
+    public function test_un_telechargement_partiel_ne_rafraichit_pas_la_source(): void
+    {
+        $resources = [
+            ['id' => 'ok', 'url' => 'https://exemple.test/fuel-consumption-ratings.csv'],
+            ['id' => 'missing', 'url' => 'https://absent.test/fuel-consumption-ratings.csv'],
+        ];
+        $this->canadaDisponible($resources);
+        Http::fake(['absent.test/*' => Http::response('', 503)]);
+        $this->artisan('catalog:import-consommations')->expectsOutputToContain('Import partiel')->assertFailed();
+        $this->assertSame(6, Motorisation::count());
+        $this->assertDatabaseHas('consumption_imports', ['source' => 'nrcan', 'status' => 'partial']);
+        $this->assertDatabaseMissing('consumption_imports', ['source' => 'nrcan', 'status' => 'complete']);
+    }
+
+    public function test_une_revision_plus_ancienne_recuperee_apres_ne_devient_pas_courante(): void
+    {
+        $url = 'https://exemple.test/fuel-consumption-ratings.csv';
+        $resources = [['id' => 'ratings', 'url' => $url, 'last_modified' => '2026-10-20T00:00:00Z']];
+        $this->canadaDisponible($resources);
+        $this->artisan('catalog:import-consommations')->assertSuccessful();
+        $recent = Motorisation::where('model_raw', 'Camry')->where('engine_l', 2.5)->firstOrFail();
+        $this->canadaDisponible(
+            [['id' => 'ratings', 'url' => $url, 'last_modified' => '2026-10-01T00:00:00Z']],
+            str_replace('9.5,6.6,8.2,', '9.5,6.6,7.9,', file_get_contents($this->extrait())),
+        );
+        $this->artisan('catalog:import-consommations')->assertSuccessful();
+        $old = Motorisation::where('identity_key', $recent->identity_key)->where('id', '!=', $recent->id)->firstOrFail();
+        $this->assertFalse($old->is_current);
+        $this->assertTrue($recent->fresh()->is_current);
+        $this->assertEquals(8.2, (float) $recent->fresh()->consumption_combined);
+    }
+
+    public function test_un_echec_plus_recent_qu_un_import_complet_impose_la_reprise(): void
+    {
+        $this->canadaDisponible();
+        $this->artisan('catalog:import-consommations')->assertSuccessful();
+        Http::swap(new Factory);
+        Http::fake(['*' => Http::response('', 503)]);
+        $this->artisan('catalog:import-consommations')->assertFailed();
+        $this->canadaDisponible();
+        $this->artisan('catalog:import-consommations', ['--si-plus-vieux-que' => 180])
+            ->doesntExpectOutputToContain('rien a faire')->assertSuccessful();
+        $this->assertSame(3, DB::table('consumption_imports')->count());
     }
 }

@@ -17,18 +17,25 @@ class Motorisation extends Model
         'source', 'cycle', 'model_year', 'make_raw', 'model_raw', 'vehicle_class',
         'engine_l', 'cylinders', 'transmission_code', 'fuel_code',
         'consumption_city', 'consumption_highway', 'consumption_combined', 'co2_g_km',
-        'brand_id', 'vehicle_model_id',
+        'brand_id', 'vehicle_model_id', 'trim_id', 'trim_application_id', 'engine_code',
+        'cle_source', 'identity_key', 'is_current', 'power_kw', 'displacement_cc',
+        'market', 'year_kind', 'method', 'hybrid_type', 'reference_status', 'provenance', 'verified_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'model_year'           => 'integer',
-            'cylinders'            => 'integer',
-            'co2_g_km'             => 'integer',
-            'engine_l'             => 'decimal:1',
-            'consumption_city'     => 'decimal:1',
-            'consumption_highway'  => 'decimal:1',
+            'model_year' => 'integer',
+            'is_current' => 'boolean',
+            'power_kw' => 'decimal:1',
+            'displacement_cc' => 'integer',
+            'provenance' => 'array',
+            'verified_at' => 'datetime',
+            'cylinders' => 'integer',
+            'co2_g_km' => 'integer',
+            'engine_l' => 'decimal:1',
+            'consumption_city' => 'decimal:1',
+            'consumption_highway' => 'decimal:1',
             'consumption_combined' => 'decimal:1',
         ];
     }
@@ -41,6 +48,16 @@ class Motorisation extends Model
     public function vehicleModel()
     {
         return $this->belongsTo(VehicleModel::class);
+    }
+
+    public function trim()
+    {
+        return $this->belongsTo(Trim::class);
+    }
+
+    public function trimApplication()
+    {
+        return $this->belongsTo(TrimApplication::class);
     }
 
     /**
@@ -80,7 +97,7 @@ class Motorisation extends Model
     {
         return match ($this->source) {
             'nrcan' => 'Ressources naturelles Canada',
-            'eea'   => 'Agence europeenne pour l\'environnement',
+            'eea' => 'Agence europeenne pour l\'environnement',
             default => $this->source,
         };
     }
@@ -95,11 +112,12 @@ class Motorisation extends Model
     public function getLibelleCycleAttribute(): string
     {
         return match ($this->cycle) {
-            '5-cycle' => 'essai canadien, cinq cycles',
+            'unknown' => 'protocole non documenté',
+            '5-cycle' => 'méthode canadienne, cinq cycles',
             '2-cycle' => 'essai canadien, deux cycles',
-            'wltp'    => 'norme WLTP',
-            'nedc'    => 'ancienne norme NEDC',
-            default   => $this->cycle,
+            'wltp' => 'norme WLTP',
+            'nedc' => 'ancienne norme NEDC',
+            default => $this->cycle,
         };
     }
 
@@ -122,8 +140,8 @@ class Motorisation extends Model
             'AV' => 'boîte à variation continue',
             'AS' => 'boîte auto.',
             'AM' => 'boîte robotisée',
-            'A'  => 'boîte auto.',
-            'M'  => 'boîte manuelle',
+            'A' => 'boîte auto.',
+            'M' => 'boîte manuelle',
         };
 
         return isset($m[2]) ? $famille.' '.$m[2] : $famille;
@@ -133,16 +151,15 @@ class Motorisation extends Model
     public static function libelleCarburant(?string $code): ?string
     {
         return match ($code) {
-            'X'     => 'Essence ordinaire',
-            'Z'     => 'Essence super',
-            'D'     => 'Diesel',
-            'E'     => 'Ethanol (E85)',
-            'N'     => 'Gaz naturel',
-            'L'     => 'GPL',
-            'B'     => 'Electrique',
-            // Sa cote officielle demarre batterie pleine : elle ne dit rien
-            // de ce que la voiture boit une fois la batterie vide.
-            'H'     => 'Hybride rechargeable',
+            'X' => 'Essence ordinaire',
+            'Z' => 'Essence super',
+            'D' => 'Diesel',
+            'E' => 'Ethanol (E85)',
+            'N' => 'Gaz naturel',
+            'L' => 'GPL',
+            'B' => 'Electrique',
+            // The mixed European fuel label alone does not distinguish HEV/PHEV.
+            'H' => 'Hybride (type à préciser)',
             default => null,
         };
     }

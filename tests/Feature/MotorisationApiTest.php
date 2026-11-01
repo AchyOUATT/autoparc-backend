@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\Brand;
+use App\Models\EngineType;
 use App\Models\Motorisation;
 use App\Models\OwnedVehicle;
 use App\Models\User;
+use App\Models\Vehicle;
 use App\Models\VehicleModel;
+use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -37,7 +40,7 @@ class MotorisationApiTest extends TestCase
         // La factory de vehicule pioche un type de moteur, une couleur et une
         // motricite dans les donnees de reference : sans elles, elle ne peut
         // rien construire.
-        $this->seed([\Database\Seeders\ReferenceDataSeeder::class]);
+        $this->seed([ReferenceDataSeeder::class]);
 
         $toyota = Brand::firstOrCreate(['slug' => 'toyota'], ['name' => 'Toyota']);
         $this->camry = VehicleModel::create([
@@ -75,26 +78,28 @@ class MotorisationApiTest extends TestCase
         $premiere = $reponse->json('data.0');
         $this->assertSame('2,5 l 4 cyl. boîte auto. 6', $premiere['label']);
         $this->assertSame('Essence ordinaire', $premiere['fuel']);
-        $this->assertSame(8.2, $premiere['consumption']['combined_l_100km']);
-        $this->assertSame(9.5, $premiere['consumption']['city_l_100km']);
+        $this->assertSame(8.2, $premiere['consumption']['reference_combined_l_100km']);
+        $this->assertSame(9.5, $premiere['consumption']['reference_city_l_100km']);
 
         // Sans provenance ni cycle, le chiffre ne se discute pas.
         $this->assertSame('Ressources naturelles Canada', $premiere['source']['label']);
-        $this->assertSame('essai canadien, cinq cycles', $premiere['source']['cycle']);
+        $this->assertSame('méthode canadienne, cinq cycles', $premiere['source']['cycle']);
     }
 
-    public function test_une_meme_motorisation_ne_se_repete_pas_d_un_millesime_a_l_autre(): void
+    public function test_les_millesimes_restent_distincts_sans_promouvoir_une_annee_voisine(): void
     {
-        // Le meme moteur revient chaque annee dans les sources : la liste
-        // proposee au proprietaire ne doit pas lui offrir six fois le meme.
+        // Each year is source evidence in its own right; a nearby model year
+        // must remain visible as a comparison, not silently replace the requested one.
         foreach ([2011, 2012, 2013, 2014] as $annee) {
             $this->cote(['model_year' => $annee, 'cle_source' => 'camry-'.$annee]);
         }
 
         $this->getJson('/api/catalog/motorisations?vehicle_model_id='.$this->camry->id.'&year=2013')
             ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.model_year', 2013);
+            ->assertJsonCount(4, 'data')
+            ->assertJsonPath('meta.complete', true)
+            ->assertJsonPath('meta.automatic_selection', false)
+            ->assertJsonPath('data.0.match.level', 'incomplete');
     }
 
     public function test_une_cylindree_ronde_garde_sa_decimale(): void
@@ -115,32 +120,33 @@ class MotorisationApiTest extends TestCase
 
     // ── Fiche d'une annonce ──────────────────────────────────────────
 
-    public function test_la_fiche_d_une_annonce_annonce_une_fourchette(): void
+    public function test_la_fiche_d_une_annonce_preserve_les_references_sans_fourchette_arbitraire(): void
     {
         $this->cote();
         $this->cote(['engine_l' => 3.5, 'consumption_combined' => 9.4, 'cle_source' => 'v6']);
 
-        $annonce = \App\Models\Vehicle::factory()->create([
-            'brand_id'           => $this->camry->brand_id,
-            'vehicle_model_id'   => $this->camry->id,
+        $annonce = Vehicle::factory()->create([
+            'brand_id' => $this->camry->brand_id,
+            'vehicle_model_id' => $this->camry->id,
             'manufacturing_year' => 2013,
+            'engine_type_id' => EngineType::where('code', 'petrol')->value('id'),
+            'transmission' => null,
+            'gear_count' => null,
         ]);
 
         // Une annonce connait son modele, rarement sa motorisation : annoncer
         // 8,2 seul reviendrait a choisir un moteur pour l'acheteur.
         $this->getJson('/api/catalog/vehicles/'.$annonce->id)
             ->assertOk()
-            ->assertJsonPath('data.consumption.official.min', 8.2)
-            ->assertJsonPath('data.consumption.official.max', 9.4)
-            ->assertJsonPath('data.consumption.official.motorisations', 2)
-            ->assertJsonPath('data.consumption.official.source', 'Ressources naturelles Canada');
+            ->assertJsonPath('data.consumption.official', null)
+            ->assertJsonCount(2, 'data.consumption.references');
     }
 
     public function test_la_liste_des_annonces_ne_paie_pas_ce_calcul(): void
     {
         $this->cote();
-        \App\Models\Vehicle::factory()->create([
-            'brand_id'         => $this->camry->brand_id,
+        Vehicle::factory()->create([
+            'brand_id' => $this->camry->brand_id,
             'vehicle_model_id' => $this->camry->id,
         ]);
 
@@ -156,8 +162,8 @@ class MotorisationApiTest extends TestCase
         $fortuner = VehicleModel::create([
             'brand_id' => $this->camry->brand_id, 'name' => 'Fortuner',
         ]);
-        $annonce = \App\Models\Vehicle::factory()->create([
-            'brand_id'         => $this->camry->brand_id,
+        $annonce = Vehicle::factory()->create([
+            'brand_id' => $this->camry->brand_id,
             'vehicle_model_id' => $fortuner->id,
         ]);
 
@@ -171,9 +177,9 @@ class MotorisationApiTest extends TestCase
     private function vehiculeDeGarage(User $user): OwnedVehicle
     {
         return OwnedVehicle::create([
-            'user_id'            => $user->id,
-            'brand_id'           => $this->camry->brand_id,
-            'vehicle_model_id'   => $this->camry->id,
+            'user_id' => $user->id,
+            'brand_id' => $this->camry->brand_id,
+            'vehicle_model_id' => $this->camry->id,
             'manufacturing_year' => 2013,
         ]);
     }
@@ -187,7 +193,9 @@ class MotorisationApiTest extends TestCase
         $this->actingAsClient($user)
             ->patchJson('/api/my/vehicles/'.$vehicule->id, ['motorisation_id' => $cote->id])
             ->assertOk()
-            ->assertJsonPath('data.consumption.combined_l_100km', 8.2)
+            ->assertJsonPath('data.consumption.combined_l_100km', null)
+            ->assertJsonPath('data.consumption.reference_combined_l_100km', 8.2)
+            ->assertJsonPath('data.consumption.match.level', 'incomplete')
             ->assertJsonPath('data.consumption.label', '2,5 l 4 cyl. boîte auto. 6')
             ->assertJsonPath('data.consumption.source', 'Ressources naturelles Canada');
     }

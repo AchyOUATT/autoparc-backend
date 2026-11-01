@@ -8,26 +8,15 @@ use App\Models\VehicleModel;
 use Illuminate\Console\Command;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * Importe les cotes de consommation officielles de Ressources naturelles
- * Canada.
- *
- * Pourquoi le Canada plutot que l'Europe : les cotes canadiennes sont deja en
- * l/100 km, remontent a 1995, et decrivent le marche nord-americain — celui
- * d'ou vient une large part du parc burkinabe. Une mesure faite sur le
- * catalogue a montre que la source francaise (ADEME) n'appariait que 8 % des
- * fiches : elle s'arrete en 2015, exclut les utilitaires, et ignore les
- * modeles vendus hors d'Europe.
- *
- * Le Canada ne couvre pas tout non plus — ni Hilux, ni Land Cruiser, ni Prado,
- * ni Hiace, ni D-Max, absents du marche nord-americain. Deux autres sources
- * viendront combler ces trous ; c'est pourquoi chaque ligne porte le nom de la
- * sienne.
- *
- * Donnees publiees sous licence du gouvernement ouvert — Canada.
+ * Import source references while retaining their identity, original bytes and limits.
+ * A name-based catalogue link is not documentary verification of a vehicle version.
  */
 class ImportConsommations extends Command
 {
@@ -37,9 +26,15 @@ class ImportConsommations extends Command
                             {--modele=* : Limiter la source europeenne a ces modeles}
                             {--dry-run : Analyser sans rien ecrire}
                             {--relier-seulement : Ne pas importer, seulement rattacher au catalogue}
-                            {--si-plus-vieux-que= : N\'importer que si la cote la plus recente date de plus de N jours (0 : toujours)}';
+                            {--si-plus-vieux-que= : N\'importer que si le dernier catalogue complet date de plus de N jours (0 : toujours)}';
 
-    protected $description = 'Importe les cotes de consommation officielles (Canada, Europe)';
+    protected $description = 'Importe des references de consommation documentees (Canada, Europe)';
+
+    private array $failures = [];
+
+    private array $importFiles = [];
+
+    private ?int $runId = null;
 
     /** Jeu de donnees « Cotes de consommation de carburant » sur open.canada.ca. */
     private const CATALOGUE_CKAN = 'https://open.canada.ca/data/api/3/action/package_show?id=98f1a129-f628-4ce4-b24d-6f16bf24dd64';
@@ -52,11 +47,11 @@ class ImportConsommations extends Command
      * raison, alors que le modele existait au catalogue.
      */
     private const ALIAS_MARQUE = [
-        'vw'                          => 'volkswagen',
-        'volkswagen-nutzfahrzeuge'    => 'volkswagen',
-        'mercedes-amg'                => 'mercedes-benz',
-        'mercedes'                    => 'mercedes-benz',
-        'bmw-i'                       => 'bmw',
+        'vw' => 'volkswagen',
+        'volkswagen-nutzfahrzeuge' => 'volkswagen',
+        'mercedes-amg' => 'mercedes-benz',
+        'mercedes' => 'mercedes-benz',
+        'bmw-i' => 'bmw',
     ];
 
     /**
@@ -83,29 +78,52 @@ class ImportConsommations extends Command
         return array_values(array_unique($slugs));
     }
 
-    /**
-     * Empreinte d'une ligne de source, insensible aux valeurs nulles.
-     *
-     * L'unicite ne peut pas reposer sur les colonnes elles-memes : MySQL comme
-     * PostgreSQL considerent deux NULL comme distincts, et une cylindree
-     * inconnue aurait suffi a faire passer deux fois la meme ligne.
-     */
+    /** Stable source configuration; a rounded engine volume cannot identify a version. */
     public static function empreinte(array $ligne): string
     {
-        return md5(implode('|', [
-            $ligne['source'],
-            $ligne['model_year'],
-            mb_strtolower(trim((string) $ligne['make_raw'])),
-            mb_strtolower(trim((string) $ligne['model_raw'])),
-            $ligne['engine_l'] ?? '',
-            $ligne['cylinders'] ?? '',
-            $ligne['transmission_code'] ?? '',
-            $ligne['fuel_code'] ?? '',
-        ]));
+        $identity = [];
+        foreach ([
+            'source', 'market', 'year_kind', 'model_year', 'make_raw', 'model_raw',
+            'engine_l', 'displacement_cc', 'power_kw', 'cylinders',
+            'transmission_code', 'fuel_code', 'hybrid_type', 'cycle', 'method',
+        ] as $field) {
+            $value = $ligne[$field] ?? null;
+            $identity[$field] = $value === null ? null : mb_strtolower(trim((string) $value));
+        }
+
+        return hash('sha256', json_encode($identity, JSON_THROW_ON_ERROR));
+    }
+
+    /** A changed file or changed published value creates a new immutable reference. */
+    private function qualifier(array $ligne, array $provenance): array
+    {
+        $ligne['identity_key'] = self::empreinte($ligne);
+        $revision = [
+            $ligne['identity_key'], $provenance['file_sha256'] ?? null,
+            $provenance['resource_id'] ?? null, $provenance['resource_revision'] ?? null,
+            $provenance['resource_modified_at'] ?? null, $provenance['published_at'] ?? null,
+        ];
+        foreach (['consumption_city', 'consumption_highway', 'consumption_combined', 'co2_g_km'] as $field) {
+            $revision[] = $ligne[$field] ?? null;
+        }
+        $ligne['cle_source'] = hash('sha256', json_encode($revision, JSON_THROW_ON_ERROR));
+        $ligne['reference_status'] = 'documented';
+        $ligne['is_current'] = true;
+        $ligne['provenance'] = $provenance;
+
+        return $ligne;
     }
 
     public function handle(): int
     {
+        $this->failures = [];
+        $this->importFiles = [];
+        $this->runId = null;
+        if (! in_array($this->option('source'), ['nrcan', 'eea'], true)) {
+            $this->error('Source inconnue.');
+
+            return self::FAILURE;
+        }
         if ($this->option('relier-seulement')) {
             return $this->relier();
         }
@@ -114,6 +132,25 @@ class ImportConsommations extends Command
             return self::SUCCESS;
         }
 
+        if (! $this->option('dry-run')) {
+            $this->runId = DB::table('consumption_imports')->insertGetId([
+                'source' => $this->option('source'),
+                'scope' => $this->option('fichier') ? 'local_files' : ($this->option('source') === 'eea' ? 'model_sample' : 'catalogue'),
+                'status' => 'running',
+                'started_at' => now(),
+            ]);
+        }
+
+        try {
+            return $this->executerImport();
+        } catch (\Throwable $exception) {
+            $this->terminerImport('failed', $this->runId === null ? 0 : (int) DB::table('consumption_imports')->where('id', $this->runId)->value('written_count'));
+            throw $exception;
+        }
+    }
+
+    private function executerImport(): int
+    {
         if ($this->option('source') === 'eea') {
             return $this->importerEurope();
         }
@@ -124,6 +161,7 @@ class ImportConsommations extends Command
 
         if ($sources === []) {
             $this->error('Aucune source de donnees exploitable.');
+            $this->terminerImport('failed', 0);
 
             return self::FAILURE;
         }
@@ -131,9 +169,17 @@ class ImportConsommations extends Command
         $total = ['lues' => 0, 'retenues' => 0, 'ignorees' => 0];
         $ecrites = 0;
 
-        foreach ($sources as $nom => $contenu) {
+        foreach ($sources as $nom => $source) {
             $this->info("Lecture de $nom");
-            $lignes = $this->analyser($contenu, $total);
+            $lignes = $this->analyser($source['content'], $total, $source['provenance']);
+            $this->importFiles[] = [
+                'name' => $nom, 'source_url' => $source['provenance']['source_url'],
+                'file_sha256' => $source['provenance']['file_sha256'],
+                'status' => $lignes === [] ? 'failed' : 'parsed', 'record_count' => count($lignes),
+            ];
+            if ($lignes === []) {
+                $this->failures[] = $nom;
+            }
 
             if ($this->option('dry-run')) {
                 $this->line(sprintf('  %d lignes exploitables (rien n\'est ecrit)', count($lignes)));
@@ -172,87 +218,49 @@ class ImportConsommations extends Command
                 .'(en-tetes inattendus, ou fichiers vides).'
             );
 
+            $this->terminerImport('failed', 0);
+
             return self::FAILURE;
         }
 
-        return $this->relier();
+        $partial = $this->failures !== [];
+        $this->terminerImport($partial || $this->option('fichier') ? 'partial' : 'complete', $ecrites);
+        $this->relier();
+        if ($partial) {
+            $this->error('Import partiel : les ressources manquantes doivent etre reprises.');
+        }
+
+        return $partial ? self::FAILURE : self::SUCCESS;
     }
 
-    /**
-     * La garde qui evite de retelecharger le jeu canadien a chaque demarrage.
-     *
-     * POURQUOI UN AGE ET NON « LA TABLE EST VIDE ». Le critere evident aurait
-     * ete le plus simple a ecrire, et il a deux defauts qui se paient en
-     * donnees fausses plutot qu'en pannes :
-     *
-     *   - il FIGE le referentiel pour toujours. Ressources naturelles Canada
-     *     republie chaque millesime — `depuisCanada()` resout d'ailleurs les
-     *     adresses par le catalogue CKAN precisement parce qu'elles changent
-     *     d'une annee sur l'autre. Une table non vide n'aurait plus jamais vu
-     *     une cote de 2027, et personne n'aurait eu de raison de s'en douter.
-     *   - il prend un import INTERROMPU pour un import fait. Le jeu canadien
-     *     arrive en quatre fichiers ; l'instance gratuite peut s'eteindre
-     *     entre le premier et le dernier. La table est alors non vide et
-     *     incomplete, donc definitivement incomplete.
-     *
-     * L'age n'a ni l'un ni l'autre : il rattrape une republication, et il
-     * rattrape un import tronque, au prix d'un telechargement par periode.
-     *
-     * CE QUE MESURE L'AGE. `upsert()` d'Eloquent ajoute toujours `updated_at`
-     * aux colonnes mises a jour : la ligne la plus recente date donc du
-     * dernier import, qu'il ait insere ou seulement corrige des cotes. Une
-     * table vide ne rend aucun maximum, et la garde laisse passer — c'est le
-     * cas du premier demarrage.
-     *
-     * 0 jour force l'import : aucune ligne n'est plus recente que « maintenant
-     * moins zero jour ». C'est la soupape depuis le tableau de bord de Render,
-     * qui n'offre pas de Shell.
-     *
-     * ── CHAQUE SOURCE VIEILLIT POUR SON COMPTE ─────────────────────────────
-     *
-     * L'age se mesurait sur TOUTE la table, sans regarder d'ou venaient les
-     * lignes. Tant qu'une seule source tournait, c'etait sans consequence.
-     *
-     * Le jour ou l'on branche la seconde, ca devient un piege muet : le
-     * demarrage lance le Canada, qui ecrit 29 187 lignes, puis l'Europe, qui
-     * trouve un maximum vieux de deux secondes et rend « rien a faire ». La
-     * source europeenne ne tournerait JAMAIS — pas une fois, pas plus tard —
-     * et le journal afficherait une ligne rassurante a chaque reveil.
-     *
-     * C'est exactement la cote du Hilux, du Land Cruiser, du D-Max, du L200 et
-     * du Navara qui disparaitrait ainsi : l'ossature du parc burkinabe, que le
-     * Canada ignore et que l'Europe est seule a publier.
-     */
+    /** Freshness belongs to a completed catalogue run, never a reference timestamp. */
     private function estEncoreFraiche(): bool
     {
         $jours = $this->option('si-plus-vieux-que');
-
-        if ($jours === null) {
+        if ($jours === null || $this->option('fichier') || $this->option('modele')) {
             return false;
         }
-
-        $derniere = Motorisation::query()
-            ->where('source', $this->option('source'))
-            ->max('updated_at');
-
-        if ($derniere === null) {
+        $lastRun = DB::table('consumption_imports')
+            ->where('source', $this->option('source'))->where('scope', 'catalogue')
+            ->latest('id')->first();
+        $derniere = $lastRun?->completed_at;
+        if ($lastRun?->status !== 'complete' || $derniere === null || Carbon::parse($derniere)->lessThanOrEqualTo(now()->subDays((int) $jours))) {
             return false;
         }
-
-        $derniere = Carbon::parse($derniere);
-
-        if ($derniere->lessThanOrEqualTo(now()->subDays((int) $jours))) {
-            return false;
-        }
-
-        // La source est nommee : sans elle, deux lignes identiques dans le
-        // journal laisseraient croire qu'un seul import a ete saute.
-        $this->info(sprintf(
-            'Cotes %s importees le %s, soit il y a moins de %d jour(s) : rien a faire.',
-            $this->option('source'), $derniere->toDateTimeString(), (int) $jours,
-        ));
+        $this->info(sprintf('Cotes %s importees le %s : rien a faire.', $this->option('source'), $derniere));
 
         return true;
+    }
+
+    private function terminerImport(string $status, int $written): void
+    {
+        if ($this->runId !== null) {
+            DB::table('consumption_imports')->where('id', $this->runId)->update([
+                'status' => $status, 'written_count' => $written,
+                'files' => json_encode(['resources' => $this->importFiles, 'failures' => $this->failures], JSON_THROW_ON_ERROR),
+                'completed_at' => now(),
+            ]);
+        }
     }
 
     /**
@@ -262,27 +270,89 @@ class ImportConsommations extends Command
      */
     private function enregistrer(array $lignes): int
     {
-        // Une meme ligne peut figurer deux fois dans un fichier : 40 doublons
-        // dans les editions canadiennes. On tranche ici plutot que de laisser
-        // la base arbitrer, pour que le nombre annonce soit celui ecrit.
         $uniques = [];
         foreach ($lignes as $ligne) {
             $uniques[$ligne['cle_source']] = $ligne;
         }
-        $lignes = array_values($uniques);
+        foreach (array_chunk(array_values($uniques), 500) as $paquet) {
+            DB::transaction(function () use ($paquet) {
+                $existantes = Motorisation::whereIn('cle_source', array_column($paquet, 'cle_source'))->pluck('cle_source')->all();
+                $nouvelles = array_filter($paquet, fn ($ligne) => ! in_array($ligne['cle_source'], $existantes, true));
+                if ($nouvelles === []) {
+                    return;
+                }
+                // Retrieval order is not publication order. Unknown chronology or
+                // conflicting values from one revision remain visible alternatives.
+                foreach (array_unique(array_column($nouvelles, 'identity_key')) as $identity) {
+                    $current = Motorisation::where('identity_key', $identity)->where('is_current', true)->get();
+                    $candidates = $current->map(fn ($r) => ['id' => $r->id, 'provenance' => $r->provenance])->all();
+                    foreach ($nouvelles as $key => $row) {
+                        if ($row['identity_key'] === $identity) {
+                            $candidates[] = ['key' => $key, 'provenance' => $row['provenance']];
+                        }
+                    }
+                    $dates = [];
+                    foreach (['resource_modified_at', 'published_at'] as $field) {
+                        $dates = [];
+                        foreach ($candidates as $candidate) {
+                            $raw = $candidate['provenance'][$field] ?? null;
+                            $date = is_string($raw) ? strtotime($raw) : false;
+                            if ($date === false) {
+                                $dates = [];
+                                break;
+                            }
+                            $dates[] = $date;
+                        }
+                        if ($dates !== []) {
+                            break;
+                        }
+                    }
+                    if ($dates !== []) {
+                        $newest = max($dates);
+                        foreach ($candidates as $i => $candidate) {
+                            if ($dates[$i] < $newest) {
+                                if (isset($candidate['id'])) {
+                                    Motorisation::whereKey($candidate['id'])->update(['is_current' => false]);
+                                } else {
+                                    $nouvelles[$candidate['key']]['is_current'] = false;
+                                }
+                            }
+                        }
+                    }
+                }
+                $rows = array_map(function ($row) {
+                    $row['provenance'] = json_encode($row['provenance'], JSON_THROW_ON_ERROR);
 
-        foreach (array_chunk($lignes, 500) as $paquet) {
-            Motorisation::upsert(
-                $paquet,
-                ['cle_source'],
-                [
-                    'vehicle_class', 'consumption_city', 'consumption_highway',
-                    'consumption_combined', 'co2_g_km', 'cycle',
-                ],
-            );
+                    return $row;
+                }, array_values($nouvelles));
+                // Two startup imports may observe the same missing revision.
+                // Resolve that race without updating any published value or proof.
+                DB::table('motorisations')->upsert($rows, ['cle_source'], ['cle_source']);
+            });
         }
 
-        return count($lignes);
+        if ($this->runId !== null) {
+            DB::table('consumption_imports')->where('id', $this->runId)->increment('written_count', count($uniques));
+        }
+
+        return count($uniques);
+    }
+
+    /** Archive the original bytes so a URL changing in place remains auditable. */
+    private function provenance(string $content, array $metadata = []): array
+    {
+        $hash = hash('sha256', $content);
+        if (! $this->option('dry-run')) {
+            Storage::disk('local')->put('consumption-sources/'.$hash, $content);
+        }
+
+        return array_merge([
+            'source_url' => null, 'resource_id' => null, 'resource_revision' => null,
+            'published_at' => null, 'retrieved_at' => now()->toIso8601String(),
+            'imported_at' => now()->toIso8601String(), 'verified_at' => null,
+            'file_sha256' => $hash, 'license_id' => null, 'license_title' => null,
+            'license_url' => null, 'method' => 'unknown', 'cycle' => 'unknown',
+        ], $metadata);
     }
 
     // ── Sources ──────────────────────────────────────────────────────
@@ -295,10 +365,12 @@ class ImportConsommations extends Command
         foreach ($chemins as $chemin) {
             if (! is_readable($chemin)) {
                 $this->warn("Fichier illisible, ignore : $chemin");
+                $this->failures[] = $chemin;
 
                 continue;
             }
-            $sources[basename($chemin)] = file_get_contents($chemin);
+            $contenu = file_get_contents($chemin);
+            $sources[$chemin] = ['content' => $contenu, 'provenance' => $this->provenance($contenu)];
         }
 
         return $sources;
@@ -352,7 +424,20 @@ class ImportConsommations extends Command
             if (str_contains($url, 'original-') || str_contains($url, '2-cycle')) {
                 continue;
             }
-            $adresses[basename($url)] = $url;
+            $description = mb_strtolower(($ressource['name'] ?? '').' '.($ressource['description'] ?? '').' '.$url);
+            $adresses[$ressource['id'] ?? $url] = [
+                'url' => $url,
+                'resource_id' => $ressource['id'] ?? null,
+                'resource_revision' => $ressource['revision_id'] ?? null,
+                'resource_modified_at' => $ressource['last_modified'] ?? null,
+                'resource_created_at' => $ressource['created'] ?? null,
+                'published_at' => $ressource['date_published'] ?? null,
+                'license_id' => $reponse->json('result.license_id'),
+                'license_title' => $reponse->json('result.license_title'),
+                'license_url' => $reponse->json('result.license_url'),
+                'method' => str_contains($description, 'adjusted') ? 'adjustment' : 'unknown',
+                'cycle' => preg_match('/5[ -]cycle|five[ -]cycle/', $description) ? '5-cycle' : 'unknown',
+            ];
         }
 
         if ($adresses === []) {
@@ -362,7 +447,8 @@ class ImportConsommations extends Command
         }
 
         $sources = [];
-        foreach ($adresses as $nom => $url) {
+        foreach ($adresses as $nom => $resource) {
+            $url = $resource['url'];
             try {
                 $fichier = Http::timeout(180)->get($url);
             } catch (ConnectionException $e) {
@@ -370,16 +456,21 @@ class ImportConsommations extends Command
                 // en compte quatre, et trois valent mieux que zero. Mais le
                 // dire nommement, sinon le total final paraitrait normal.
                 $this->warn("Telechargement injoignable, ignore : $nom (".Str::limit($e->getMessage(), 90).')');
+                $this->failures[] = $url;
 
                 continue;
             }
 
             if (! $fichier->successful()) {
                 $this->warn("Telechargement echoue, ignore : $nom (".$fichier->status().')');
+                $this->failures[] = $url;
 
                 continue;
             }
-            $sources[$nom] = $fichier->body();
+            $metadata = $resource;
+            unset($metadata['url']);
+            $metadata['source_url'] = $url;
+            $sources[$nom] = ['content' => $fichier->body(), 'provenance' => $this->provenance($fichier->body(), $metadata)];
         }
 
         return $sources;
@@ -417,23 +508,23 @@ class ImportConsommations extends Command
      * ramasserait les CLA et les CLS.
      */
     private const ALIAS_EEA = [
-        'bmw|serie-1'            => ['1'],
-        'bmw|serie-2'            => ['2'],
-        'bmw|serie-3'            => ['3'],
-        'bmw|serie-4'            => ['4'],
-        'bmw|serie-5'            => ['5'],
-        'bmw|serie-6'            => ['6'],
-        'bmw|serie-7'            => ['7'],
+        'bmw|serie-1' => ['1'],
+        'bmw|serie-2' => ['2'],
+        'bmw|serie-3' => ['3'],
+        'bmw|serie-4' => ['4'],
+        'bmw|serie-5' => ['5'],
+        'bmw|serie-6' => ['6'],
+        'bmw|serie-7' => ['7'],
         'mercedes-benz|classe-a' => ['A '],
         'mercedes-benz|classe-b' => ['B '],
         'mercedes-benz|classe-c' => ['C '],
         'mercedes-benz|classe-e' => ['E '],
         'mercedes-benz|classe-s' => ['S '],
         'mercedes-benz|classe-v' => ['V-KLASSE', 'CLASSE V'],
-        'mercedes-benz|ml-gle'   => ['GLE', 'ML '],
-        'mercedes-benz|gle'      => ['GLE'],
-        'mercedes-benz|glc'      => ['GLC'],
-        'mercedes-benz|gla'      => ['GLA'],
+        'mercedes-benz|ml-gle' => ['GLE', 'ML '],
+        'mercedes-benz|gle' => ['GLE'],
+        'mercedes-benz|glc' => ['GLC'],
+        'mercedes-benz|gla' => ['GLA'],
     ];
 
     private const ANNEES_EEA = [
@@ -464,6 +555,7 @@ class ImportConsommations extends Command
 
         if ($modeles === []) {
             $this->info('Aucun modele a chercher : le catalogue est deja couvert.');
+            $this->terminerImport('partial', 0);
 
             return self::SUCCESS;
         }
@@ -505,7 +597,10 @@ class ImportConsommations extends Command
             return self::SUCCESS;
         }
 
-        return $this->relier();
+        $this->terminerImport($this->failures !== [] && $ecrites === 0 ? 'failed' : 'partial', $ecrites);
+        $this->relier();
+
+        return $this->failures !== [] ? self::FAILURE : self::SUCCESS;
     }
 
     /**
@@ -523,10 +618,13 @@ class ImportConsommations extends Command
             ->map(fn ($n) => Str::slug($n))
             ->unique();
 
+        $europe = VehicleModel::whereIn('id', Motorisation::where('source', 'eea')->whereNotNull('vehicle_model_id')->pluck('vehicle_model_id'))
+            ->pluck('name')->map(fn ($name) => Str::slug($name));
+
         return VehicleModel::query()
             ->with('brand')
             ->get(['id', 'brand_id', 'name'])
-            ->reject(fn (VehicleModel $m) => $couverts->contains(Str::slug($m->name)))
+            ->reject(fn (VehicleModel $m) => $couverts->contains(Str::slug($m->name)) && ! $europe->contains(Str::slug($m->name)))
             ->map(fn (VehicleModel $m) => ['marque' => $m->brand?->name ?? '', 'modele' => $m->name])
             ->unique(fn (array $m) => Str::slug($m['marque'].'-'.$m['modele']))
             ->values()
@@ -581,9 +679,9 @@ class ImportConsommations extends Command
      */
     private function motifs(string $modele): array
     {
-        $mots    = preg_split('/\s+/', trim($modele));
+        $mots = preg_split('/\s+/', trim($modele));
         $minimum = count($mots) > 1 ? 2 : 1;
-        $motifs  = [];
+        $motifs = [];
 
         for ($n = count($mots); $n >= $minimum; $n--) {
             $candidat = implode(' ', array_slice($mots, 0, $n));
@@ -614,9 +712,9 @@ class ImportConsommations extends Command
         // rien — six modeles Citroen sont restes sans cote alors que la
         // donnee etait la.
         $premierMot = preg_split('/[\s-]+/', trim($marque))[0] ?? '';
-        $marqueSql  = str_replace("'", "''", mb_strtoupper(Str::ascii($premierMot)));
+        $marqueSql = str_replace("'", "''", mb_strtoupper(Str::ascii($premierMot)));
 
-        $requete = "SELECT TOP 400 Mk, Cn, Ct, Ft, [Ec (cm3)] AS cc, [Ep (KW)] AS kw, Fc "
+        $requete = 'SELECT TOP 400 Mk, Cn, Ct, Ft, [Ec (cm3)] AS cc, [Ep (KW)] AS kw, Fc '
             ."FROM [CO2Emission].[latest].[$table] "
             ."WHERE Mk LIKE '$marqueSql%' AND Cn LIKE '$motifSql%' AND Fc IS NOT NULL AND Fc > 0";
 
@@ -634,29 +732,45 @@ class ImportConsommations extends Command
                 ->get(self::SQL_EEA, ['query' => $requete]);
 
             usleep(150_000);
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+        } catch (ConnectionException $e) {
             $this->warn('  service europeen injoignable : '.Str::limit($e->getMessage(), 90));
+            $this->failures[] = $table.':'.$motif;
 
             return [];
         }
 
         if (! $reponse->successful() || $reponse->json('errors') !== null) {
+            $this->failures[] = $table.':'.$motif;
+
             return [];
         }
 
-        $groupes  = [];
+        $results = $reponse->json('results') ?? [];
+        $provenance = $this->provenance($reponse->body(), [
+            'source_url' => self::SQL_EEA, 'resource_id' => $table,
+            'query' => $requete, 'filters' => ['make' => $marque, 'model_pattern' => $motif],
+            'method' => 'aggregation', 'cycle' => 'wltp', 'aggregation' => 'median',
+            'sample_size' => count($results), 'sample_limit' => 400,
+            'truncated' => count($results) >= 400, 'population_complete' => false,
+            'registration_year' => $annee,
+        ]);
+        $this->importFiles[] = ['resource_id' => $table, 'query' => $requete,
+            'file_sha256' => $provenance['file_sha256'], 'record_count' => count($results),
+            'status' => count($results) >= 400 ? 'truncated_sample' : 'sample'];
+        if (count($results) >= 400) {
+            $this->warn('  Limite de 400 lignes atteinte : agregation sur un echantillon tronque.');
+        }
+        $groupes = [];
         $exemples = [];
-        foreach ($reponse->json('results') ?? [] as $r) {
-            // Une motorisation, c'est une marque, un nom, un carburant, une
-            // cylindree et une puissance. Le reste — pays, version, poids —
-            // ne change pas la consommation homologuee.
+        foreach ($results as $r) {
+            // These observed fields define an aggregation group, not a certified version.
             $cle = implode('|', [$r['Mk'] ?? '', $r['Cn'] ?? '', $r['Ft'] ?? '', $r['cc'] ?? '', $r['kw'] ?? '']);
             $groupes[$cle][] = (float) $r['Fc'];
-            $exemples[$cle]  = $r;
+            $exemples[$cle] = $r;
         }
 
         $maintenant = now();
-        $lignes     = [];
+        $lignes = [];
 
         foreach ($groupes as $cle => $consos) {
             $r = $exemples[$cle];
@@ -665,28 +779,38 @@ class ImportConsommations extends Command
             // des valeurs aberrantes, et une seule suffirait a tirer une
             // moyenne.
             sort($consos);
-            $mediane = $consos[intdiv(count($consos), 2)];
+            $middle = intdiv(count($consos), 2);
+            $mediane = count($consos) % 2 ? $consos[$middle] : ($consos[$middle - 1] + $consos[$middle]) / 2;
 
             $ligne = [
-                'source'               => 'eea',
-                'cycle'                => 'wltp',
-                'model_year'           => $annee,
-                'make_raw'             => trim((string) $r['Mk']),
-                'model_raw'            => trim((string) $r['Cn']),
-                'vehicle_class'        => $r['Ct'] ?? null,       // M1 : voiture, N1 : utilitaire
-                'engine_l'             => $r['cc'] ? round(((int) $r['cc']) / 1000, 1) : null,
-                'cylinders'            => null,                    // absent du registre europeen
-                'transmission_code'    => null,
-                'fuel_code'            => $this->carburantEea($r['Ft'] ?? null),
-                'consumption_city'     => null,                    // le registre ne donne que le mixte
-                'consumption_highway'  => null,
+                'source' => 'eea',
+                'cycle' => 'wltp',
+                'market' => 'EU',
+                'year_kind' => 'registration_year',
+                'method' => 'aggregation',
+                'power_kw' => is_numeric($r['kw'] ?? null) ? (float) $r['kw'] : null,
+                'displacement_cc' => is_numeric($r['cc'] ?? null) ? (int) $r['cc'] : null,
+                'hybrid_type' => null,
+                'model_year' => $annee,
+                'make_raw' => trim((string) $r['Mk']),
+                'model_raw' => trim((string) $r['Cn']),
+                'vehicle_class' => $r['Ct'] ?? null,       // M1 : voiture, N1 : utilitaire
+                'engine_l' => $r['cc'] ? round(((int) $r['cc']) / 1000, 1) : null,
+                'cylinders' => null,                    // absent du registre europeen
+                'transmission_code' => null,
+                'fuel_code' => $this->carburantEea($r['Ft'] ?? null),
+                'consumption_city' => null,                    // le registre ne donne que le mixte
+                'consumption_highway' => null,
                 'consumption_combined' => round($mediane, 1),
-                'co2_g_km'             => null,
-                'created_at'           => $maintenant,
-                'updated_at'           => $maintenant,
+                'co2_g_km' => null,
+                'created_at' => $maintenant,
+                'updated_at' => $maintenant,
             ];
-            $ligne['cle_source'] = self::empreinte($ligne);
-            $lignes[] = $ligne;
+            $details = array_merge($provenance, [
+                'observation_count' => count($consos),
+                'original_values' => ['example' => $r, 'consumptions_l_100km' => $consos],
+            ]);
+            $lignes[] = $this->qualifier($ligne, $details);
         }
 
         return $lignes;
@@ -697,22 +821,20 @@ class ImportConsommations extends Command
     {
         $f = mb_strtolower(trim((string) $ft));
 
-        // Les hybrides rechargeables gardent un code a part : leur cote
-        // officielle, ponderee sur un parcours qui commence batterie pleine,
-        // tombe sous 1 l/100. Affichee comme une consommation d'essence, elle
-        // ferait passer une Classe C pour une voiture qui ne boit rien.
+        // A mixed fuel string identifies electrification, not whether it is
+        // rechargeable. Preserve it as a separate, unresolved hybrid family.
         $hybride = str_contains($f, 'electric') && (str_contains($f, 'petrol') || str_contains($f, 'diesel'));
 
         return match (true) {
-            $f === ''                  => null,
-            $hybride                   => 'H',
+            $f === '' => null,
+            $hybride => 'H',
             str_contains($f, 'diesel') => 'D',
             str_contains($f, 'petrol') => 'X',
-            str_contains($f, 'lpg')    => 'L',
-            str_contains($f, 'e85')    => 'E',
-            str_contains($f, 'ng')     => 'N',
+            str_contains($f, 'lpg') => 'L',
+            str_contains($f, 'e85') => 'E',
+            str_contains($f, 'ng') => 'N',
             str_contains($f, 'electric') => 'B',
-            default                    => null,
+            default => null,
         };
     }
 
@@ -722,7 +844,7 @@ class ImportConsommations extends Command
      * @param  array{lues: int, retenues: int, ignorees: int}  $total
      * @return array<int, array<string, mixed>>
      */
-    private function analyser(string $contenu, array &$total): array
+    private function analyser(string $contenu, array &$total, array $provenance): array
     {
         $contenu = preg_replace('/^\xEF\xBB\xBF/', '', $contenu);
 
@@ -764,7 +886,9 @@ class ImportConsommations extends Command
         $lignes = [];
         $maintenant = now();
 
+        $rowNumber = 1;
         while (($l = fgetcsv($flux)) !== false) {
+            $rowNumber++;
             $total['lues']++;
 
             $annee = $l[$colonne['modelyear']] ?? '';
@@ -783,25 +907,35 @@ class ImportConsommations extends Command
 
             $total['retenues']++;
             $ligne = [
-                'source'               => 'nrcan',
-                'cycle'                => '5-cycle',
-                'model_year'           => (int) $annee,
-                'make_raw'             => trim((string) ($l[$colonne['make']] ?? '')),
-                'model_raw'            => trim((string) ($l[$colonne['model']] ?? '')),
-                'vehicle_class'        => $this->texte($l, $colonne, 'vehicleclass'),
-                'engine_l'             => $this->nombre($l, $colonne, 'enginesizel'),
-                'cylinders'            => $this->entier($l, $colonne, 'cylinders'),
-                'transmission_code'    => $this->texte($l, $colonne, 'transmission'),
-                'fuel_code'            => $this->texte($l, $colonne, 'fueltype'),
-                'consumption_city'     => $this->nombre($l, $colonne, 'cityl100km'),
-                'consumption_highway'  => $this->nombre($l, $colonne, 'highwayl100km'),
+                'source' => 'nrcan',
+                'cycle' => $provenance['cycle'],
+                'market' => 'CA',
+                'year_kind' => 'model_year',
+                'method' => $provenance['method'],
+                'power_kw' => null,
+                'displacement_cc' => null,
+                'hybrid_type' => null,
+                'model_year' => (int) $annee,
+                'make_raw' => trim((string) ($l[$colonne['make']] ?? '')),
+                'model_raw' => trim((string) ($l[$colonne['model']] ?? '')),
+                'vehicle_class' => $this->texte($l, $colonne, 'vehicleclass'),
+                'engine_l' => $this->nombre($l, $colonne, 'enginesizel'),
+                'cylinders' => $this->entier($l, $colonne, 'cylinders'),
+                'transmission_code' => $this->texte($l, $colonne, 'transmission'),
+                'fuel_code' => $this->texte($l, $colonne, 'fueltype'),
+                'consumption_city' => $this->nombre($l, $colonne, 'cityl100km'),
+                'consumption_highway' => $this->nombre($l, $colonne, 'highwayl100km'),
                 'consumption_combined' => $mixte,
-                'co2_g_km'             => $this->entier($l, $colonne, 'co2emissionsgkm'),
-                'created_at'           => $maintenant,
-                'updated_at'           => $maintenant,
+                'co2_g_km' => $this->entier($l, $colonne, 'co2emissionsgkm'),
+                'created_at' => $maintenant,
+                'updated_at' => $maintenant,
             ];
-            $ligne['cle_source'] = self::empreinte($ligne);
-            $lignes[] = $ligne;
+            $details = array_merge($provenance, [
+                'source_record' => $rowNumber, 'original_headers' => $entete,
+                'original_values' => $l, 'original_unit' => 'L/100 km',
+                'transformations' => ['decimal_normalization'],
+            ]);
+            $lignes[] = $this->qualifier($ligne, $details);
         }
 
         fclose($flux);
@@ -870,6 +1004,9 @@ class ImportConsommations extends Command
             $marques, $modelesParMarque, &$rattachees, &$marquesVues
         ) {
             foreach ($lot as $cote) {
+                if ($cote->verified_at !== null || $cote->trim_id !== null || $cote->trim_application_id !== null) {
+                    continue;
+                }
                 $marque = null;
                 foreach (self::slugsMarque($cote->make_raw) as $slug) {
                     if ($marque = $marques->get($slug)) {
@@ -883,13 +1020,14 @@ class ImportConsommations extends Command
 
                 $modeleId = $this->modeleLePlusProche(
                     $cote->model_raw,
-                    $cote->model_year,
+                    $cote->year_kind === 'registration_year' ? null : $cote->model_year,
                     $modelesParMarque->get($marque->id) ?? collect(),
                     $marque->name,
                 );
 
+                $cote->timestamps = false;
                 $cote->forceFill([
-                    'brand_id'         => $marque->id,
+                    'brand_id' => $marque->id,
                     'vehicle_model_id' => $modeleId,
                 ])->saveQuietly();
 
@@ -936,14 +1074,14 @@ class ImportConsommations extends Command
      * cotes de 1995 a 2026 se seraient rattachees a la meme generation, et les
      * autres seraient apparues « sans donnee » alors que la donnee existait.
      *
-     * @param  \Illuminate\Support\Collection<int, VehicleModel>  $modeles
+     * @param  Collection<int, VehicleModel>  $modeles
      */
-    private function modeleLePlusProche(string $libelle, int $annee, $modeles, string $marque = ''): ?int
+    private function modeleLePlusProche(string $libelle, ?int $annee, $modeles, string $marque = ''): ?int
     {
-        $cible      = Str::slug($libelle);
-        $brut       = mb_strtoupper(trim($libelle));
-        $candidats  = [];
-        $longueur   = 0;
+        $cible = Str::slug($libelle);
+        $brut = mb_strtoupper(trim($libelle));
+        $candidats = [];
+        $longueur = 0;
 
         foreach ($modeles as $modele) {
             $nom = Str::slug($modele->name);
@@ -978,13 +1116,19 @@ class ImportConsommations extends Command
             // Une reconnaissance plus precise l'emporte : on repart de zero.
             if ($score > $longueur) {
                 $candidats = [];
-                $longueur  = $score;
+                $longueur = $score;
             }
             $candidats[] = $modele;
         }
 
         if ($candidats === []) {
             return null;
+        }
+
+        // A registration year is not a model year: do not choose a generation
+        // from it. A single matching generation remains an unverified name link.
+        if ($annee === null) {
+            return count($candidats) === 1 ? $candidats[0]->id : null;
         }
 
         // La generation produite cette annee-la, et elle seule.
@@ -997,7 +1141,7 @@ class ImportConsommations extends Command
 
         foreach ($candidats as $modele) {
             $debut = $modele->production_start;
-            $fin   = $modele->production_end;
+            $fin = $modele->production_end;
 
             if ($debut === null && $fin === null) {
                 $sansBornes ??= $modele;

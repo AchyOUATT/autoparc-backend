@@ -36,12 +36,12 @@ use App\Models\OwnedVehicle;
  * rapproches de 30 puis 40 km rendaient auparavant 70 km de mesure
  * parfaitement valides a la poubelle.
  *
- * L'ASYMETRIE QUI REND L'ALERTE SURE. Un passage non enregistre laisse une
+ * Un passage non enregistre laisse une
  * distance reelle et des litres incomplets : le l/100 calcule s'effondre, et
- * l'intervalle est ecarte. Un oubli tire donc toujours le resultat vers le BAS.
- * Il produit un silence, jamais une fausse alerte — et c'est sur cette
- * asymetrie, et non sur la discipline du proprietaire, que repose la confiance
- * qu'on peut accorder a l'alerte.
+ * certains intervalles peuvent etre ecartes. Un oubli tire le resultat vers
+ * le BAS. Les filtres reduisent ces fausses mesures mais ne peuvent garantir
+ * le silence quand des oublis majoritaires ressemblent a une hausse reelle.
+ * Cette limite ne doit pas etre masquee par une cote de catalogue incertaine.
  *
  * Elle ne couvre QUE l'oubli. Le DOUBLON fait l'inverse : les memes litres
  * comptes deux fois gonflent l'intervalle sans toucher a la distance. Mesure de
@@ -92,9 +92,9 @@ class SuiviConsommation
     private const DISTANCE_MAX_KM = 2000;
 
     /**
-     * Le plancher n'est pas une borne de vraisemblance mecanique : c'est la
-     * signature d'un passage manquant. Aucun vehicule du parc ne tient 3,0
-     * l/100 km, mais un plein oublie en produit un a tous les coups.
+     * Existing internal threshold for the fuel-fill workflow. It is a data
+     * quality heuristic, not a universal mechanical minimum or an official
+     * consumption rating, especially for vehicles with electric driving modes.
      */
     private const L100_MIN = 3.0;
 
@@ -114,12 +114,6 @@ class SuiviConsommation
      * urbaine a 8,0 doit survivre (6,0 > 4,8), car c'est de la conduite, pas une
      * saisie manquante. Un demi-passage, lui, divise le taux par deux environ.
      */
-    /**
-     * Part de la cote constructeur en dessous de laquelle un intervalle est
-     * une mesure perdue. Voir plancherDeVraisemblance().
-     */
-    private const PART_MIN_COTE = 0.60;
-
     private const PART_MIN_MEDIANE = 0.60;
 
     /**
@@ -182,16 +176,15 @@ class SuiviConsommation
      * forme ne peut les distinguer — l'une est une serie d'oublis, l'autre un
      * doublement reel qu'il faut justement signaler.
      *
-     * Ce qui les separe n'est pas la forme mais le NIVEAU : 4,0 l/100 n'existe
-     * pas sur une voiture thermique, 16,0 si. D'ou le plancher de
-     * vraisemblance adosse a la cote constructeur, dans
-     * ecarterLesAnormalementBas() : un repere exterieur aux donnees du
-     * proprietaire, que ses oublis ne peuvent pas deplacer.
+     * Une reference choisie dans un catalogue ne resout pas cette ambiguite :
+     * elle peut concerner une autre version, un autre marche ou un autre mode
+     * d'hybridation. Elle reste donc un element de comparaison uniquement.
+     * Cette limite doit rester visible dans la politique du suivi.
      *
      * Le seuil est pose entre 0,16 et 0,33. Ce garde-fou coute quelques vraies
      * derives sur des series chaotiques ; il rend en echange le silence, qui
-     * est le cote sur : la regle que toute cette fonction defend est qu'un
-     * passage oublie ne doit jamais produire une fausse alerte.
+     * est le cote prudent. Les series d'oublis majoritaires restent une limite
+     * connue, distinguee d'une preuve de panne ou de consommation anormale.
      */
     private const DISPERSION_MAX = 0.25;
 
@@ -210,7 +203,7 @@ class SuiviConsommation
      */
     public function intervalles(OwnedVehicle $vehicule): array
     {
-        return $this->ecarterLesAnormalementBas($this->chaine($this->passages($vehicule)), $vehicule);
+        return $this->ecarterLesAnormalementBas($this->chaine($this->passages($vehicule)));
     }
 
     /**
@@ -323,9 +316,9 @@ class SuiviConsommation
      * @param  array<int, array<string, mixed>>  $intervalles
      * @return array<int, array<string, mixed>>
      */
-    private function ecarterLesAnormalementBas(array $intervalles, OwnedVehicle $vehicule): array
+    private function ecarterLesAnormalementBas(array $intervalles): array
     {
-        $plancher = $this->plancherDeVraisemblance($intervalles, $vehicule);
+        $plancher = $this->plancherDeVraisemblance($intervalles);
 
         if ($plancher === null) {
             return $intervalles;
@@ -342,40 +335,18 @@ class SuiviConsommation
     }
 
     /**
-     * En dessous de quel taux un intervalle est une mesure perdue.
+     * The internal history is the only baseline used for filtering fills.
+     * A selected or newly imported reference is not proof of the vehicle's
+     * technical version, and must not rewrite its measured consumption. In
+     * particular a PHEV's test value cannot act as a thermal minimum.
      *
-     * Deux reperes, et l'ordre compte.
-     *
-     * LA COTE CONSTRUCTEUR D'ABORD, quand le proprietaire a choisi sa
-     * motorisation. C'est le seul repere que ses oublis ne peuvent pas
-     * deplacer, et c'est precisement ce qui manquait : le plancher relatif
-     * seul se calcule sur la mediane du vehicule, donc il descend avec les
-     * valeurs fausses qu'il devrait denoncer. Mesure : un vehicule a 8,0 l/100
-     * qui oublie un passage sur deux produit 4 4 4 4 8 8, la mediane tombe a
-     * 4,0, et 60 % de 4,0 font 2,4 — aucun 4,0 n'est ecarte. Avec une cote a
-     * 7,0, le plancher vaut 4,2 : les quatre valeurs fausses sortent, et les
-     * deux mesures honnetes a 8,0 cessent de passer pour anormales.
-     *
-     * La cote est volontairement divisee par un facteur large. Elle est
-     * etablie sur cycle d'homologation, et la conduite reelle s'en ecarte de
-     * 20 a 30 % VERS LE HAUT : rouler nettement EN DESSOUS d'une cote
-     * d'homologation n'arrive pas, et ce qui s'en approche par le bas est un
-     * litre manquant, pas une conduite econome.
-     *
-     * LA MEDIANE DU VEHICULE ENSUITE, pour les modeles qu'aucune source
-     * publique ne couvre — Fortuner, Prado, D-Max, une bonne part du parc
-     * ici. Le repere est alors interne, donc faillible de la facon decrite
-     * plus haut ; il vaut mieux que rien tant que les oublis restent
-     * minoritaires, et le garde-fou de dispersion couvre une partie du reste.
+     * This retains the existing internal median fallback and its documented
+     * limitation: majority missing fills can resemble a real increase. A
+     * future external baseline requires a separately verified configuration
+     * and a validated measurement policy, not a source selection alone.
      */
-    private function plancherDeVraisemblance(array $intervalles, OwnedVehicle $vehicule): ?float
+    private function plancherDeVraisemblance(array $intervalles): ?float
     {
-        $cote = $vehicule->motorisation?->consumption_combined;
-
-        if ($cote !== null && (float) $cote > 0) {
-            return self::PART_MIN_COTE * (float) $cote;
-        }
-
         $retenus = array_filter($intervalles, fn (array $i) => $i['retenu']);
 
         if (count($retenus) < self::INTERVALLES_MIN_MEDIANE) {
@@ -424,7 +395,7 @@ class SuiviConsommation
         $series = $this->series($vehicule);
         $passages = $series === [] ? [] : $series[count($series) - 1];
 
-        $intervalles = $this->ecarterLesAnormalementBas($this->chaine($passages), $vehicule);
+        $intervalles = $this->ecarterLesAnormalementBas($this->chaine($passages));
 
         $retenus = array_values(array_filter($intervalles, fn (array $i) => $i['retenu']));
         $fenetre = array_slice($retenus, -self::FENETRE_INTERVALLES);
@@ -467,6 +438,7 @@ class SuiviConsommation
             // exactement 9,0 quand le vrai valait 8,9375. Avec 9,0 mesure,
             // l'alerte partait sans que les nombres montres l'expliquent.
             'baseline_l_100km'   => $base,
+            'baseline_source' => 'vehicle_history',
             'abnormal'           => $anormal,
 
             // Le chiffre QUI A TRANCHE, et non celui qui s'affiche. 'l_100km'
