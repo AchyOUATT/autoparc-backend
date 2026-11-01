@@ -4,6 +4,7 @@ services:
     env: docker
     plan: free
     dockerfilePath: ./Dockerfile
+    healthCheckPath: /up
     envVars:
       - key: APP_ENV
         value: production
@@ -284,6 +285,13 @@ services:
       # quatre fichiers.
       - key: CATALOG_CONSO_JOURS
         sync: false          # âge au-delà duquel les cotes sont réimportées ; défaut 180, 0 force
+
+      # Les sources de consommation sont des pièces de provenance privées.
+      # La base PostgreSQL les conserve après remplacement du conteneur ; le
+      # disque local éphémère et le compartiment public des photos n'en sont
+      # pas des archives durables. Voir docs/render-reliability.md.
+      - key: CONSUMPTION_SOURCE_ARCHIVE_STORE
+        value: database
 
   # Les rappels d'entretien ne sont PLUS ici.
   #

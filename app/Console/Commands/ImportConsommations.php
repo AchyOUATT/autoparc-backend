@@ -5,13 +5,13 @@ namespace App\Console\Commands;
 use App\Models\Brand;
 use App\Models\Motorisation;
 use App\Models\VehicleModel;
+use App\Services\ConsumptionSourceArchive;
 use Illuminate\Console\Command;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -247,6 +247,23 @@ class ImportConsommations extends Command
         if ($lastRun?->status !== 'complete' || $derniere === null || Carbon::parse($derniere)->lessThanOrEqualTo(now()->subDays((int) $jours))) {
             return false;
         }
+        // A pre-archive import can be recent while its only copies have been
+        // lost with a Render container. Reimport once using durable storage.
+        $files = json_decode($lastRun->files ?? '{}', true);
+        if (($files['archive_store'] ?? null) !== 'database') {
+            return false;
+        }
+        $hashes = array_unique(array_column($files['resources'] ?? [], 'file_sha256'));
+        if ($hashes === []) {
+            return false;
+        }
+        try {
+            foreach ($hashes as $hash) {
+                app(ConsumptionSourceArchive::class)->describe($hash);
+            }
+        } catch (\Throwable) {
+            return false;
+        }
         $this->info(sprintf('Cotes %s importees le %s : rien a faire.', $this->option('source'), $derniere));
 
         return true;
@@ -257,7 +274,10 @@ class ImportConsommations extends Command
         if ($this->runId !== null) {
             DB::table('consumption_imports')->where('id', $this->runId)->update([
                 'status' => $status, 'written_count' => $written,
-                'files' => json_encode(['resources' => $this->importFiles, 'failures' => $this->failures], JSON_THROW_ON_ERROR),
+                'files' => json_encode([
+                    'resources' => $this->importFiles, 'failures' => $this->failures,
+                    'archive_store' => config('consumption.archive_store'),
+                ], JSON_THROW_ON_ERROR),
                 'completed_at' => now(),
             ]);
         }
@@ -276,8 +296,13 @@ class ImportConsommations extends Command
         }
         foreach (array_chunk(array_values($uniques), 500) as $paquet) {
             DB::transaction(function () use ($paquet) {
-                $existantes = Motorisation::whereIn('cle_source', array_column($paquet, 'cle_source'))->pluck('cle_source')->all();
-                $nouvelles = array_filter($paquet, fn ($ligne) => ! in_array($ligne['cle_source'], $existantes, true));
+                $existing = Motorisation::whereIn('cle_source', array_column($paquet, 'cle_source'))->get()->keyBy('cle_source');
+                foreach ($paquet as $ligne) {
+                    if ($reference = $existing->get($ligne['cle_source'])) {
+                        $this->reparerPreuveArchive($reference, $ligne['provenance']);
+                    }
+                }
+                $nouvelles = array_filter($paquet, fn ($ligne) => ! $existing->has($ligne['cle_source']));
                 if ($nouvelles === []) {
                     return;
                 }
@@ -338,12 +363,55 @@ class ImportConsommations extends Command
         return count($uniques);
     }
 
-    /** Archive the original bytes so a URL changing in place remains auditable. */
+    /** Add only a verified storage proof; never rewrite the publication or selected row. */
+    private function reparerPreuveArchive(Motorisation $reference, array $sourceProvenance): void
+    {
+        $provenance = $reference->provenance ?? [];
+        $archive = $sourceProvenance['archive'] ?? [];
+        $hash = $provenance['file_sha256'] ?? null;
+        if (($archive['status'] ?? null) !== 'verified' || ! is_string($hash)
+            || ! hash_equals($hash, $archive['sha256'] ?? '')) {
+            throw new \RuntimeException('La preuve d\'archive ne correspond pas a la reference existante.');
+        }
+        $previous = $provenance['archive'] ?? [];
+        if (($previous['status'] ?? null) === 'verified'
+            && ($previous['store'] ?? null) === 'database'
+            && ($previous['sha256'] ?? null) === $hash) {
+            return;
+        }
+        $provenance['archive'] = $archive;
+        DB::table('motorisations')->where('id', $reference->id)->update([
+            'provenance' => json_encode($provenance, JSON_THROW_ON_ERROR),
+        ]);
+    }
+
+    /** Integrity failures must not leave an existing proof looking current. */
+    private function invaliderPreuvesArchive(string $hash): void
+    {
+        Motorisation::where('provenance->file_sha256', $hash)->orderBy('id')->chunkById(500, function ($references) use ($hash) {
+            foreach ($references as $reference) {
+                $provenance = $reference->provenance;
+                $provenance['archive'] = [
+                    'status' => 'failed', 'store' => 'database', 'key' => $hash,
+                    'sha256' => $hash, 'checked_at' => now()->toIso8601String(),
+                ];
+                DB::table('motorisations')->where('id', $reference->id)->update([
+                    'provenance' => json_encode($provenance, JSON_THROW_ON_ERROR),
+                ]);
+            }
+        });
+    }
+
+    /** Store and read back original bytes before claiming a durable source archive. */
     private function provenance(string $content, array $metadata = []): array
     {
         $hash = hash('sha256', $content);
-        if (! $this->option('dry-run')) {
-            Storage::disk('local')->put('consumption-sources/'.$hash, $content);
+        $archives = app(ConsumptionSourceArchive::class);
+        try {
+            $archive = $this->option('dry-run') ? $archives->unknown($hash) : $archives->store($content);
+        } catch (\Throwable $exception) {
+            $this->invaliderPreuvesArchive($hash);
+            throw $exception;
         }
 
         return array_merge([
@@ -352,7 +420,7 @@ class ImportConsommations extends Command
             'imported_at' => now()->toIso8601String(), 'verified_at' => null,
             'file_sha256' => $hash, 'license_id' => null, 'license_title' => null,
             'license_url' => null, 'method' => 'unknown', 'cycle' => 'unknown',
-        ], $metadata);
+        ], $metadata, ['archive' => $archive]);
     }
 
     // ── Sources ──────────────────────────────────────────────────────
