@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Observers\PromotionObserver;
-use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use App\Enums\RegistrationStatus;
 use App\Enums\Transmission;
 use App\Enums\VehicleAvailability;
@@ -11,6 +9,8 @@ use App\Enums\VehicleCondition;
 use App\Enums\VehicleDealType;
 use App\Enums\VehicleStatus;
 use App\Models\Concerns\HasPartnerOwner;
+use App\Observers\PromotionObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,13 +23,13 @@ class Vehicle extends Model
     use HasFactory, HasPartnerOwner, SoftDeletes;
 
     /**
-     * Fourchette de consommation officielle, posee par le controleur.
+     * References de consommation distinctes, chargees par le controleur.
      *
      * Elle coute une requete par vehicule : on ne la calcule donc que sur la
      * fiche detaillee, jamais sur une liste de quatre-vingts annonces.
-     * Nulle ailleurs, et la ressource ne l'expose pas.
+     * Nulle ailleurs ; la ressource y expose une liste vide.
      *
-     * @var array<string, mixed>|null
+     * @var list<Motorisation>|null
      */
     public ?array $cotesOfficielles = null;
 
@@ -52,34 +52,34 @@ class Vehicle extends Model
     protected function casts(): array
     {
         return [
-            'registration_status'      => RegistrationStatus::class,
-            'status'                   => VehicleStatus::class,
-            'availability'             => VehicleAvailability::class,
-            'condition'                => VehicleCondition::class,
-            'transmission'             => Transmission::class,
-            'manufacturing_year'       => 'integer',
-            'consumption_urban'        => 'decimal:2',
-            'consumption_extra_urban'  => 'decimal:2',
-            'consumption_combined'     => 'decimal:2',
+            'registration_status' => RegistrationStatus::class,
+            'status' => VehicleStatus::class,
+            'availability' => VehicleAvailability::class,
+            'condition' => VehicleCondition::class,
+            'transmission' => Transmission::class,
+            'manufacturing_year' => 'integer',
+            'consumption_urban' => 'decimal:2',
+            'consumption_extra_urban' => 'decimal:2',
+            'consumption_combined' => 'decimal:2',
             'electric_consumption_kwh' => 'decimal:2',
-            'battery_capacity_kwh'     => 'decimal:2',
-            'purchase_price'           => 'decimal:2',
-            'sale_price'               => 'decimal:2',
-            'rental_daily_rate'        => 'decimal:2',
-            'rental_weekly_rate'       => 'decimal:2',
-            'rental_monthly_rate'      => 'decimal:2',
-            'rental_deposit'           => 'decimal:2',
-            'price_negotiable'         => 'boolean',
-            'deal_type'                => VehicleDealType::class,
-            'published_at'             => 'datetime',
-            'partner_published_at'     => 'datetime',
-            'partner_pricing'          => 'array',
+            'battery_capacity_kwh' => 'decimal:2',
+            'purchase_price' => 'decimal:2',
+            'sale_price' => 'decimal:2',
+            'rental_daily_rate' => 'decimal:2',
+            'rental_weekly_rate' => 'decimal:2',
+            'rental_monthly_rate' => 'decimal:2',
+            'rental_deposit' => 'decimal:2',
+            'price_negotiable' => 'boolean',
+            'deal_type' => VehicleDealType::class,
+            'published_at' => 'datetime',
+            'partner_published_at' => 'datetime',
+            'partner_pricing' => 'array',
             // La promotion : son prix dans le meme type que les autres
             // prix, ses bornes en dates pour que la comparaison avec
             // `now()` soit celle de Carbon et non celle de deux chaines.
-            'deal_price'               => 'decimal:2',
-            'deal_starts_at'           => 'datetime',
-            'deal_ends_at'             => 'datetime',
+            'deal_price' => 'decimal:2',
+            'deal_starts_at' => 'datetime',
+            'deal_ends_at' => 'datetime',
         ];
     }
 

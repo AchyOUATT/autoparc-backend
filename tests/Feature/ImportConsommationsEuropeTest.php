@@ -36,13 +36,13 @@ class ImportConsommationsEuropeTest extends TestCase
     private function immatriculation(string $marque, string $nom, float $conso, array $extra = []): array
     {
         return array_merge([
-            'Mk'  => $marque,
-            'Cn'  => $nom,
-            'Ct'  => 'N1G',
-            'Ft'  => 'diesel',
-            'cc'  => 2755,
-            'kw'  => 150,
-            'Fc'  => $conso,
+            'Mk' => $marque,
+            'Cn' => $nom,
+            'Ct' => 'N1G',
+            'Ft' => 'diesel',
+            'cc' => 2755,
+            'kw' => 150,
+            'Fc' => $conso,
         ], $extra);
     }
 
@@ -221,7 +221,8 @@ class ImportConsommationsEuropeTest extends TestCase
         // candidats : un modele unique passait sans verification, et neuf
         // cotes de 2023 se sont posees sur une generation arretee en 2018.
         $cote = Motorisation::where('source', 'eea')->first();
-        $this->assertSame($actuelle->id, $cote->vehicle_model_id);
+        $this->assertNull($cote->vehicle_model_id, 'Une annee de registre ne departage pas deux generations.');
+        $this->assertSame('registration_year', $cote->year_kind);
         $this->assertSame(0, Motorisation::where('vehicle_model_id', $ancienne->id)->count());
     }
 
@@ -262,16 +263,17 @@ class ImportConsommationsEuropeTest extends TestCase
         $this->assertSame($modele->id, Motorisation::where('model_raw', 'C3')->value('vehicle_model_id'));
     }
 
-    public function test_un_service_en_panne_ne_fait_pas_echouer_la_commande(): void
+    public function test_un_service_en_panne_est_signale_comme_echec(): void
     {
         $this->catalogue('Isuzu', 'D-Max');
 
         Http::fake(['discodata.eea.europa.eu/*' => Http::response('', 503)]);
 
         $this->artisan('catalog:import-consommations', ['--source' => 'eea'])
-            ->assertSuccessful();
+            ->assertFailed();
 
         $this->assertSame(0, Motorisation::count());
+        $this->assertDatabaseHas('consumption_imports', ['source' => 'eea', 'status' => 'failed']);
     }
 
     public function test_le_mode_analyse_n_ecrit_rien(): void
@@ -288,5 +290,37 @@ class ImportConsommationsEuropeTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame(0, Motorisation::count());
+    }
+
+    public function test_deux_puissances_de_meme_cylindree_restent_distinctes(): void
+    {
+        $this->catalogue('Toyota', 'Hilux');
+        Http::fake(['*' => Http::response($this->reponse([
+            $this->immatriculation('TOYOTA', 'HILUX', 8.0, ['kw' => 110]),
+            $this->immatriculation('TOYOTA', 'HILUX', 9.4, ['kw' => 150]),
+        ]))]);
+        $this->artisan('catalog:import-consommations', ['--source' => 'eea'])->assertSuccessful();
+        $this->assertSame(2, Motorisation::count());
+        $this->assertSame([110.0, 150.0], Motorisation::orderBy('power_kw')->pluck('power_kw')->map(fn ($v) => (float) $v)->all());
+        $this->assertSame([2755, 2755], Motorisation::pluck('displacement_cc')->all());
+        $this->assertSame(2, Motorisation::distinct()->count('identity_key'));
+        $this->assertDatabaseHas('consumption_imports', ['source' => 'eea', 'scope' => 'model_sample', 'status' => 'partial']);
+    }
+
+    public function test_un_echantillon_tronque_garde_son_effectif_et_sa_limite(): void
+    {
+        $this->catalogue('Toyota', 'Hilux');
+        Http::fake(['*' => Http::response($this->reponse(array_fill(0, 400,
+            $this->immatriculation('TOYOTA', 'HILUX', 9.4),
+        )))]);
+        $this->artisan('catalog:import-consommations', ['--source' => 'eea'])
+            ->expectsOutputToContain('echantillon tronque')->assertSuccessful();
+        $reference = Motorisation::firstOrFail();
+        $this->assertSame('aggregation', $reference->method);
+        $this->assertSame('registration_year', $reference->year_kind);
+        $this->assertSame(400, $reference->provenance['observation_count']);
+        $this->assertTrue($reference->provenance['truncated']);
+        $this->assertFalse($reference->provenance['population_complete']);
+        $this->assertNull($reference->verified_at);
     }
 }

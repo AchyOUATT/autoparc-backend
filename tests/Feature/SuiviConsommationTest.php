@@ -831,55 +831,45 @@ class SuiviConsommationTest extends TestCase
         return $vehicule->refresh();
     }
 
-    public function test_des_oublis_majoritaires_ne_declenchent_plus_une_fausse_alerte(): void
+    public function test_une_reference_heritee_ne_requalifie_pas_les_pleins(): void
     {
-        // Le cas qui a mis en defaut les deux premieres parades.
-        //
-        // Un vehicule reellement a 8,0 l/100 dont le proprietaire oublie un
-        // passage sur deux produit 4 4 4 4 8 8. Le plancher RELATIF n'y voit
-        // rien : la mediane de cette serie vaut 4,0, et 60 % de 4,0 font 2,4.
-        // Le garde-fou de DISPERSION n'y voit rien non plus : quatre valeurs
-        // sur six fixent la mediane, l'ecart median vaut zero — cette serie a
-        // exactement la meme forme que 8 8 8 8 16 16, qui est une vraie
-        // derive. Les deux intervalles honnetes a 8,0 franchissaient alors
-        // 4,0 x 1,25 et 4,0 + 1,5, et l'alerte partait sur une consommation
-        // qui n'avait jamais bouge.
-        //
-        // Seule la cote constructeur tranche, parce qu'elle ne descend pas
-        // avec les oublis : plancher 0,60 x 7,0 = 4,2.
-        $vehicule = $this->vehiculeCote(7.0);
+        // Majority missing fills remain a limitation of the internal fallback.
+        // A selected unverified rating cannot serve as proof to discard them.
+        $vehicule = $this->vehicule();
         $this->serieDePleins($vehicule, [40.0, 20.0, 20.0, 20.0, 20.0, 40.0, 40.0]);
+        $before = $this->resume($vehicule);
+        $intervals = $this->intervalles($vehicule);
 
-        $intervalles = $this->intervalles($vehicule);
-        $resume = $this->resume($vehicule);
+        $vehicule->update(['motorisation_id' => $this->cote(7.0)->id]);
+        $vehicule->refresh();
 
-        $ecartes = array_filter($intervalles, fn (array $i) => $i['motif_ecart'] === 'anormalement_bas');
-
-        $this->assertCount(4, $ecartes, 'Les quatre intervalles a 4,0 sont des mesures perdues.');
-        $this->assertFalse($resume['abnormal'], 'Un oubli doit rendre le silence, jamais une alerte.');
-        $this->assertSame(
-            8.0,
-            $resume['l_100km'],
-            'Le chiffre affiche redevient juste : seules les deux mesures honnetes comptent.',
-        );
+        $this->assertSame($before, $this->resume($vehicule));
+        $this->assertSame($intervals, $this->intervalles($vehicule));
+        $this->assertSame('vehicle_history', $this->resume($vehicule)['baseline_source']);
     }
 
-    public function test_la_cote_ecarte_aussi_les_oublis_de_moitie(): void
+    public function test_changer_de_reference_ne_change_ni_mesure_ni_alerte(): void
     {
         $vehicule = $this->vehiculeCote(7.0);
         $this->serieDePleins($vehicule, [40.0, 20.0, 20.0, 20.0, 40.0, 40.0, 40.0]);
+        $before = $this->resume($vehicule);
+        $intervals = $this->intervalles($vehicule);
 
-        $resume = $this->resume($vehicule);
+        $reference = $this->cote(20.0);
+        $reference->forceFill([
+            'reference_status' => 'documented', 'method' => 'aggregation',
+            'year_kind' => 'registration_year', 'market' => 'EU',
+        ])->save();
+        $vehicule->update(['motorisation_id' => $reference->id]);
+        $vehicule->refresh();
 
-        $this->assertFalse($resume['abnormal']);
-        $this->assertSame(8.0, $resume['l_100km']);
+        $this->assertSame($before, $this->resume($vehicule));
+        $this->assertSame($intervals, $this->intervalles($vehicule));
     }
 
-    public function test_une_vraie_derive_alerte_toujours_malgre_le_plancher(): void
+    public function test_une_vraie_derive_alerte_avec_une_reference_non_verifiee(): void
     {
-        // Le garde-fou ne doit pas rendre l'alerte muette. 8 8 8 8 11 11 avec
-        // une cote a 7,0 : plancher 4,2, rien d'ecarte, base 8,0, et les deux
-        // derniers franchissent 10,0 et 9,5.
+        // The internal baseline must still detect a sustained real increase.
         $vehicule = $this->vehiculeCote(7.0);
         $this->serieDePleins($vehicule, [40.0, 40.0, 40.0, 40.0, 40.0, 55.0, 55.0]);
 
@@ -905,9 +895,8 @@ class SuiviConsommationTest extends TestCase
 
     public function test_un_trajet_econome_survit_au_plancher_de_la_cote(): void
     {
-        // 6,0 contre une cote de 7,0 : plancher 4,2, le trajet d'autoroute
-        // reste une mesure. Un plancher pose trop haut effacerait la seule
-        // bonne nouvelle que cet ecran puisse annoncer.
+        // 6.0 remains above the internal 60% x 8.0 floor. A catalogue choice
+        // must not discard an economical trip.
         $vehicule = $this->vehiculeCote(7.0);
         $this->serieDePleins($vehicule, [40.0, 40.0, 40.0, 40.0, 40.0, 30.0, 40.0]);
 

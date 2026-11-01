@@ -30,6 +30,8 @@ class OwnedVehicleResource extends JsonResource
             'plate_number' => $this->plate_number,
             'mileage_km'  => $this->mileage_km,
             'year'        => $this->manufacturing_year,
+            'model_year' => $this->model_year,
+            'specification_market' => $this->specification_market,
 
             // Echeances d'entretien. Les champs bruts servent au formulaire,
             // `deadlines` a l'affichage : c'est la meme liste, calculee au meme
@@ -78,15 +80,17 @@ class OwnedVehicleResource extends JsonResource
                     return null;
                 }
 
-                return [
-                    'label'            => $this->motorisation->libelle,
-                    'fuel'             => \App\Models\Motorisation::libelleCarburant($this->motorisation->fuel_code),
-                    'city_l_100km'     => $this->motorisation->consumption_city === null ? null : (float) $this->motorisation->consumption_city,
-                    'highway_l_100km'  => $this->motorisation->consumption_highway === null ? null : (float) $this->motorisation->consumption_highway,
-                    'combined_l_100km' => $this->motorisation->consumption_combined === null ? null : (float) $this->motorisation->consumption_combined,
-                    'source'           => $this->motorisation->libelle_source,
-                    'cycle'            => $this->motorisation->libelle_cycle,
-                ];
+                $references = app(\App\Services\ConsumptionReference::class);
+                $context = $references->context($this->resource);
+                $match = $references->assess($this->motorisation, $context);
+
+                return array_merge([
+                    'label' => $this->motorisation->libelle,
+                    'fuel' => \App\Models\Motorisation::libelleCarburant($this->motorisation->fuel_code),
+                    'source' => $this->motorisation->libelle_source,
+                    'cycle' => $this->motorisation->libelle_cycle,
+                    'match' => $match,
+                ], $references->values($this->motorisation, $match), $references->metadata($this->motorisation, $context));
             }),
 
             // La consommation REELLE, mesuree aux passages a la pompe, a cote
