@@ -385,4 +385,4 @@ Route::middleware(['auth:sanctum', 'staff'])->group(function () {
 // quelques appels par minute : la tache balaie le parc entier.
 Route::post('tasks/{tache}', [ScheduledTaskController::class, 'run'])
     ->middleware('throttle:scheduled-tasks')
-    ->whereIn('tache', ['reminders']);
+    ->whereIn('tache', ScheduledTaskController::allowedTasks());
