@@ -82,13 +82,16 @@ class AccessoryController extends Controller
     public function index(Request $request)
     {
         $accessories = Accessory::query()
-            ->with(['manufacturer', 'location', 'fitments.vehicleModel.brand'])
+            // Le catalogue du personnel conserve les indisponibles et les
+            // memes photos/compatibilites que les cartes du catalogue public.
+            ->with(['manufacturer', 'location', 'media', 'sellerAccount', 'fitments.vehicleModel.brand'])
             ->search($request->string('q')->toString() ?: null)
             ->when($request->filled('category'), fn ($q) => $q->ofCategory($request->category))
             ->when($request->filled('manufacturer_id'), fn ($q) => $q->where('manufacturer_id', $request->manufacturer_id))
             ->when($request->boolean('in_stock'), fn ($q) => $q->inStock())
             ->when($request->boolean('low_stock'), fn ($q) => $q->lowStock())
             ->when($request->filled('price_max'), fn ($q) => PrixEffectif::filtrer($q, 'selling_price', '<=', $request->price_max))
+            ->when($request->filled('vehicle_model_id'), fn ($q) => $q->compatibleWithModel($request->integer('vehicle_model_id')))
             ->when($request->boolean('active_only', true), fn ($q) => $q->active())
             ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
             ->when($request->filled('city'), fn ($q) => $q->whereHas('location', fn ($l) => $l->where('city', $request->city)))
@@ -197,7 +200,7 @@ class AccessoryController extends Controller
     /** GET /api/accessories/{accessory} */
     public function show(Accessory $accessory): AccessoryResource
     {
-        return new AccessoryResource($accessory->load(['manufacturer', 'location', 'media', 'fitments.vehicleModel', 'fitments.trim']));
+        return new AccessoryResource($accessory->load(['manufacturer', 'location', 'media', 'fitments.vehicleModel', 'fitments.trim', 'sellerAccount']));
     }
 
     /** PUT /api/accessories/{accessory} */
