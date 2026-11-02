@@ -24,7 +24,7 @@ class StockService
 
         if ($part->stock_quantity < $quantity) {
             throw new RuntimeException(
-                "Stock insuffisant pour la piece {$part->display_reference} : {$part->stock_quantity} disponible(s), {$quantity} demande(s)."
+                __('Stock insuffisant pour la piece :reference : :available disponible(s), :requested demande(s).', ['reference' => $part->display_reference, 'available' => $part->stock_quantity, 'requested' => $quantity])
             );
         }
 

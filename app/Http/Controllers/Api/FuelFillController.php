@@ -166,7 +166,7 @@ class FuelFillController extends Controller
         // Le kilometrage du vehicule n'est pas rabaisse : il reste le plus haut
         // compteur jamais vu, et c'est la verite — le vehicule a bien roule
         // jusque-la, meme si la saisie qui l'attestait etait fautive.
-        return response()->json(['message' => 'Passage à la pompe supprimé.']);
+        return response()->json(['message' => __('Passage à la pompe supprimé.')]);
     }
 
     /**

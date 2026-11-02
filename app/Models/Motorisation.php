@@ -112,8 +112,8 @@ class Motorisation extends Model
     public function getLibelleCycleAttribute(): string
     {
         return match ($this->cycle) {
-            'unknown' => 'protocole non documenté',
-            '5-cycle' => 'méthode canadienne, cinq cycles',
+            'unknown' => __('protocole non documenté'),
+            '5-cycle' => __('méthode canadienne, cinq cycles'),
             '2-cycle' => 'essai canadien, deux cycles',
             'wltp' => 'norme WLTP',
             'nedc' => 'ancienne norme NEDC',
@@ -159,7 +159,7 @@ class Motorisation extends Model
             'L' => 'GPL',
             'B' => 'Electrique',
             // The mixed European fuel label alone does not distinguish HEV/PHEV.
-            'H' => 'Hybride (type à préciser)',
+            'H' => __('Hybride (type à préciser)'),
             default => null,
         };
     }

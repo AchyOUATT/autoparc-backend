@@ -30,7 +30,7 @@ class EnsureCapability
             // `permission_denied` et non `account_disabled` : la session
             // reste VALABLE, c est l action qui est refusee. Le client ne
             // doit surtout pas vider son coffre la-dessus.
-            throw RefusMetier::permissionRefusee('Votre role ne permet pas cette action.');
+            throw RefusMetier::permissionRefusee(__('Votre role ne permet pas cette action.'));
         }
 
         return $next($request);

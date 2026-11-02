@@ -14,8 +14,8 @@ use App\Models\Vehicle;
 use App\Services\FcmService;
 use App\Services\ReferenceGenerator;
 use App\Support\PartnerOwnership;
-use App\Support\PrixEffectif;
 use App\Support\TriPublic;
+use App\Support\VehicleCatalogQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,64 +30,13 @@ class VehicleController extends Controller
     /** Catalogue filtre du parc. */
     public function index(Request $request)
     {
-        $vehicles = Vehicle::query()
-            ->when(! $request->user()?->isStaff(), fn ($query) => $query->visibleToPublic())
+        $vehicles = VehicleCatalogQuery::filtered($request)
             ->with([
                 'brand', 'vehicleModel', 'trim', 'engineType', 'drivetrain', 'color',
                 'location', 'sellerAccount',
                 'importDetail.originCountry', 'registrationDetail.registrationCountry', 'media',
             ])
             ->withCount('faults')
-            ->search($request->string('q')->toString() ?: null)
-            ->when($request->filled('registration_status'), fn ($q) => $q->where('registration_status', $request->registration_status))
-            ->when($request->filled('brand_id'), fn ($q) => $q->where('brand_id', $request->brand_id))
-            ->when($request->filled('vehicle_model_id'), fn ($q) => $q->where('vehicle_model_id', $request->vehicle_model_id))
-            ->when($request->filled('trim_id'), fn ($q) => $q->where('trim_id', $request->trim_id))
-            ->when($request->filled('engine_type_id'), fn ($q) => $q->where('engine_type_id', $request->engine_type_id))
-            ->when($request->filled('drivetrain_id'), fn ($q) => $q->where('drivetrain_id', $request->drivetrain_id))
-            ->when($request->filled('color_id'), fn ($q) => $q->where('color_id', $request->color_id))
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
-            ->when($request->filled('availability'), fn ($q) => $q->where('availability', $request->availability))
-            ->when($request->filled('condition'), fn ($q) => $q->where('condition', $request->condition))
-            ->when($request->filled('year_min'), fn ($q) => $q->where('manufacturing_year', '>=', $request->year_min))
-            ->when($request->filled('year_max'), fn ($q) => $q->where('manufacturing_year', '<=', $request->year_max))
-            // ── LES BORNES DE PRIX PORTENT SUR LE PRIX DU JOUR ──────────
-            //
-            // Une promotion qui ne se retrouve pas dans la recherche filtree
-            // est une promotion invisible la ou elle sert. Un acheteur qui
-            // demande « moins de 4 000 000 » doit voir le vehicule a
-            // 4 500 000 promu a 3 900 000, et cesser de le voir des que la
-            // promotion finit. Voir App\Support\PrixEffectif.
-            ->when($request->filled('price_min'), fn ($q) => PrixEffectif::filtrer($q, 'sale_price', '>=', $request->price_min))
-            ->when($request->filled('price_max'), fn ($q) => PrixEffectif::filtrer($q, 'sale_price', '<=', $request->price_max))
-            ->when($request->filled('consumption_max'), fn ($q) => $q->where('consumption_combined', '<=', $request->consumption_max))
-            // Filtres specifiques aux vehicules importes
-            ->when($request->filled('origin_country_id'), fn ($q) => $q->fromCountry((int) $request->origin_country_id))
-            ->when($request->boolean('customs_cleared'), fn ($q) => $q->whereHas('importDetail', fn ($d) => $d->where('customs_cleared', true)))
-            // Filtres specifiques aux vehicules immatricules
-            ->when($request->filled('mileage_max'), fn ($q) => $q->whereHas('registrationDetail', fn ($d) => $d->where('mileage_km', '<=', $request->mileage_max)))
-            ->when($request->boolean('without_faults'), fn ($q) => $q->withoutOpenFaults())
-            ->when($request->filled('fault_category'), fn ($q) => $q->withFaultCategory($request->fault_category))
-            ->when($request->filled('vehicle_type'), fn ($q) => $q->where('vehicle_type', $request->vehicle_type))
-            ->when($request->filled('body_style'),   fn ($q) => $q->where('body_style',   $request->body_style))
-            ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
-            ->when($request->filled('city'), fn ($q) => $q->whereHas('location', fn ($l) => $l->where('city', $request->city)))
-            ->when($request->boolean('available_for_rent'), fn ($q) => $q->forRent()->inStock())
-            // Mises en avant : `deal=1` renvoie toutes les promotions,
-            // `deal_type=flash_sale` un type precis.
-            // `deal=1` rend DEUX choses : la pastille editoriale que le
-            // personnel pose (`deal_type`, qui ne change pas le prix) et la
-            // promotion a duree limitee d'un partenaire (`deal_price`, qui
-            // la baisse). Les deux alimentent la bande des bonnes affaires,
-            // et c'est bien ce que l'application publiee y attend.
-            //
-            // Une promotion PROGRAMMEE pour la semaine prochaine, ou finie
-            // hier, n'y figure pas : la fenetre est testee, pas seulement la
-            // presence d'un prix.
-            ->when($request->boolean('deal'), fn ($q) => $q->where(fn ($sous) => $sous
-                ->whereNotNull('deal_type')
-                ->orWhere(fn ($promo) => PrixEffectif::fenetreOuverte($promo))))
-            ->when($request->filled('deal_type'), fn ($q) => $q->where('deal_type', $request->deal_type))
             // Tri borne a une liste blanche : `sort_by` et `sort_dir`
             // passaient bruts dans `orderBy`, ce qui rendait 500 sur un sens
             // invalide ET permettait de classer tout le catalogue par
@@ -295,7 +244,7 @@ class VehicleController extends Controller
 
         $vehicle->delete();
 
-        return response()->json(['message' => 'Vehicule archive.']);
+        return response()->json(['message' => __('Vehicule archive.')]);
     }
 
     /**

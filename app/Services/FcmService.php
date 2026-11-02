@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\ClientFcmToken;
+use App\Models\User;
+use App\Support\NotificationText;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\MulticastSendReport;
@@ -45,8 +48,10 @@ class FcmService
         array  $data = [],
     ): void {
         try {
-            $message = CloudMessage::withTarget('token', $token)
-                ->withNotification(Notification::create($title, $body))
+            $locale = $this->tokenLocales([$token])[$token] ?? 'fr';
+            $text = NotificationText::forLocale($title, $body, $data, $locale);
+            $message = CloudMessage::fromArray(['token' => $token])
+                ->withNotification(Notification::create($text['title'], $text['body']))
                 ->withData(array_map('strval', $data)); // FCM exige des strings
 
             $this->messaging()->send($message);
@@ -74,11 +79,19 @@ class FcmService
             return;
         }
 
-        $notification = Notification::create($title, $body);
         $stringData   = array_map('strval', $data);
 
+        $groups = [];
+        $locales = $this->tokenLocales($tokens);
+        foreach (array_unique($tokens) as $token) {
+            $groups[($locales[$token] ?? null) === 'en' ? 'en' : 'fr'][] = $token;
+        }
+
         // FCM multicast : max 500 tokens par appel
-        foreach (array_chunk($tokens, 500) as $chunk) {
+        foreach ($groups as $locale => $group) {
+          $text = NotificationText::forLocale($title, $body, $data, $locale);
+          $notification = Notification::create($text['title'], $text['body']);
+          foreach (array_chunk($group, 500) as $chunk) {
             try {
                 $message = CloudMessage::new()
                     ->withNotification($notification)
@@ -91,6 +104,24 @@ class FcmService
                     'error' => $e->getMessage(),
                 ]);
             }
+          }
         }
+    }
+
+    /** At most two lookups per batch; unknown/older devices retain French. */
+    private function tokenLocales(array $tokens): array
+    {
+        $locales = [];
+        try {
+            foreach (array_chunk($tokens, 500) as $chunk) {
+                $locales += ClientFcmToken::whereIn('fcm_token', $chunk)->pluck('locale', 'fcm_token')->all();
+                $locales += User::whereIn('fcm_token', $chunk)->pluck('fcm_locale', 'fcm_token')->all();
+            }
+        } catch (\Throwable $error) {
+            // Push delivery remains best effort if the preference lookup fails.
+            Log::warning('[FCM] token locale lookup failed', ['error' => $error->getMessage()]);
+        }
+
+        return $locales;
     }
 }

@@ -45,9 +45,9 @@ class StoreVehicleCheckRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'answers.required'          => 'Un contrôle sans aucun point vérifié ne serait pas un contrôle.',
-            'answers.*.item_code.distinct' => 'Le même point de contrôle a été envoyé deux fois.',
-            'answers.*.status.in'       => 'Un point se répond par « rien à signaler », « à surveiller » ou « défaut ».',
+            'answers.required'          => __('Un contrôle sans aucun point vérifié ne serait pas un contrôle.'),
+            'answers.*.item_code.distinct' => __('Le même point de contrôle a été envoyé deux fois.'),
+            'answers.*.status.in'       => __('Un point se répond par « rien à signaler », « à surveiller » ou « défaut ».'),
         ];
     }
 }

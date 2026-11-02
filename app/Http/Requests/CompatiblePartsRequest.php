@@ -54,10 +54,10 @@ class CompatiblePartsRequest extends FormRequest
     public function messages(): array
     {
         return $this->paginationMessages() + [
-            'category_id.integer' => 'La catégorie se désigne par son identifiant.',
-            'category_id.exists'  => "Cette catégorie de pièces n'existe pas.",
-            'in_stock.boolean'    => 'Le filtre « en stock » vaut 0 ou 1.',
-            'condition.in'        => "Cet état de pièce n'existe pas : une pièce est neuve, reconditionnée ou d'occasion.",
+            'category_id.integer' => __('La catégorie se désigne par son identifiant.'),
+            'category_id.exists'  => __("Cette catégorie de pièces n'existe pas."),
+            'in_stock.boolean'    => __('Le filtre « en stock » vaut 0 ou 1.'),
+            'condition.in'        => __("Cet état de pièce n'existe pas : une pièce est neuve, reconditionnée ou d'occasion."),
         ];
     }
 
@@ -91,11 +91,11 @@ class CompatiblePartsRequest extends FormRequest
     protected function paginationMessages(): array
     {
         return [
-            'per_page.integer' => 'Le nombre de pièces par page doit être un entier.',
-            'per_page.min'     => 'Une page contient au moins une pièce.',
-            'per_page.max'     => 'Une page ne peut pas dépasser :max pièces.',
-            'page.integer'     => 'Le numéro de page doit être un entier.',
-            'page.min'         => 'La numérotation des pages commence à 1.',
+            'per_page.integer' => __('Le nombre de pièces par page doit être un entier.'),
+            'per_page.min'     => __('Une page contient au moins une pièce.'),
+            'per_page.max'     => __('Une page ne peut pas dépasser :max pièces.'),
+            'page.integer'     => __('Le numéro de page doit être un entier.'),
+            'page.min'         => __('La numérotation des pages commence à 1.'),
         ];
     }
 }

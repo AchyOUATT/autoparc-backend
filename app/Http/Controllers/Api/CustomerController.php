@@ -62,6 +62,6 @@ class CustomerController extends Controller
     {
         $customer->delete();
 
-        return response()->json(['message' => 'Client archive.']);
+        return response()->json(['message' => __('Client archive.')]);
     }
 }

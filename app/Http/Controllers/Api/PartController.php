@@ -225,7 +225,7 @@ class PartController extends Controller
     {
         $part->delete();
 
-        return response()->json(['message' => 'Piece archivee.']);
+        return response()->json(['message' => __('Piece archivee.')]);
     }
 
     /** Entree, sortie ou correction de stock. */
@@ -264,7 +264,7 @@ class PartController extends Controller
                 $oem = OemNumber::where($identity)->first();
                 if ($oem === null) {
                     throw ValidationException::withMessages([
-                        'oem_numbers.'.$index.'.number' => 'Référence OEM non répertoriée : utilisez manufacturer_reference.',
+                        'oem_numbers.'.$index.'.number' => __('Référence OEM non répertoriée : utilisez manufacturer_reference.'),
                     ]);
                 }
             } else {

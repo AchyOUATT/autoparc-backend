@@ -46,12 +46,12 @@ class RegisterPartnerRequest extends FormRequest
                     $cle = NumeroDeTelephone::cle(is_string($value) ? $value : null);
 
                     if ($cle === null) {
-                        $fail('Indiquez un numero de telephone.');
+                        $fail(__('Indiquez un numero de telephone.'));
 
                         return;
                     }
                     if (PartnerAccount::query()->where('phone_key', $cle)->exists()) {
-                        $fail('Ce numero est deja utilise par un compte partenaire.');
+                        $fail(__('Ce numero est deja utilise par un compte partenaire.'));
                     }
                 },
             ],
@@ -70,7 +70,7 @@ class RegisterPartnerRequest extends FormRequest
                 'bail', 'nullable', 'string', 'email', 'max:255',
                 function (string $attribute, mixed $value, \Closure $fail): void {
                     if (is_string($value) && User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($value)])->exists()) {
-                        $fail('Cette adresse email est deja utilisee.');
+                        $fail(__('Cette adresse email est deja utilisee.'));
                     }
                 },
             ],
@@ -79,10 +79,10 @@ class RegisterPartnerRequest extends FormRequest
                 function (string $attribute, mixed $value, \Closure $fail): void {
                     // bcrypt limite les octets, pas les caracteres Unicode.
                     if (is_string($value) && strlen($value) > 72) {
-                        $fail('Le mot de passe ne doit pas depasser 72 octets.');
+                        $fail(__('Le mot de passe ne doit pas depasser 72 octets.'));
                     }
                     if (is_string($value) && str_contains($value, "\0")) {
-                        $fail('Le mot de passe contient un caractere non accepte.');
+                        $fail(__('Le mot de passe contient un caractere non accepte.'));
                     }
                 },
                 Password::min(12)->letters()->numbers(),

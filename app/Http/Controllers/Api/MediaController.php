@@ -125,8 +125,7 @@ class MediaController extends Controller
             'photos.*'   => ['file', 'mimes:jpg,jpeg,png,webp', $this->reglePoids()],
             'collection' => ['nullable', 'string', 'in:gallery,documents,damages'],
         ], [
-            'photos.max' => 'Vous ne pouvez pas envoyer plus de '.self::MAX_PHOTOS
-                            .' photos a la fois. Envoyez-les en plusieurs fois.',
+            'photos.max' => __('Vous ne pouvez pas envoyer plus de :count photos a la fois. Envoyez-les en plusieurs fois.', ['count' => self::MAX_PHOTOS]),
         ]);
 
         $collection = $request->input('collection', 'gallery');
@@ -157,8 +156,7 @@ class MediaController extends Controller
                 ]);
 
                 return response()->json([
-                    'message' => "La photo n'a pas pu être enregistrée sur le stockage. "
-                               . 'Réessayez ; si le problème persiste, le stockage est mal configuré.',
+                    'message' => __("La photo n'a pas pu être enregistrée sur le stockage. Réessayez ; si le problème persiste, le stockage est mal configuré."),
                     'data'    => $created,
                 ], 502);
             }
@@ -266,10 +264,7 @@ class MediaController extends Controller
             // Sa taille, elle, ne peut PAS etre annoncee — PHP ne l'a plus.
             throw ValidationException::withMessages(
                 array_map(
-                    fn (string $nom) => 'La photo « '.$nom.' » depasse '
-                        .PlafondsDeDepot::enMo(PlafondsDeDepot::parFichier())
-                        .', le poids maximal d\'un fichier accepte par le serveur. '
-                        .'Reduisez-la avant de la renvoyer.',
+                    fn (string $nom) => __('La photo « :name » depasse :limit, le poids maximal d\'un fichier accepte par le serveur. Reduisez-la avant de la renvoyer.', ['name' => $nom, 'limit' => PlafondsDeDepot::enMo(PlafondsDeDepot::parFichier())]),
                     $tronques,
                 ),
             );
@@ -310,10 +305,7 @@ class MediaController extends Controller
             // il dit directement de combien reduire. Voir
             // PlafondsDeDepot::enPoids.
             $echec(
-                'La photo « '.$valeur->getClientOriginalName().' » depasse de '
-                .PlafondsDeDepot::enPoids($octets - self::MAX_SIZE * 1024)
-                .' la limite de '.PlafondsDeDepot::enMo(self::MAX_SIZE * 1024)
-                .' par photo. Reduisez-la avant de la renvoyer.'
+                __('La photo « :name » depasse de :excess la limite de :limit par photo. Reduisez-la avant de la renvoyer.', ['name' => $valeur->getClientOriginalName(), 'excess' => PlafondsDeDepot::enPoids($octets - self::MAX_SIZE * 1024), 'limit' => PlafondsDeDepot::enMo(self::MAX_SIZE * 1024)])
             );
         };
     }
@@ -346,7 +338,7 @@ class MediaController extends Controller
             $next?->update(['is_cover' => true]);
         }
 
-        return response()->json(['message' => 'Média supprimé.']);
+        return response()->json(['message' => __('Média supprimé.')]);
     }
 
     // ── Couverture ───────────────────────────────────────────────────
@@ -400,7 +392,7 @@ class MediaController extends Controller
             $model->media()->where('id', $id)->update(['position' => $position]);
         }
 
-        return response()->json(['message' => 'Ordre mis à jour.']);
+        return response()->json(['message' => __('Ordre mis à jour.')]);
     }
 
     // ── Listing ──────────────────────────────────────────────────────

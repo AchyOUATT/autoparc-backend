@@ -242,7 +242,7 @@ class AccessoryController extends Controller
     {
         $accessory->delete();
 
-        return response()->json(['message' => 'Accessoire archive.']);
+        return response()->json(['message' => __('Accessoire archive.')]);
     }
 
     /** Bascule la disponibilité (disponible ↔ indisponible). */
@@ -276,7 +276,11 @@ class AccessoryController extends Controller
             $accessory->refresh();
 
             if ($data['operation'] === 'decrease' && $accessory->stock_quantity < $data['quantity']) {
-                abort(422, "Stock insuffisant pour {$accessory->display_reference} : {$accessory->stock_quantity} disponible(s), {$data['quantity']} demande(s).");
+                abort(422, __('Stock insuffisant pour :reference : :available disponible(s), :requested demande(s).', [
+                    'reference' => $accessory->display_reference,
+                    'available' => $accessory->stock_quantity,
+                    'requested' => $data['quantity'],
+                ]));
             }
 
             $newQty = match ($data['operation']) {

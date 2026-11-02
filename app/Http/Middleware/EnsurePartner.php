@@ -19,17 +19,17 @@ class EnsurePartner
         // pourtant fermer sa session dans le premier cas et la garder dans
         // le second.
         if (! $user || ! $user->isPartner()) {
-            throw RefusMetier::permissionRefusee('Acces reserve aux comptes partenaires.');
+            throw RefusMetier::permissionRefusee(__('Acces reserve aux comptes partenaires.'));
         }
 
         if (! $user->is_active) {
-            throw RefusMetier::compteDesactive('Votre compte partenaire a ete desactive.');
+            throw RefusMetier::compteDesactive(__('Votre compte partenaire a ete desactive.'));
         }
 
         // Requete fraiche a chaque passage : une validation ou suspension
         // prend effet meme pour un jeton deja emis.
         $account = $user->partnerAccount()->first();
-        abort_unless($account, 403, 'Compte partenaire introuvable.');
+        abort_unless($account, 403, __('Compte partenaire introuvable.'));
         $user->setRelation('partnerAccount', $account);
         $request->attributes->set('partner_account', $account);
 

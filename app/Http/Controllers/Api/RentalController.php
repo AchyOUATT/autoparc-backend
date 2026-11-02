@@ -40,7 +40,7 @@ class RentalController extends Controller
 
         if (! $request->boolean('with_driver') && ! $customer->canRent()) {
             return response()->json([
-                'message' => 'Client non eligible : permis manquant, expire ou client sur liste noire.',
+                'message' => __('Client non eligible : permis manquant, expire ou client sur liste noire.'),
             ], 422);
         }
 

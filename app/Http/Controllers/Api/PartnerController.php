@@ -60,7 +60,7 @@ class PartnerController extends Controller
     {
         $partner->delete();
 
-        return response()->json(['message' => 'Partenaire supprimé.']);
+        return response()->json(['message' => __('Partenaire supprimé.')]);
     }
 
     /* ------------------------------------------------------------------ */
@@ -89,7 +89,7 @@ class PartnerController extends Controller
             ],
         ]);
 
-        return response()->json(['message' => 'Partenaire associé.']);
+        return response()->json(['message' => __('Partenaire associé.')]);
     }
 
     /** DELETE /api/parts/{part}/partners/{partner} */
@@ -97,7 +97,7 @@ class PartnerController extends Controller
     {
         $part->partners()->detach($partner->id);
 
-        return response()->json(['message' => 'Association supprimée.']);
+        return response()->json(['message' => __('Association supprimée.')]);
     }
 
     /* ------------------------------------------------------------------ */
@@ -126,7 +126,7 @@ class PartnerController extends Controller
             ],
         ]);
 
-        return response()->json(['message' => 'Partenaire associé.']);
+        return response()->json(['message' => __('Partenaire associé.')]);
     }
 
     /** DELETE /api/accessories/{accessory}/partners/{partner} */
@@ -134,6 +134,6 @@ class PartnerController extends Controller
     {
         $accessory->partners()->detach($partner->id);
 
-        return response()->json(['message' => 'Association supprimée.']);
+        return response()->json(['message' => __('Association supprimée.')]);
     }
 }

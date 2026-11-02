@@ -101,6 +101,7 @@ return Application::configure(basePath: dirname(__DIR__))
     // Toute requete d'API porte une reference, y compris celles qui echouent
     // avant d'atteindre un controleur.
     $middleware->prependToGroup('api', \App\Http\Middleware\AssignRequestId::class);
+    $middleware->prependToGroup('api', \App\Http\Middleware\ResolveApiLocale::class);
 
     // Plafond general. Laravel 11 a retire le throttle pose d'office sur le
     // groupe api : sans cette ligne, l'API n'a aucune limite de debit.

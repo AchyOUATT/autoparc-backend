@@ -67,7 +67,7 @@ class OwnedVehicle extends Model
 
             $items[] = [
                 'kind'      => $kind,
-                'label'     => $label,
+                'label'     => __($label),
                 'due_on'    => $date->toDateString(),
                 'days_left' => $daysLeft,
                 'km_left'   => null,
@@ -83,14 +83,14 @@ class OwnedVehicle extends Model
         if ($remaining !== null) {
             $items[] = [
                 'kind'      => 'service',
-                'label'     => 'Vidange',
+                'label'     => __('Vidange'),
                 'due_on'    => null,
                 'days_left' => null,
                 'km_left'   => $remaining,
                 'overdue'   => $remaining <= 0,
                 'detail'    => $remaining > 0
-                    ? "Dans {$remaining} km"
-                    : 'Depassee de ' . abs($remaining) . ' km',
+                    ? __('Dans :distance km', ['distance' => $remaining])
+                    : __('Depassee de :distance km', ['distance' => abs($remaining)]),
             ];
         }
 

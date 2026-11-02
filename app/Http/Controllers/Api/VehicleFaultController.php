@@ -89,6 +89,6 @@ class VehicleFaultController extends Controller
 
         $fault->delete();
 
-        return response()->json(['message' => 'Panne supprimee.']);
+        return response()->json(['message' => __('Panne supprimee.')]);
     }
 }

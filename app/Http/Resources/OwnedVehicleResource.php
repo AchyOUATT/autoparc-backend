@@ -63,7 +63,9 @@ class OwnedVehicleResource extends JsonResource
                 ),
                 'trim'       => $this->whenLoaded('trim', fn () => $this->trim?->name),
                 'engine_type' => $this->whenLoaded('engineType', fn () => $this->engineType?->label),
+                'engine_type_code' => $this->whenLoaded('engineType', fn () => $this->engineType?->code),
                 'drivetrain' => $this->whenLoaded('drivetrain', fn () => $this->drivetrain?->code),
+                'drivetrain_code' => $this->whenLoaded('drivetrain', fn () => $this->drivetrain?->code),
                 'color'      => $this->whenLoaded('color', fn () => $this->color?->name),
             ],
 
@@ -87,7 +89,9 @@ class OwnedVehicleResource extends JsonResource
                 return array_merge([
                     'label' => $this->motorisation->libelle,
                     'fuel' => \App\Models\Motorisation::libelleCarburant($this->motorisation->fuel_code),
+                    'fuel_code' => $this->motorisation->fuel_code,
                     'source' => $this->motorisation->libelle_source,
+                    'source_code' => $this->motorisation->source,
                     'cycle' => $this->motorisation->libelle_cycle,
                     'match' => $match,
                 ], $references->values($this->motorisation, $match), $references->metadata($this->motorisation, $context));

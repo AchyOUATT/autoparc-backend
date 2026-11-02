@@ -52,7 +52,7 @@ class EnsureActiveUser
         $user = $request->user();
 
         if ($user !== null && ! $user->is_active) {
-            throw RefusMetier::compteDesactive('Votre compte a ete desactive.');
+            throw RefusMetier::compteDesactive(__('Votre compte a ete desactive.'));
         }
 
         return $next($request);

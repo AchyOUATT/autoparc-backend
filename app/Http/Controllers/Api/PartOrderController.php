@@ -137,7 +137,7 @@ class PartOrderController extends Controller
     public function confirm(PartOrder $partOrder): JsonResponse
     {
         if ($partOrder->status !== OrderStatus::Draft) {
-            return response()->json(['message' => 'Seule une commande en brouillon peut etre confirmee.'], 422);
+            return response()->json(['message' => __('Seule une commande en brouillon peut etre confirmee.')], 422);
         }
 
         DB::transaction(function () use ($partOrder) {
@@ -154,7 +154,7 @@ class PartOrderController extends Controller
         });
 
         return response()->json([
-            'message' => 'Commande confirmee et stock mis a jour.',
+            'message' => __('Commande confirmee et stock mis a jour.'),
             'data'    => new PartOrderResource($partOrder->refresh()->load('items.part')),
         ]);
     }
@@ -177,6 +177,6 @@ class PartOrderController extends Controller
             $partOrder->update(['status' => OrderStatus::Cancelled]);
         });
 
-        return response()->json(['message' => 'Commande annulee.']);
+        return response()->json(['message' => __('Commande annulee.')]);
     }
 }

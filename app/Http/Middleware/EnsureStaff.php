@@ -19,7 +19,7 @@ class EnsureStaff
         $user = $request->user();
 
         if (! $user || ! $user->isStaff()) {
-            throw RefusMetier::permissionRefusee('Acces reserve au personnel.');
+            throw RefusMetier::permissionRefusee(__('Acces reserve au personnel.'));
         }
 
         // LE ROLE EST BON, LE COMPTE NE L EST PLUS. Deux refus que le statut
@@ -27,7 +27,7 @@ class EnsureStaff
         // celui-ci ferme la session, celui du dessus la conserve. Voir
         // App\Exceptions\RefusMetier.
         if (! $user->is_active) {
-            throw RefusMetier::compteDesactive('Acces reserve au personnel actif.');
+            throw RefusMetier::compteDesactive(__('Acces reserve au personnel actif.'));
         }
 
         return $next($request);

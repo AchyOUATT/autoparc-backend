@@ -78,12 +78,16 @@ class MotorisationApiTest extends TestCase
         $premiere = $reponse->json('data.0');
         $this->assertSame('2,5 l 4 cyl. boîte auto. 6', $premiere['label']);
         $this->assertSame('Essence ordinaire', $premiere['fuel']);
+        $this->assertSame('X', $premiere['fuel_code']);
+        $this->assertSame('AS6', $premiere['transmission_code']);
         $this->assertSame(8.2, $premiere['consumption']['reference_combined_l_100km']);
         $this->assertSame(9.5, $premiere['consumption']['reference_city_l_100km']);
 
         // Sans provenance ni cycle, le chiffre ne se discute pas.
         $this->assertSame('Ressources naturelles Canada', $premiere['source']['label']);
         $this->assertSame('méthode canadienne, cinq cycles', $premiere['source']['cycle']);
+        $this->assertSame('nrcan', $premiere['source']['code']);
+        $this->assertSame('5-cycle', $premiere['source']['cycle_code']);
     }
 
     public function test_les_millesimes_restent_distincts_sans_promouvoir_une_annee_voisine(): void
@@ -197,7 +201,10 @@ class MotorisationApiTest extends TestCase
             ->assertJsonPath('data.consumption.reference_combined_l_100km', 8.2)
             ->assertJsonPath('data.consumption.match.level', 'incomplete')
             ->assertJsonPath('data.consumption.label', '2,5 l 4 cyl. boîte auto. 6')
-            ->assertJsonPath('data.consumption.source', 'Ressources naturelles Canada');
+            ->assertJsonPath('data.consumption.source', 'Ressources naturelles Canada')
+            ->assertJsonPath('data.consumption.source_code', 'nrcan')
+            ->assertJsonPath('data.consumption.cycle_code', '5-cycle')
+            ->assertJsonPath('data.consumption.fuel_code', 'X');
     }
 
     public function test_sans_motorisation_choisie_aucune_consommation_n_est_affichee(): void
@@ -228,5 +235,33 @@ class MotorisationApiTest extends TestCase
             ->patchJson('/api/my/vehicles/'.$vehicule->id, ['motorisation_id' => $coteHilux->id])
             ->assertStatus(422)
             ->assertJsonValidationErrors('motorisation_id');
+    }
+
+    public function test_english_reference_metadata_keeps_codes_and_does_not_promote_an_uncertain_hybrid(): void
+    {
+        $this->cote(['fuel_code' => 'H']);
+
+        $this->withHeader('Accept-Language', 'en')->getJson('/api/catalog/motorisations?vehicle_model_id='.$this->camry->id)
+            ->assertOk()
+            ->assertJsonPath('data.0.fuel', 'Hybrid (type to be confirmed)')
+            ->assertJsonPath('data.0.fuel_code', 'H')
+            ->assertJsonPath('data.0.source.cycle', 'Canadian five-cycle method')
+            ->assertJsonPath('data.0.source.cycle_code', '5-cycle')
+            ->assertJsonPath('data.0.transmission_code', 'AS6')
+            ->assertJsonPath('data.0.consumption.combined_l_100km', null)
+            ->assertJsonPath('data.0.consumption.reference_combined_l_100km', 8.2)
+            ->assertJsonPath('data.0.match.level', 'incomplete');
+    }
+
+    public function test_withdrawn_reference_selection_is_rejected_in_english(): void
+    {
+        $user = User::factory()->create(['role' => 'client', 'firebase_uid' => 'uid-withdrawn-en']);
+        $vehicle = $this->vehiculeDeGarage($user);
+        $reference = $this->cote(['reference_status' => 'withdrawn']);
+
+        $this->actingAsClient($user)->withHeader('Accept-Language', 'en')
+            ->patchJson('/api/my/vehicles/'.$vehicle->id, ['motorisation_id' => $reference->id])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.motorisation_id.0', 'This reference has been withdrawn.');
     }
 }

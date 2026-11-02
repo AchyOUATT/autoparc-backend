@@ -40,11 +40,11 @@ class SaleController extends Controller
         $vehicle = Vehicle::with('faults')->findOrFail($data['vehicle_id']);
 
         if (! $vehicle->availability->allowsSale()) {
-            return response()->json(['message' => "Ce vehicule n'est pas propose a la vente."], 422);
+            return response()->json(['message' => __("Ce vehicule n'est pas propose a la vente.")], 422);
         }
 
         if ($vehicle->status === VehicleStatus::Sold) {
-            return response()->json(['message' => 'Ce vehicule est deja vendu.'], 422);
+            return response()->json(['message' => __('Ce vehicule est deja vendu.')], 422);
         }
 
         // Obligation d'information : pannes ouvertes non divulguees.
@@ -54,7 +54,7 @@ class SaleController extends Controller
 
         if ($undisclosed->isNotEmpty() && ! ($data['faults_disclosed'] ?? false)) {
             return response()->json([
-                'message' => 'Des pannes ouvertes ne sont pas encore declarees a l\'acheteur.',
+                'message' => __('Des pannes ouvertes ne sont pas encore declarees a l\'acheteur.'),
                 'faults'  => $undisclosed->pluck('title'),
             ], 422);
         }

@@ -98,8 +98,8 @@ class StockController extends Controller
         if ($quantity < 0 || $quantity > 2147483647) {
             throw ValidationException::withMessages([
                 'quantity' => $quantity < 0
-                    ? 'Stock insuffisant pour cette sortie.'
-                    : 'La quantité de stock est trop élevée.',
+                    ? __('Stock insuffisant pour cette sortie.')
+                    : __('La quantité de stock est trop élevée.'),
             ]);
         }
 

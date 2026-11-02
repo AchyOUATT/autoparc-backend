@@ -92,21 +92,21 @@ class VehicleCheckItem extends Model
         $raisons = [];
 
         if ($this->trigger_label !== null) {
-            $raisons[] = $this->trigger_label;
+            $raisons[] = __($this->trigger_label);
         }
 
         if ($this->min_trip_distance_km !== null) {
             if ($distanceKm === null || $distanceKm < $this->min_trip_distance_km) {
                 return null;
             }
-            $raisons[] = 'Trajet de ' . $this->nombre($distanceKm) . ' km';
+            $raisons[] = __('Trajet de :distance km', ['distance' => $this->nombre($distanceKm)]);
         }
 
         if ($this->min_mileage_km !== null) {
             if ($vehicule->mileage_km === null || $vehicule->mileage_km < $this->min_mileage_km) {
                 return null;
             }
-            $raisons[] = $this->nombre($vehicule->mileage_km) . ' km au compteur';
+            $raisons[] = __(':distance km au compteur', ['distance' => $this->nombre($vehicule->mileage_km)]);
         }
 
         if ($this->min_age_years !== null) {
@@ -117,7 +117,7 @@ class VehicleCheckItem extends Model
             if ($age === null || $age < $this->min_age_years) {
                 return null;
             }
-            $raisons[] = 'Véhicule de ' . $age . ' ans';
+            $raisons[] = __('Véhicule de :age ans', ['age' => $age]);
         }
 
         if (! empty($this->engine_codes)) {
@@ -125,7 +125,7 @@ class VehicleCheckItem extends Model
             if ($code === null || ! in_array($code, $this->engine_codes, true)) {
                 return null;
             }
-            $raisons[] = $vehicule->libelleMotorisation() ?? ucfirst($code);
+            $raisons[] = __($vehicule->libelleMotorisation() ?? ucfirst($code));
         }
 
         // L'exclusion ne joue que sur une motorisation CONNUE, et ne produit
@@ -145,7 +145,7 @@ class VehicleCheckItem extends Model
             if ($carrosserie === null || ! in_array($carrosserie, $this->body_types, true)) {
                 return null;
             }
-            $raisons[] = ucfirst($carrosserie);
+            $raisons[] = __(ucfirst($carrosserie));
         }
 
         if (! empty($this->months)) {

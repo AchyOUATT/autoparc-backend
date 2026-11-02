@@ -61,7 +61,7 @@ class UpdateOwnedVehicleRequest extends StoreOwnedVehicleRequest
             if ($modele === null && trim((string) $libre) === '') {
                 $validator->errors()->add(
                     'vehicle_model_id',
-                    'Indiquez un modele de la liste, ou tapez le votre.'
+                    __('Indiquez un modele de la liste, ou tapez le votre.')
                 );
             }
         });

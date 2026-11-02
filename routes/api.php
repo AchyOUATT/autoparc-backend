@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\AccessoryOrderController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CatalogSyncController;
+use App\Http\Controllers\Api\CatalogVehicleListingController;
 use App\Http\Controllers\Api\CompatibilityController;
 use App\Http\Controllers\Api\ContactSettingsController;
 use App\Http\Controllers\Api\CustomerController;
@@ -60,6 +61,7 @@ Route::get('app/contact', [ContactSettingsController::class, 'show']);
 
 /* ---------------------- Catalogue public (lecture) ---------------------- */
 Route::prefix('catalog')->group(function () {
+    Route::get('vehicle-listings', [CatalogVehicleListingController::class, 'index']);
     Route::get('vehicles', [VehicleController::class, 'index']);
     Route::get('vehicles/{vehicle}', [VehicleController::class, 'show']);
     Route::get('parts', [PartController::class, 'index']);

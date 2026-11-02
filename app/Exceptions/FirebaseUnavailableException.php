@@ -22,7 +22,7 @@ class FirebaseUnavailableException extends ServiceUnavailableHttpException
     {
         parent::__construct(
             retryAfter: null,
-            message: "Verification de session indisponible. Reessayez dans un instant.",
+            message: __("Verification de session indisponible. Reessayez dans un instant."),
             previous: $previous,
         );
     }

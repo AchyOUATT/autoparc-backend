@@ -19,6 +19,7 @@ class MotorisationResource extends JsonResource
             'id' => $this->id,
             'label' => $this->libelle,
             'fuel' => Motorisation::libelleCarburant($this->fuel_code),
+            'fuel_code' => $this->fuel_code,
             'engine_l' => $this->engine_l === null ? null : (float) $this->engine_l,
             'cylinders' => $this->cylinders,
             'consumption' => $references->values($this->resource, $match),
@@ -27,6 +28,7 @@ class MotorisationResource extends JsonResource
                 'code' => $this->source,
                 'label' => $this->libelle_source,
                 'cycle' => $this->libelle_cycle,
+                'cycle_code' => $this->cycle,
             ],
         ], $references->metadata($this->resource, $context));
     }

@@ -57,7 +57,7 @@ class AuthController extends Controller
             return response()->json(array_merge(
                 $this->profile($request, $user),
                 [
-                    'message' => 'Inscription recue. Votre entreprise doit etre approuvee avant de publier des annonces.',
+                    'message' => __('Inscription recue. Votre entreprise doit etre approuvee avant de publier des annonces.'),
                     'token' => $user->createToken($data['device_name'] ?? 'partner', ['partner'])->plainTextToken,
                 ],
             ), 201);
@@ -115,14 +115,14 @@ class AuthController extends Controller
             };
 
             if (! $user || ! Hash::check($data['password'], $user->password) || ! $user->isPartner() || ! $user->is_active) {
-                throw ValidationException::withMessages([$champ => ['Identifiants invalides ou compte desactive.']]);
+                throw ValidationException::withMessages([$champ => [__('Identifiants invalides ou compte desactive.')]]);
             }
 
             $account = $user->partnerAccount()->lockForUpdate()->first();
-            abort_unless($account, 403, 'Compte partenaire introuvable.');
+            abort_unless($account, 403, __('Compte partenaire introuvable.'));
             if (in_array($account->status, ['rejected', 'suspended'], true)) {
                 return response()->json([
-                    'message' => 'Votre compte partenaire ne peut pas se connecter dans son etat actuel.',
+                    'message' => __('Votre compte partenaire ne peut pas se connecter dans son etat actuel.'),
                     'status' => $account->status,
                     'review_reason' => $account->review_reason,
                 ], 403);

@@ -112,9 +112,9 @@ class ControleAvantVoyage
         return array_map(fn (array $ligne) => [
             'code'           => $ligne['gabarit']->code,
             'category'       => $ligne['gabarit']->category,
-            'category_label' => self::LIBELLES_CATEGORIES[$ligne['gabarit']->category] ?? $ligne['gabarit']->category,
-            'title'          => $ligne['gabarit']->title,
-            'help'           => $ligne['gabarit']->help,
+            'category_label' => __(self::LIBELLES_CATEGORIES[$ligne['gabarit']->category] ?? $ligne['gabarit']->category),
+            'title'          => __($ligne['gabarit']->title),
+            'help'           => $ligne['gabarit']->help === null ? null : __($ligne['gabarit']->help),
             'severity'       => $ligne['gabarit']->severity,
 
             // Les raisons ne sont pas decoratives : elles sont ce qui distingue
@@ -234,8 +234,8 @@ class ControleAvantVoyage
         return [
             [
                 'value' => CheckReason::Trip->value,
-                'label' => 'Avant un voyage',
-                'hint'  => 'La liste dépend de la distance : un aller-retour en ville et une descente de quatre cents kilomètres ne demandent pas la même chose.',
+                'label' => __('Avant un voyage'),
+                'hint'  => __('La liste dépend de la distance : un aller-retour en ville et une descente de quatre cents kilomètres ne demandent pas la même chose.'),
                 'season' => null,
             ],
             [
@@ -290,14 +290,14 @@ class ControleAvantVoyage
 
             return [
                 'item_code'          => $reponse->item_code,
-                'title'              => $reponse->title,
+                'title'              => __($reponse->title),
                 'category'           => $reponse->category,
-                'category_label'     => self::LIBELLES_CATEGORIES[$reponse->category] ?? $reponse->category,
+                'category_label'     => __(self::LIBELLES_CATEGORIES[$reponse->category] ?? $reponse->category),
                 'severity'           => $reponse->severity,
                 'status'             => $reponse->status,
                 'note'               => $reponse->note,
                 'blocking'           => $reponse->estBloquant(),
-                'help'               => $gabarit?->help,
+                'help'               => $gabarit?->help === null ? null : __($gabarit->help),
                 'part_category_slug' => $slug,
                 'part_category_id'   => $slug === null ? null : ($categories[$slug] ?? null),
             ];
@@ -349,7 +349,7 @@ class ControleAvantVoyage
             }
 
             if ($restant <= 0) {
-                return ['status' => 'bad', 'reason' => 'Dépassée de ' . $this->nombre(abs($restant)) . ' km'];
+                return ['status' => 'bad', 'reason' => __('Dépassée de :distance km', ['distance' => $this->nombre(abs($restant))])];
             }
 
             // Le trajet consomme ce qui restait : la vidange se fait avant de
@@ -357,12 +357,12 @@ class ControleAvantVoyage
             if ($distanceKm !== null && $restant < $distanceKm) {
                 return [
                     'status' => 'bad',
-                    'reason' => 'Il reste ' . $this->nombre($restant) . ' km avant la vidange, et le trajet en fait ' . $this->nombre($distanceKm),
+                    'reason' => __('Il reste :remaining km avant la vidange, et le trajet en fait :trip', ['remaining' => $this->nombre($restant), 'trip' => $this->nombre($distanceKm)]),
                 ];
             }
 
             return $restant <= max($distanceKm ?? 0, self::MARGE_VIDANGE_KM)
-                ? ['status' => 'watch', 'reason' => 'Dans ' . $this->nombre($restant) . ' km']
+                ? ['status' => 'watch', 'reason' => __('Dans :distance km', ['distance' => $this->nombre($restant)])]
                 : null;
         }
 
@@ -381,7 +381,7 @@ class ControleAvantVoyage
 
             return [
                 'status' => 'bad',
-                'reason' => $depuis === 1 ? 'Expirée depuis hier' : "Expirée depuis {$depuis} jours",
+                'reason' => $depuis === 1 ? __('Expirée depuis hier') : __('Expirée depuis :days jours', ['days' => $depuis]),
             ];
         }
 
@@ -389,16 +389,16 @@ class ControleAvantVoyage
             return [
                 'status' => 'watch',
                 'reason' => match ($joursRestants) {
-                    0       => "Expire aujourd'hui",
-                    1       => 'Expire demain',
-                    default => "Expire dans {$joursRestants} jours",
+                    0       => __("Expire aujourd'hui"),
+                    1       => __('Expire demain'),
+                    default => __('Expire dans :days jours', ['days' => $joursRestants]),
                 },
             ];
         }
 
         return [
             'status' => 'ok',
-            'reason' => 'Valide jusqu\'au ' . CarbonImmutable::parse($date)->format('d/m/Y'),
+            'reason' => __("Valide jusqu'au :date", ['date' => CarbonImmutable::parse($date)->format(app()->getLocale() === 'en' ? 'm/d/Y' : 'd/m/Y')]),
         ];
     }
 

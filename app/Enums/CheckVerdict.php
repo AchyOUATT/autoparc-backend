@@ -35,8 +35,8 @@ enum CheckVerdict: string
     {
         return match ($this) {
             self::Blocked   => $motif->verdictBloquant(),
-            self::Attention => 'Points à surveiller',
-            self::Clear     => 'Rien à signaler',
+            self::Attention => __('Points à surveiller'),
+            self::Clear     => __('Rien à signaler'),
         };
     }
 
@@ -57,21 +57,21 @@ enum CheckVerdict: string
         // de partir » suivi de « 1 point à régler avant de partir » occupait
         // deux lignes pour une seule information.
         return match ($this) {
-            self::Blocked => $this->compte($bloquants, 'point bloquant', 'points bloquants')
-                . ($aSurveiller > 0 ? ", {$aSurveiller} à surveiller" : ''),
+            self::Blocked => $this->compte($bloquants, __('point bloquant'), __('points bloquants'))
+                . ($aSurveiller > 0 ? __(', :count à surveiller', ['count' => $aSurveiller]) : ''),
 
-            self::Attention => $this->compte($aSurveiller, 'point à surveiller', 'points à surveiller')
+            self::Attention => $this->compte($aSurveiller, __('point à surveiller'), __('points à surveiller'))
                 . ', ' . $motif->complementSansBlocage(),
 
             self::Clear => $verifies === 1
-                ? 'sur le point vérifié'
-                : "sur les {$verifies} points vérifiés",
+                ? __('sur le point vérifié')
+                : __('sur les :count points vérifiés', ['count' => $verifies]),
         };
     }
 
     private function compte(int $n, string $singulier, string $pluriel): string
     {
-        return $n . ' ' . ($n === 1 ? $singulier : $pluriel);
+        return $n . ' ' . __($n === 1 ? $singulier : $pluriel);
     }
 
     /**

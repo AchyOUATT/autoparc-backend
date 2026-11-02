@@ -26,19 +26,19 @@ class AuthController extends Controller
         // (leur password DB est aléatoire, l'auth se fait via Firebase uniquement).
         if ($user && $user->isClient()) {
             throw ValidationException::withMessages([
-                'email' => ['Ce compte est un compte client. Connectez-vous via l\'application mobile avec votre email Firebase.'],
+                'email' => [__('Ce compte est un compte client. Connectez-vous via l\'application mobile avec votre email Firebase.')],
             ]);
         }
 
         if ($user && $user->isPartner()) {
             throw ValidationException::withMessages([
-                'email' => ['Ce compte partenaire doit utiliser la connexion de son espace partenaire.'],
+                'email' => [__('Ce compte partenaire doit utiliser la connexion de son espace partenaire.')],
             ]);
         }
 
         if (! $user || ! $user->isStaff() || ! Hash::check($data['password'], $user->password) || ! $user->is_active) {
             throw ValidationException::withMessages([
-                'email' => ['Identifiants invalides ou compte désactivé.'],
+                'email' => [__('Identifiants invalides ou compte désactivé.')],
             ]);
         }
 

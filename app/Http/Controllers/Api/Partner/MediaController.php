@@ -109,7 +109,7 @@ class MediaController extends Controller
             }
         });
 
-        return response()->json(['message' => 'Photo supprimée.']);
+        return response()->json(['message' => __('Photo supprimée.')]);
     }
 
     private function index(Request $request, Model $product): JsonResponse
@@ -122,7 +122,7 @@ class MediaController extends Controller
     private function validateUpload(Request $request, Model $product): void
     {
         PartnerOwnership::authorize($product, $request->user());
-        abort_unless(in_array(config('media.disk'), PartnerMedia::publicDisks(), true), 503, 'Le stockage public des photos est indisponible.');
+        abort_unless(in_array(config('media.disk'), PartnerMedia::publicDisks(), true), 503, __('Le stockage public des photos est indisponible.'));
 
         $request->validate([
             'collection' => ['sometimes', 'required', 'in:gallery'],
@@ -157,7 +157,7 @@ class MediaController extends Controller
             }
         });
 
-        return response()->json(['message' => 'Ordre des photos mis à jour.']);
+        return response()->json(['message' => __('Ordre des photos mis à jour.')]);
     }
 
     private function authorizeMedia(Request $request, Media $media): Model
