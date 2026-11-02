@@ -4,12 +4,16 @@ namespace Tests\Feature;
 
 use App\Models\AppNotification;
 use App\Models\Brand;
+use App\Models\ClientFcmToken;
 use App\Models\OwnedVehicle;
 use App\Models\User;
 use App\Models\VehicleModel;
 use App\Services\FcmService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Kreait\Firebase\Contract\Messaging;
+use Kreait\Firebase\Messaging\MulticastSendReport;
 use Mockery;
+use ReflectionProperty;
 use Tests\TestCase;
 
 /**
@@ -132,5 +136,48 @@ class MaintenanceRemindersTest extends TestCase
         $this->artisan('reminders:maintenance')->assertSuccessful();
 
         $this->assertSame(0, AppNotification::count());
+    }
+
+    public function test_an_english_job_keeps_canonical_reminders_and_sends_each_device_its_own_language(): void
+    {
+        $vehicle = $this->vehicleWith([
+            'nickname' => 'La voiture de René',
+            'insurance_expiry' => now()->subDays(2)->toDateString(),
+            'mileage_km' => 65001,
+            'last_service_mileage_km' => 60000,
+            'service_interval_km' => 5000,
+        ]);
+        ClientFcmToken::upsertToken($vehicle->user->firebase_uid, 'french-device', 'fr');
+        ClientFcmToken::upsertToken($vehicle->user->firebase_uid, 'english-device', 'en');
+        $deliveries = [];
+        $messaging = Mockery::mock(Messaging::class);
+        $messaging->shouldReceive('sendMulticast')->times(4)->andReturnUsing(function ($message, $tokens) use (&$deliveries) {
+            $deliveries[] = ['message' => $message->jsonSerialize(), 'tokens' => $tokens];
+
+            return MulticastSendReport::withItems([]);
+        });
+        $service = new FcmService();
+        (new ReflectionProperty(FcmService::class, 'messaging'))->setValue($service, $messaging);
+        $this->instance(FcmService::class, $service);
+
+        app()->setLocale('en');
+        $this->artisan('reminders:maintenance')->assertSuccessful();
+        $this->assertSame('en', app()->getLocale(), 'The command must restore the caller’s locale.');
+        $stored = AppNotification::orderBy('id')->get();
+        $this->assertSame(['Assurance depassee', 'Vidange depassee'], $stored->pluck('title')->all());
+        $this->assertSame('La voiture de René : Vidange — Depassee de 1 km.', $stored[1]->getRawOriginal('body'));
+
+        $titles = [];
+        foreach ($deliveries as $delivery) {
+            $token = $delivery['tokens'][0];
+            $titles[$token][] = $delivery['message']['notification']['title'];
+            $this->assertStringContainsString('La voiture de René', $delivery['message']['notification']['body']);
+            if ($token === 'english-device') {
+                $this->assertStringNotContainsString('depassee', $delivery['message']['notification']['title']);
+                $this->assertStringNotContainsString('Depassee', $delivery['message']['notification']['body']);
+            }
+        }
+        $this->assertSame(['Assurance depassee', 'Vidange depassee'], $titles['french-device']);
+        $this->assertSame(['Insurance overdue', 'Oil change overdue'], $titles['english-device']);
     }
 }

@@ -82,7 +82,7 @@ class NotificationController extends Controller
 
         $notification->update(['read_at' => now()]);
 
-        return response()->json(['message' => 'Lu.']);
+        return response()->json(['message' => __('Lu.')]);
     }
 
     /**
@@ -95,7 +95,7 @@ class NotificationController extends Controller
             ->unread()
             ->update(['read_at' => now()]);
 
-        return response()->json(['message' => 'Toutes lues.']);
+        return response()->json(['message' => __('Toutes lues.')]);
     }
 
     /**
@@ -125,7 +125,7 @@ class NotificationController extends Controller
 
         $notification->update(['read_at' => now()]);
 
-        return response()->json(['message' => 'Lu.']);
+        return response()->json(['message' => __('Lu.')]);
     }
 
     /**
@@ -138,7 +138,7 @@ class NotificationController extends Controller
             ->unread()
             ->update(['read_at' => now()]);
 
-        return response()->json(['message' => 'Toutes marquées comme lues.']);
+        return response()->json(['message' => __('Toutes marquées comme lues.')]);
     }
 
     // ── Client (Firebase) ─────────────────────────────────────────────
@@ -186,7 +186,7 @@ class NotificationController extends Controller
 
         $notification->update(['read_at' => now()]);
 
-        return response()->json(['message' => 'Lu.']);
+        return response()->json(['message' => __('Lu.')]);
     }
 
     /**
@@ -199,7 +199,7 @@ class NotificationController extends Controller
 
         AppNotification::forClient($uid)->unread()->update(['read_at' => now()]);
 
-        return response()->json(['message' => 'Toutes marquées comme lues.']);
+        return response()->json(['message' => __('Toutes marquées comme lues.')]);
     }
 
     // ── Broadcast staff → clients (tips, conseils) ────────────────────
@@ -233,7 +233,7 @@ class NotificationController extends Controller
         );
 
         return response()->json([
-            'message'      => 'Broadcast envoyé.',
+            'message'      => __('Broadcast envoyé.'),
             'tokens_count' => count($tokens),
         ]);
     }

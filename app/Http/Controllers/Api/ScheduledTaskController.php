@@ -57,13 +57,13 @@ class ScheduledTaskController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            return response()->json(['message' => 'Jeton de tache invalide.'], 401);
+            return response()->json(['message' => __('Jeton de tache invalide.')], 401);
         }
 
         $commande = self::TACHES[$tache] ?? null;
 
         if ($commande === null) {
-            return response()->json(['message' => "Tache inconnue : {$tache}."], 404);
+            return response()->json(['message' => __('Tache inconnue : :task.', ['task' => $tache])], 404);
         }
 
         $dryRun = $request->boolean('dry_run');

@@ -85,7 +85,7 @@ class RefusMetier extends HttpException
         }
 
         return response()->json([
-            'message' => $this->getMessage(),
+            'message' => __($this->getMessage()),
             'code' => $this->codeMetier,
         ], $this->getStatusCode());
     }

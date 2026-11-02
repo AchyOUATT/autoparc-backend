@@ -10,6 +10,15 @@ use Tests\Support\FakeFirebaseAuthService;
 
 abstract class TestCase extends BaseTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Symfony's synthetic request defaults to en-US. Existing assertions
+        // describe the French app; language tests override or remove this header.
+        $this->withHeader('Accept-Language', 'fr');
+    }
+
     /**
      * Authentifie un client mobile, comme le fait l'application Flutter.
      *

@@ -23,7 +23,7 @@ class VerifyFirebaseToken
         $token = $request->bearerToken();
 
         if (! $token) {
-            abort(401, 'Token Firebase manquant.');
+            abort(401, __('Token Firebase manquant.'));
         }
 
         // Le service n'est resolu qu'ici, une fois le jeton trouve. Injecte
@@ -38,13 +38,13 @@ class VerifyFirebaseToken
         $claims = app(FirebaseAuthService::class)->verify($token);
 
         if (! $claims || ! $claims['uid']) {
-            abort(401, 'Token Firebase invalide ou expire.');
+            abort(401, __('Token Firebase invalide ou expire.'));
         }
 
         $user = $this->resolveUser($claims);
 
         if (! $user->is_active) {
-            abort(403, 'Compte desactive.');
+            abort(403, __('Compte desactive.'));
         }
 
         $request->setUserResolver(fn () => $user);
@@ -87,7 +87,7 @@ class VerifyFirebaseToken
         $user = User::where('firebase_uid', $claims['uid'])->first();
 
         if ($user) {
-            abort_unless($user->isClient(), 403, 'Ce compte ne peut pas utiliser la connexion client Firebase.');
+            abort_unless($user->isClient(), 403, __('Ce compte ne peut pas utiliser la connexion client Firebase.'));
 
             return $user;
         }
@@ -97,7 +97,7 @@ class VerifyFirebaseToken
         if ($claims['email'] && $existing = User::whereRaw('LOWER(email) = ?', [mb_strtolower($claims['email'])])->first()) {
             // Verifier AVANT le rattachement : un email Firebase ne transforme
             // jamais un employe ou une entreprise en compte client.
-            abort_unless($existing->isClient(), 403, 'Ce compte ne peut pas utiliser la connexion client Firebase.');
+            abort_unless($existing->isClient(), 403, __('Ce compte ne peut pas utiliser la connexion client Firebase.'));
             $existing->update(['firebase_uid' => $claims['uid']]);
 
             return $existing;

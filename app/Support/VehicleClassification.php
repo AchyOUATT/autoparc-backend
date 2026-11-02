@@ -26,7 +26,7 @@ class VehicleClassification
         $modelId = $value('vehicle_model_id');
 
         if ($modelId !== null && ! VehicleModel::whereKey($modelId)->where('brand_id', $brandId)->exists()) {
-            $validator->errors()->add('vehicle_model_id', "Ce modele n'appartient pas a la marque selectionnee.");
+            $validator->errors()->add('vehicle_model_id', __("Ce modele n'appartient pas a la marque selectionnee."));
         }
 
         foreach (['trim_id' => Trim::class, 'motorisation_id' => Motorisation::class] as $field => $modelClass) {
@@ -38,8 +38,8 @@ class VehicleClassification
 
             if ($modelId === null || ! $modelClass::whereKey($id)->where('vehicle_model_id', $modelId)->exists()) {
                 $validator->errors()->add($field, $field === 'trim_id'
-                    ? "Cette finition n'appartient pas au modele selectionne."
-                    : 'Cette motorisation ne correspond pas au modele selectionne.');
+                    ? __("Cette finition n'appartient pas au modele selectionne.")
+                    : __('Cette motorisation ne correspond pas au modele selectionne.'));
             }
         }
     }

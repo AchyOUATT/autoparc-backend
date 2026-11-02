@@ -30,8 +30,8 @@ class UpdateContactRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'phone.required' => 'Le numéro de contact est obligatoire.',
-            'phone.regex' => 'Indiquez un numéro international avec + et son indicatif, par exemple +226 75 57 04 84.',
+            'phone.required' => __('Le numéro de contact est obligatoire.'),
+            'phone.regex' => __('Indiquez un numéro international avec + et son indicatif, par exemple +226 75 57 04 84.'),
         ];
     }
 }

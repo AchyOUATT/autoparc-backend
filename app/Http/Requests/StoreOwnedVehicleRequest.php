@@ -143,10 +143,10 @@ class StoreOwnedVehicleRequest extends FormRequest
                 $vehicle->unsetRelations();
                 $references = app(\App\Services\ConsumptionReference::class);
                 if ($reference !== null && $references->contradictions($reference, $references->context($vehicle)) !== []) {
-                    $validator->errors()->add('motorisation_id', 'Cette reference contredit les caracteristiques du vehicule.');
+                    $validator->errors()->add('motorisation_id', __('Cette reference contredit les caracteristiques du vehicule.'));
                 }
                 if ($reference?->reference_status === 'withdrawn') {
-                    $validator->errors()->add('motorisation_id', 'Cette reference a ete retiree.');
+                    $validator->errors()->add('motorisation_id', __('Cette reference a ete retiree.'));
                 }
             }
         });

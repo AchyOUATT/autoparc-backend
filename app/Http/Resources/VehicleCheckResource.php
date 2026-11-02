@@ -79,7 +79,7 @@ class VehicleCheckResource extends JsonResource
                 'answers',
                 fn () => $this->answers->map(fn ($reponse) => [
                     'item_code' => $reponse->item_code,
-                    'title'     => $reponse->title,
+                    'title'     => __($reponse->title),
                     'category'  => $reponse->category,
                     'severity'  => $reponse->severity,
                     'status'    => $reponse->status,

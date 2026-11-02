@@ -52,5 +52,7 @@ return [
         'MOBILE_UPDATE_MESSAGE',
         "Cette version n'est plus prise en charge. Mettez à jour AutoParc pour continuer.",
     ),
+    // An operator-written explanation is content, not a translation key.
+    'update_message_custom' => env('MOBILE_UPDATE_MESSAGE') !== null,
 
 ];

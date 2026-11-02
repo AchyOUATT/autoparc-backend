@@ -63,13 +63,13 @@ class StoreFuelFillRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'is_full.required' => 'Il faut dire si la pompe s’est arrêtée toute seule : sans cela, la consommation ne peut pas être calculée.',
-            'litres.required'  => 'Le nombre de litres est obligatoire.',
-            'litres.min'       => 'Un passage à la pompe fait au moins 1 litre.',
-            'litres.max'       => 'Plus de 200 litres : c’est sans doute le kilométrage qui a été saisi ici.',
-            'mileage_km.required' => 'Le kilométrage relevé à la pompe est obligatoire : c’est lui qui ordonne les passages.',
-            'filled_at.before_or_equal' => 'La date du passage ne peut pas être dans le futur.',
-            'amount_fcfa.max'  => 'Plus de 1 000 000 FCFA : c’est sans doute le kilométrage qui a été saisi ici.',
+            'is_full.required' => __('Il faut dire si la pompe s’est arrêtée toute seule : sans cela, la consommation ne peut pas être calculée.'),
+            'litres.required'  => __('Le nombre de litres est obligatoire.'),
+            'litres.min'       => __('Un passage à la pompe fait au moins 1 litre.'),
+            'litres.max'       => __('Plus de 200 litres : c’est sans doute le kilométrage qui a été saisi ici.'),
+            'mileage_km.required' => __('Le kilométrage relevé à la pompe est obligatoire : c’est lui qui ordonne les passages.'),
+            'filled_at.before_or_equal' => __('La date du passage ne peut pas être dans le futur.'),
+            'amount_fcfa.max'  => __('Plus de 1 000 000 FCFA : c’est sans doute le kilométrage qui a été saisi ici.'),
         ];
     }
 }

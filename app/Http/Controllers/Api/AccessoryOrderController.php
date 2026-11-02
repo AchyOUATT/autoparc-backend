@@ -145,7 +145,7 @@ class AccessoryOrderController extends Controller
     public function confirm(AccessoryOrder $accessoryOrder): JsonResponse
     {
         if ($accessoryOrder->status !== OrderStatus::Draft) {
-            return response()->json(['message' => 'Seule une commande en brouillon peut etre confirmee.'], 422);
+            return response()->json(['message' => __('Seule une commande en brouillon peut etre confirmee.')], 422);
         }
 
         DB::transaction(function () use ($accessoryOrder) {
@@ -154,7 +154,11 @@ class AccessoryOrderController extends Controller
                 if ($accessory->stock_quantity < $item->quantity) {
                     abort(
                         422,
-                        "Stock insuffisant pour {$accessory->display_reference} : {$accessory->stock_quantity} disponible(s), {$item->quantity} demande(s)."
+                        __('Stock insuffisant pour :reference : :available disponible(s), :requested demande(s).', [
+                            'reference' => $accessory->display_reference,
+                            'available' => $accessory->stock_quantity,
+                            'requested' => $item->quantity,
+                        ])
                     );
                 }
                 $accessory->decrement('stock_quantity', $item->quantity);
@@ -164,7 +168,7 @@ class AccessoryOrderController extends Controller
         });
 
         return response()->json([
-            'message' => 'Commande confirmee et stock mis a jour.',
+            'message' => __('Commande confirmee et stock mis a jour.'),
             'data'    => new AccessoryOrderResource($accessoryOrder->refresh()->load('items.accessory')),
         ]);
     }
@@ -177,7 +181,7 @@ class AccessoryOrderController extends Controller
     public function cancel(AccessoryOrder $accessoryOrder): JsonResponse
     {
         if ($accessoryOrder->status === OrderStatus::Cancelled) {
-            return response()->json(['message' => 'Commande deja annulee.'], 422);
+            return response()->json(['message' => __('Commande deja annulee.')], 422);
         }
 
         DB::transaction(function () use ($accessoryOrder) {
@@ -191,6 +195,6 @@ class AccessoryOrderController extends Controller
             $accessoryOrder->update(['status' => OrderStatus::Cancelled]);
         });
 
-        return response()->json(['message' => 'Commande annulee.']);
+        return response()->json(['message' => __('Commande annulee.')]);
     }
 }

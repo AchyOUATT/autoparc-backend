@@ -10,7 +10,7 @@ final class PartnerOwnership
     public static function accountId(User $user): int
     {
         $account = $user->partnerAccount;
-        abort_unless($user->isPartner() && $user->is_active && $account?->isApproved(), 403, 'Compte partenaire non approuvé ou désactivé.');
+        abort_unless($user->isPartner() && $user->is_active && $account?->isApproved(), 403, __('Compte partenaire non approuvé ou désactivé.'));
 
         return $account->id;
     }

@@ -72,7 +72,7 @@ class PrivateVehicleListingController extends Controller
             // All creation requests for this seller serialize, even on an empty listings table.
             User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
             if (PrivateVehicleListing::where('active_user_id', $request->user()->id)->exists()) {
-                throw ValidationException::withMessages(['listing' => 'Vous avez déjà une annonce en cours. Retirez-la ou marquez-la vendue avant d’en créer une autre.']);
+                throw ValidationException::withMessages(['listing' => __('Vous avez déjà une annonce en cours. Retirez-la ou marquez-la vendue avant d’en créer une autre.')]);
             }
 
             return PrivateVehicleListing::create($data + [
@@ -117,8 +117,8 @@ class PrivateVehicleListingController extends Controller
         $request->validate(['owner_confirmed' => ['required', 'accepted'], 'contact_consent' => ['required', 'accepted']]);
         DB::transaction(function () use ($listing) {
             $locked = PrivateVehicleListing::whereKey($listing->id)->lockForUpdate()->firstOrFail();
-            abort_unless(in_array($locked->status, ['draft', 'rejected'], true), 422, 'Cette annonce ne peut pas être envoyée dans son état actuel.');
-            abort_unless($locked->photos()->exists(), 422, 'Ajoutez au moins une photo.');
+            abort_unless(in_array($locked->status, ['draft', 'rejected'], true), 422, __('Cette annonce ne peut pas être envoyée dans son état actuel.'));
+            abort_unless($locked->photos()->exists(), 422, __('Ajoutez au moins une photo.'));
 
             // LE NUMERO DOIT ETRE COMPOSABLE, et c'est tout ce que l'envoi
             // exige : la verification, elle, est le geste du moderateur.
@@ -131,7 +131,7 @@ class PrivateVehicleListingController extends Controller
             // publier : un cul-de-sac silencieux.
             if (! is_string($locked->phone) || ! preg_match('/^\+[1-9][0-9]{7,14}$/D', $locked->phone)) {
                 throw ValidationException::withMessages([
-                    'phone' => 'Indiquez le numéro où vous joindre, avec l’indicatif, par exemple +22670000000.',
+                    'phone' => __('Indiquez le numéro où vous joindre, avec l’indicatif, par exemple +22670000000.'),
                 ]);
             }
 
@@ -162,7 +162,7 @@ class PrivateVehicleListingController extends Controller
             $locked = PrivateVehicleListing::whereKey($listing->id)->lockForUpdate()->firstOrFail();
             $this->requireEditable($locked);
             if ($status === 'sold') {
-                abort_unless($locked->status === 'published', 422, 'Seule une annonce publiée peut être marquée vendue.');
+                abort_unless($locked->status === 'published', 422, __('Seule une annonce publiée peut être marquée vendue.'));
             }
 
             // UNE ANNONCE QUI SE TERMINE EMPORTE SES PHOTOS.
@@ -209,16 +209,16 @@ class PrivateVehicleListingController extends Controller
             'photos.*' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:9216', 'dimensions:max_width=2048,max_height=2048'],
         ]);
         $disk = config('media.disk', 'public');
-        abort_unless(in_array($disk, PartnerMedia::publicDisks(), true) && function_exists('imagecreatefromstring'), 503, 'Le stockage des photos est indisponible.');
+        abort_unless(in_array($disk, PartnerMedia::publicDisks(), true) && function_exists('imagecreatefromstring'), 503, __('Le stockage des photos est indisponible.'));
         $paths = [];
         try {
             DB::transaction(function () use ($listing, $request, $disk, &$paths) {
                 $locked = PrivateVehicleListing::whereKey($listing->id)->lockForUpdate()->firstOrFail();
                 $this->requireEditable($locked);
-                abort_if($locked->photos()->count() + count($request->file('photos')) > 10, 422, 'Une annonce peut contenir au plus 10 photos.');
+                abort_if($locked->photos()->count() + count($request->file('photos')) > 10, 422, __('Une annonce peut contenir au plus 10 photos.'));
                 foreach ($request->file('photos') as $photo) {
                     $image = imagecreatefromstring(file_get_contents($photo->getRealPath()));
-                    abort_unless($image !== false, 422, 'Photo illisible.');
+                    abort_unless($image !== false, 422, __('Photo illisible.'));
                     // Le reencodage retire les metadonnees GPS/EXIF avant que
                     // la photo devienne publique.
                     //
@@ -241,7 +241,7 @@ class PrivateVehicleListingController extends Controller
                     // sortait en pave noir dans la conversation » —, et ce
                     // sont ses trois lignes qu'on reprend ici.
                     $opaque = imagecreatetruecolor(imagesx($image), imagesy($image));
-                    abort_unless($opaque !== false, 503, 'Le stockage des photos est indisponible.');
+                    abort_unless($opaque !== false, 503, __('Le stockage des photos est indisponible.'));
                     imagefill($opaque, 0, 0, imagecolorallocate($opaque, 255, 255, 255));
                     imagecopyresampled(
                         $opaque, $image,
@@ -256,7 +256,7 @@ class PrivateVehicleListingController extends Controller
                     imagedestroy($opaque);
                     $path = 'private-listings/'.$locked->id.'/'.Str::uuid().'.jpg';
                     $paths[] = $path;
-                    abort_unless(Storage::disk($disk)->put($path, $bytes, 'public'), 503, 'La photo n’a pas pu être enregistrée. Réessayez.');
+                    abort_unless(Storage::disk($disk)->put($path, $bytes, 'public'), 503, __('La photo n’a pas pu être enregistrée. Réessayez.'));
 
                     // LA VARIANTE DE L'APERCU, fabriquee au depot.
                     //
@@ -350,7 +350,7 @@ class PrivateVehicleListingController extends Controller
 
     private function requireEditable(PrivateVehicleListing $listing): void
     {
-        abort_unless($listing->editable(), 422, 'Cette annonce est clôturée.');
+        abort_unless($listing->editable(), 422, __('Cette annonce est clôturée.'));
     }
 
     private function validateFields(Request $request, bool $creating = true, ?PrivateVehicleListing $listing = null): array
@@ -407,7 +407,7 @@ class PrivateVehicleListingController extends Controller
         $validator->after(fn ($validator) => VehicleClassification::validate($validator, array_intersect_key($input, $allowedFields)));
         $validator->after(function ($validator) use ($input) {
             if ($input['vehicle_model_id'] !== null && ! empty($input['model_libre'])) {
-                $validator->errors()->add('model_libre', 'Choisissez un modèle du catalogue ou une saisie libre, pas les deux.');
+                $validator->errors()->add('model_libre', __('Choisissez un modèle du catalogue ou une saisie libre, pas les deux.'));
             }
         });
         // `prohibited` permits empty/null values. They must still NEVER enter
@@ -417,11 +417,14 @@ class PrivateVehicleListingController extends Controller
         $model = isset($data['vehicle_model_id']) ? VehicleModel::findOrFail($data['vehicle_model_id']) : null;
         $trim = isset($data['trim_id']) ? Trim::findOrFail($data['trim_id']) : null;
         $engine = isset($data['engine_type_id']) ? EngineType::findOrFail($data['engine_type_id']) : null;
+        $drivetrain = isset($data['drivetrain_id']) ? Drivetrain::findOrFail($data['drivetrain_id']) : null;
         $identity = [
             'brand' => $brand->name, 'model' => $model?->name ?? trim($data['model_libre']),
             'generation' => $model?->generation, 'trim' => $trim?->name,
             'engine_type' => $engine?->label,
-            'drivetrain' => isset($data['drivetrain_id']) ? Drivetrain::findOrFail($data['drivetrain_id'])->label : null,
+            'engine_type_code' => $engine?->code,
+            'drivetrain' => $drivetrain?->label,
+            'drivetrain_code' => $drivetrain?->code,
             'color' => isset($data['color_id']) ? Color::findOrFail($data['color_id'])->name : null,
         ];
         $data['title'] = Str::limit(implode(' ', array_filter([

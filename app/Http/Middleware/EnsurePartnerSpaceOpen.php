@@ -37,7 +37,7 @@ class EnsurePartnerSpaceOpen
         abort_unless(
             config('partenaires.espace_ouvert'),
             503,
-            "L'espace partenaire n'est pas encore ouvert. Reessayez apres la mise a jour de l'application.",
+            __("L'espace partenaire n'est pas encore ouvert. Reessayez apres la mise a jour de l'application."),
         );
 
         return $next($request);

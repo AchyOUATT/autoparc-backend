@@ -70,7 +70,7 @@ abstract class CatalogController extends Controller
         PartnerOwnership::authorize($product, $request->user());
         $product->delete();
 
-        return response()->json(['message' => 'Annonce archivée.']);
+        return response()->json(['message' => __('Annonce archivée.')]);
     }
 
     protected function publishProduct(Request $request, Model $product, bool $publish)

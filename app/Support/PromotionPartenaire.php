@@ -132,7 +132,7 @@ final class PromotionPartenaire
         // une promotion qui ne s'afficherait nulle part.
         if ($normal === null || $normal <= 0) {
             $validator->errors()->add('deal_price',
-                'Indiquez d abord un prix de vente : une promotion s applique a un prix.');
+                __('Indiquez d abord un prix de vente : une promotion s applique a un prix.'));
 
             return;
         }
@@ -146,8 +146,8 @@ final class PromotionPartenaire
 
         if ($promo >= $normal) {
             $validator->errors()->add($champ, $enCours
-                ? 'Ce prix passerait sous votre promotion en cours. Terminez-la d abord.'
-                : 'Le prix promotionnel doit etre inferieur au prix normal.');
+                ? __('Ce prix passerait sous votre promotion en cours. Terminez-la d abord.')
+                : __('Le prix promotionnel doit etre inferieur au prix normal.'));
 
             return;
         }
@@ -165,14 +165,14 @@ final class PromotionPartenaire
         if ($remise > $plafond + 0.0001) {
             $validator->errors()->add($champ, $enCours
                 ? sprintf(
-                    'Avec votre promotion en cours, ce prix ferait une remise de %s %%, '
+                    __('Avec votre promotion en cours, ce prix ferait une remise de %s %%, '
                     .'au-dela des %s %% autorises. Terminez la promotion avant de relever '
-                    .'votre prix.',
+                    .'votre prix.'),
                     self::nombre($remise),
                     self::nombre($plafond),
                 )
                 : sprintf(
-                    'La remise ne peut pas depasser %s %% : celle-ci est de %s %%.',
+                    __('La remise ne peut pas depasser %s %% : celle-ci est de %s %%.'),
                     self::nombre($plafond),
                     self::nombre($remise),
                 ));

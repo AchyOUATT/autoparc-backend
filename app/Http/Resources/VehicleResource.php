@@ -47,7 +47,9 @@ class VehicleResource extends JsonResource
                 'generation'  => $this->whenLoaded('vehicleModel', fn () => $this->vehicleModel->generation),
                 'trim'        => $this->whenLoaded('trim', fn () => $this->trim?->name),
                 'engine_type' => $this->whenLoaded('engineType', fn () => $this->engineType->label),
+                'engine_type_code' => $this->whenLoaded('engineType', fn () => $this->engineType?->code),
                 'drivetrain'  => $this->whenLoaded('drivetrain', fn () => $this->drivetrain?->code),
+                'drivetrain_code' => $this->whenLoaded('drivetrain', fn () => $this->drivetrain?->code),
                 'color'       => $this->whenLoaded('color', fn () => $this->color?->name),
                 // Code hexadecimal et finition : permettent d'afficher une
                 // pastille de la teinte reelle a cote du nom. « Bordeaux » ou
@@ -128,6 +130,7 @@ class VehicleResource extends JsonResource
             'import' => $this->whenLoaded('importDetail', fn () => $this->importDetail ? [
                 'origin_country'        => $this->importDetail->originCountry?->name,
                 'origin_country_id'     => $this->importDetail->origin_country_id,
+                'origin_country_iso2'   => $this->importDetail->relationLoaded('originCountry') ? $this->importDetail->originCountry?->iso2 : null,
                 'supplier_name'         => $this->importDetail->supplier_name,
                 'port_of_loading'       => $this->importDetail->port_of_loading,
                 'port_of_entry'         => $this->importDetail->port_of_entry,
@@ -148,6 +151,7 @@ class VehicleResource extends JsonResource
             'registration' => $this->whenLoaded('registrationDetail', fn () => $this->registrationDetail ? [
                 'plate_number'            => $this->registrationDetail->plate_number,
                 'registration_country'    => $this->registrationDetail->registrationCountry?->name,
+                'registration_country_iso2' => $this->registrationDetail->relationLoaded('registrationCountry') ? $this->registrationDetail->registrationCountry?->iso2 : null,
                 'certificate_no'          => $this->registrationDetail->registration_certificate_no,
                 'first_registration_date' => $this->registrationDetail->first_registration_date?->toDateString(),
                 'mileage_km'              => $this->registrationDetail->mileage_km,

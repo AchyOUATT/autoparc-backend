@@ -86,12 +86,12 @@ class CompatiblePartsCriteriaRequest extends CompatiblePartsRequest
     public function messages(): array
     {
         return $this->paginationMessages() + [
-            'vehicle_model_id.required' => 'Sans modèle de véhicule, la recherche de compatibilité n\'a pas de sens.',
-            'vehicle_model_id.exists'   => "Ce modèle de véhicule n'existe pas.",
-            'year.min'                  => 'Aucun véhicule du catalogue n\'est antérieur à :min.',
-            'trim_id.exists'            => "Cette finition n'existe pas.",
-            'engine_type_id.exists'     => "Cette motorisation n'existe pas.",
-            'drivetrain_id.exists'      => "Cette transmission n'existe pas.",
+            'vehicle_model_id.required' => __('Sans modèle de véhicule, la recherche de compatibilité n\'a pas de sens.'),
+            'vehicle_model_id.exists'   => __("Ce modèle de véhicule n'existe pas."),
+            'year.min'                  => __('Aucun véhicule du catalogue n\'est antérieur à :min.'),
+            'trim_id.exists'            => __("Cette finition n'existe pas."),
+            'engine_type_id.exists'     => __("Cette motorisation n'existe pas."),
+            'drivetrain_id.exists'      => __("Cette transmission n'existe pas."),
         ];
     }
 }

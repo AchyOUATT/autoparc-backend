@@ -25,8 +25,8 @@ enum CheckReason: string
     public function verdictBloquant(): string
     {
         return match ($this) {
-            self::Trip     => 'À régler avant de partir',
-            self::Seasonal => 'À régler avant la saison',
+            self::Trip     => __('À régler avant de partir'),
+            self::Seasonal => __('À régler avant la saison'),
         };
     }
 
@@ -38,8 +38,8 @@ enum CheckReason: string
     public function complementSansBlocage(): string
     {
         return match ($this) {
-            self::Trip     => 'rien qui empêche de partir',
-            self::Seasonal => "rien d'urgent",
+            self::Trip     => __('rien qui empêche de partir'),
+            self::Seasonal => __("rien d'urgent"),
         };
     }
 
@@ -47,8 +47,8 @@ enum CheckReason: string
     public function titreParDefaut(): string
     {
         return match ($this) {
-            self::Trip     => 'Avant de partir',
-            self::Seasonal => 'Contrôle de saison',
+            self::Trip     => __('Avant de partir'),
+            self::Seasonal => __('Contrôle de saison'),
         };
     }
 }

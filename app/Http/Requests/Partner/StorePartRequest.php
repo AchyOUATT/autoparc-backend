@@ -50,7 +50,7 @@ class StorePartRequest extends \App\Http\Requests\StorePartRequest
                 if (! OemNumber::where('normalized_number', OemNumber::normalize($entry['number']))
                     ->where('brand_id', $entry['brand_id'] ?? null)->exists()) {
                     $validator->errors()->add('oem_numbers.'.$index.'.number',
-                        'Cette référence OEM ne figure pas dans le référentiel pour cette marque. Saisissez une référence non répertoriée dans manufacturer_reference.');
+                        __('Cette référence OEM ne figure pas dans le référentiel pour cette marque. Saisissez une référence non répertoriée dans manufacturer_reference.'));
                 }
             }
         });

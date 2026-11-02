@@ -42,8 +42,8 @@ enum Saison: string
     public function libelle(): string
     {
         return match ($this) {
-            self::Pluies => 'Hivernage',
-            self::Seche  => 'Saison sèche',
+            self::Pluies => __('Hivernage'),
+            self::Seche  => __('Saison sèche'),
         };
     }
 
@@ -51,8 +51,8 @@ enum Saison: string
     public function libelleControle(): string
     {
         return match ($this) {
-            self::Pluies => "Contrôle d'hivernage",
-            self::Seche  => 'Contrôle de saison sèche',
+            self::Pluies => __("Contrôle d'hivernage"),
+            self::Seche  => __('Contrôle de saison sèche'),
         };
     }
 
@@ -60,8 +60,8 @@ enum Saison: string
     public function raison(): string
     {
         return match ($this) {
-            self::Pluies => "L'eau et la boue : ce qui compte est de voir, d'être vu et de tenir la route.",
-            self::Seche  => 'La poussière et la chaleur : ce qui compte est de respirer et de refroidir.',
+            self::Pluies => __("L'eau et la boue : ce qui compte est de voir, d'être vu et de tenir la route."),
+            self::Seche  => __('La poussière et la chaleur : ce qui compte est de respirer et de refroidir.'),
         };
     }
 

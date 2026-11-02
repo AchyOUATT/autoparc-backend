@@ -7,6 +7,7 @@ use App\Models\ClientFcmToken;
 use App\Models\OwnedVehicle;
 use App\Services\FcmService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Traits\Localizable;
 
 /**
  * Rappels d'entretien du garage client.
@@ -22,6 +23,8 @@ use Illuminate\Console\Command;
  */
 class SendMaintenanceReminders extends Command
 {
+    use Localizable;
+
     protected $signature = 'reminders:maintenance
                             {--days=30 : Fenetre d\'alerte, en jours, pour les echeances datees}
                             {--km=500 : Fenetre d\'alerte, en kilometres, pour la vidange}
@@ -66,7 +69,11 @@ class SendMaintenanceReminders extends Command
                         continue;
                     }
 
-                    foreach ($vehicle->deadlines() as $deadline) {
+                    // Persist a canonical template regardless of the job's own
+                    // language. FCM and API readers select the recipient's locale.
+                    // withLocale restores the caller's language before delivery.
+                    $deadlines = $this->withLocale('fr', fn () => $vehicle->deadlines());
+                    foreach ($deadlines as $deadline) {
                         if (! $this->isDue($deadline, $days, $km)) {
                             continue;
                         }

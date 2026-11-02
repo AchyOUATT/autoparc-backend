@@ -12,7 +12,7 @@ class EnsureApprovedPartner
     public function handle(Request $request, Closure $next): Response
     {
         $account = $request->attributes->get('partner_account');
-        abort_unless($account && $account->isApproved(), 403, 'Votre compte partenaire doit etre approuve pour gerer des annonces.');
+        abort_unless($account && $account->isApproved(), 403, __('Votre compte partenaire doit etre approuve pour gerer des annonces.'));
 
         return $next($request);
     }

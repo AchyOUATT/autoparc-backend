@@ -24,11 +24,11 @@ class RentalService
             $vehicle = Vehicle::lockForUpdate()->findOrFail($data['vehicle_id']);
 
             if (! $vehicle->availability->allowsRent()) {
-                throw new RuntimeException("Le vehicule {$vehicle->reference} n'est pas propose a la location.");
+                throw new RuntimeException(__("Le vehicule :reference n'est pas propose a la location.", ['reference' => $vehicle->reference]));
             }
 
             if (! $vehicle->isAvailableForRentBetween($data['start_at'], $data['expected_return_at'])) {
-                throw new RuntimeException("Le vehicule {$vehicle->reference} est deja reserve sur cette periode.");
+                throw new RuntimeException(__('Le vehicule :reference est deja reserve sur cette periode.', ['reference' => $vehicle->reference]));
             }
 
             $days = $this->billedDays($data['start_at'], $data['expected_return_at']);
@@ -36,7 +36,7 @@ class RentalService
 
             if ($rate === null) {
                 throw ValidationException::withMessages([
-                    'daily_rate' => 'Renseignez un tarif journalier pour cette réservation. Le forfait mensuel du véhicule ne s’applique pas automatiquement aux contrats facturés à la journée.',
+                    'daily_rate' => __('Renseignez un tarif journalier pour cette réservation. Le forfait mensuel du véhicule ne s’applique pas automatiquement aux contrats facturés à la journée.'),
                 ]);
             }
 

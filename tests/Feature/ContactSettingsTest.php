@@ -51,6 +51,14 @@ class ContactSettingsTest extends TestCase
         $this->assertDatabaseCount('app_settings', 0);
     }
 
+    public function test_contact_validation_messages_follow_the_staff_language(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'admin']), 'sanctum');
+        $this->withHeader('Accept-Language', 'en')->putJson('/api/settings/contact', ['phone' => 'local-number'])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.phone.0', 'Enter an international phone number starting with + and its country code, for example +226 75 57 04 84.');
+    }
+
     public function test_existing_environment_contacts_are_the_fallback_before_the_first_save(): void
     {
         config(['boutique.telephone' => '+33111111111', 'boutique.whatsapp' => '33222222222']);

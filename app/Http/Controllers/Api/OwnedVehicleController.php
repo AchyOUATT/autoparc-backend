@@ -75,6 +75,6 @@ class OwnedVehicleController extends Controller
 
         $ownedVehicle->delete();
 
-        return response()->json(['message' => 'Vehicule retire de votre garage.']);
+        return response()->json(['message' => __('Vehicule retire de votre garage.')]);
     }
 }

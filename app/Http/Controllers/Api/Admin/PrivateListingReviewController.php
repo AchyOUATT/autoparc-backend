@@ -81,10 +81,10 @@ class PrivateListingReviewController extends Controller
         ]);
         DB::transaction(function () use ($request, $listing, $data) {
             $locked = PrivateVehicleListing::whereKey($listing->id)->lockForUpdate()->firstOrFail();
-            abort_unless($locked->revision === (int) $data['revision'], 409, 'L’annonce a changé. Actualisez-la avant de décider.');
-            abort_unless($locked->status === 'pending', 422, 'Cette annonce n’est plus en attente. Actualisez la liste.');
+            abort_unless($locked->revision === (int) $data['revision'], 409, __('L’annonce a changé. Actualisez-la avant de décider.'));
+            abort_unless($locked->status === 'pending', 422, __('Cette annonce n’est plus en attente. Actualisez la liste.'));
             abort_unless($locked->photos()->exists()
-                && $locked->seller?->is_active && $locked->seller->isClient(), 422, 'Cette annonce ne remplit plus les conditions de publication.');
+                && $locked->seller?->is_active && $locked->seller->isClient(), 422, __('Cette annonce ne remplit plus les conditions de publication.'));
 
             // LE NUMERO, ET QUI LE PROUVE.
             //
@@ -113,7 +113,7 @@ class PrivateListingReviewController extends Controller
             abort_unless(
                 $dejaVerifie || $request->boolean('phone_verified'),
                 422,
-                'Appelez le vendeur au numéro indiqué et confirmez qu’il a bien déposé cette annonce avant de publier.',
+                __('Appelez le vendeur au numéro indiqué et confirmez qu’il a bien déposé cette annonce avant de publier.'),
             );
 
             $miseAJour = ['status' => 'published', 'published_at' => now(), 'reviewed_by' => $request->user()->id, 'review_reason' => null, 'revision' => $locked->revision + 1];
@@ -132,8 +132,8 @@ class PrivateListingReviewController extends Controller
         $data = $request->validate(['reason' => ['required', 'string', 'min:5', 'max:2000'], 'revision' => ['required', 'integer', 'min:1']]);
         DB::transaction(function () use ($request, $listing, $data) {
             $locked = PrivateVehicleListing::whereKey($listing->id)->lockForUpdate()->firstOrFail();
-            abort_unless($locked->revision === (int) $data['revision'], 409, 'L’annonce a changé. Actualisez-la avant de décider.');
-            abort_unless(in_array($locked->status, ['pending', 'published'], true), 422, 'Cette annonce n’est plus à examiner.');
+            abort_unless($locked->revision === (int) $data['revision'], 409, __('L’annonce a changé. Actualisez-la avant de décider.'));
+            abort_unless(in_array($locked->status, ['pending', 'published'], true), 422, __('Cette annonce n’est plus à examiner.'));
             $locked->update([
                 'status' => 'rejected', 'published_at' => null,
                 'reviewed_by' => $request->user()->id, 'review_reason' => $data['reason'],

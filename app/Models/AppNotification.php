@@ -3,10 +3,24 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
+use App\Support\NotificationText;
 use Illuminate\Database\Eloquent\Model;
 
 class AppNotification extends Model
 {
+    public function toArray(): array
+    {
+        $attributes = parent::toArray();
+        $text = NotificationText::forLocale(
+            $attributes['title'] ?? '',
+            $attributes['body'] ?? '',
+            ['type' => $attributes['type'] ?? '', ...($attributes['data'] ?? [])],
+            app()->getLocale(),
+        );
+
+        return array_replace($attributes, $text);
+    }
+
     protected $fillable = [
         'recipient_type',
         'recipient_id',

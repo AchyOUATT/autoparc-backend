@@ -43,7 +43,8 @@ class AppVersionController extends Controller
             'min_version_code'    => (int) config('mobile.min_version_code'),
             'latest_version_code' => (int) config('mobile.latest_version_code'),
             'store_url'           => config('mobile.store_url'),
-            'message'             => config('mobile.update_message'),
+            'message'             => config('mobile.update_message_custom')
+                ? config('mobile.update_message') : __(config('mobile.update_message')),
             'partner_space_open'  => (bool) config('partenaires.espace_ouvert'),
         ]);
     }

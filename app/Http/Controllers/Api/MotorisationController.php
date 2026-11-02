@@ -32,7 +32,7 @@ class MotorisationController extends Controller
         $trim = empty($validated['trim_id']) ? null : Trim::find($validated['trim_id']);
         if ($trim !== null && (int) $trim->vehicle_model_id !== (int) $validated['vehicle_model_id']) {
             throw ValidationException::withMessages([
-                'trim_id' => "Cette finition n'appartient pas au modele selectionne.",
+                'trim_id' => __("Cette finition n'appartient pas au modele selectionne."),
             ]);
         }
         $identity->setRelation('trim', $trim);

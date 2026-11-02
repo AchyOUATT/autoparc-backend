@@ -104,7 +104,7 @@ class AccountController extends Controller
         }
 
         return response()->json([
-            'message' => 'Votre compte et vos donnees ont ete supprimes.',
+            'message' => __('Votre compte et vos donnees ont ete supprimes.'),
         ]);
     }
 }

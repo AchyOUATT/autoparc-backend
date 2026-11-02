@@ -202,7 +202,7 @@ class StoreVehicleRequest extends FormRequest
             $monthlyRate = $this->input('rental_monthly_rate', $vehicle?->rental_monthly_rate);
 
             if ($dailyRate === null && $monthlyRate === null) {
-                $message = 'Renseignez un prix journalier ou un forfait mensuel pour proposer ce véhicule à la location.';
+                $message = __('Renseignez un prix journalier ou un forfait mensuel pour proposer ce véhicule à la location.');
                 $validator->errors()->add('rental_daily_rate', $message);
                 $validator->errors()->add('rental_monthly_rate', $message);
             }

@@ -56,7 +56,7 @@ class CustomerNeedController extends Controller
         $this->fcm->sendToTokens($staffTokens, $title, $body, $data);
 
         return response()->json([
-            'message' => 'Besoin enregistré. Nous vous contacterons dès que possible.',
+            'message' => __('Besoin enregistré. Nous vous contacterons dès que possible.'),
             'data'    => ['id' => $need->id, 'status' => $need->status],
         ], 201);
     }
@@ -70,7 +70,7 @@ class CustomerNeedController extends Controller
         $uid = $request->query('firebase_uid');
 
         if (blank($uid)) {
-            return response()->json(['data' => [], 'message' => 'firebase_uid manquant.'], 400);
+            return response()->json(['data' => [], 'message' => __('firebase_uid manquant.')], 400);
         }
 
         $needs = CustomerNeed::query()
