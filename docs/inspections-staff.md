@@ -90,7 +90,7 @@ L’historique du personnel ajoute `state`, `actor` (`id` et `name`), `withdrawn
 
 ## Stockage et déploiement
 
-La migration `2026_11_02_000001_create_staff_vehicle_inspections.php` ajoute la table
+La migration `2026_11_02_000002_create_staff_vehicle_inspections.php` ajoute la table
 `staff_vehicle_inspections`. Elle utilise deux clés étrangères natives optionnelles,
 un snapshot immuable de l’identité et une `active_key` nullable unique (`source:id`).
 Les transactions verrouillent la cible avant de remplacer son rapport actif.

@@ -120,7 +120,7 @@ et ne sont pas sélectionnés. Le scope historique `withoutOpenFaults` reste ré
 
 ## Migration
 
-`2026_11_03_000001_add_declared_vehicle_faults.php` ajoute l’état et la date aux
+`2026_11_03_000002_add_declared_vehicle_faults.php` ajoute l’état et la date aux
 deux sources, la provenance et le marqueur staff aux pannes stock, et la table
 `private_listing_faults` avec FK `private_vehicle_listing_id` et suppression en cascade.
 Les anciennes lignes stock existantes sont marquées `has_faults` ; **aucune ligne
