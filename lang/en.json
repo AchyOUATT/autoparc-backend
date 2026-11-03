@@ -1,4 +1,10 @@
 {
+  "Vous ne pouvez pas modifier la déclaration des défauts.": "You are not allowed to change the fault declaration.",
+  "Un défaut ne peut être modifié que sur son véhicule et par son déclarant autorisé.": "A fault can only be edited on its own vehicle by an authorised declarant.",
+  "La déclaration des défauts et la liste renseignée sont incohérentes.": "The fault declaration and the supplied list are inconsistent.",
+  "Déclarez explicitement les défauts connus ou l’absence de défaut connu avant de soumettre cette annonce.": "Explicitly declare known faults or that you know of none before submitting this listing.",
+  "Au moins un point doit avoir été réellement contrôlé.": "At least one item must have actually been inspected.",
+  "Seule une inspection active peut être retirée.": "Only an active inspection can be withdrawn.",
   "Attestation d'assurance valide": "Valid insurance certificate",
   "Sur le pare-brise et dans la boîte à gants. À un contrôle, une attestation périmée ne se discute pas : amende, et le véhicule reste sur place.": "Check the windscreen and glove box. At a roadside check, an expired certificate can mean a fine and the vehicle being held.",
   "Visite technique valide": "Valid roadworthiness inspection",

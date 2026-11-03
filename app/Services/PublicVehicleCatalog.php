@@ -86,13 +86,13 @@ final class PublicVehicleCatalog
         // These facts are absent from a private snapshot. Unknown never satisfies a strict filter.
         foreach ([
             'registration_status', 'status', 'condition', 'consumption_max', 'origin_country_id',
-            'fault_category', 'vehicle_type', 'body_style', 'location_id', 'deal_type',
+            'vehicle_type', 'body_style', 'location_id', 'deal_type',
         ] as $field) {
             if ($request->filled($field)) {
                 return null;
             }
         }
-        foreach (['customs_cleared', 'without_faults', 'available_for_rent', 'deal'] as $field) {
+        foreach (['customs_cleared', 'available_for_rent', 'deal'] as $field) {
             if ($request->boolean($field)) {
                 return null;
             }
@@ -107,6 +107,10 @@ final class PublicVehicleCatalog
         }
 
         return $query
+            ->when($request->boolean('without_faults'), fn ($q) => $q->whereIn('fault_declaration_state', ['none', 'has_faults'])
+                ->whereDoesntHave('faults', fn ($fault) => $fault->where('status', '!=', 'repaired')))
+            ->when($request->filled('fault_category'), fn ($q) => $q->whereHas('faults', fn ($fault) => $fault
+                ->where('category', $request->input('fault_category'))->where('disclosed_to_buyer', true)))
             ->when($request->filled('q'), fn ($q) => $q->where(fn ($search) => $search
                 ->whereLike('title', '%'.$request->string('q')->toString().'%')
                 ->orWhereLike('city', '%'.$request->string('q')->toString().'%')))

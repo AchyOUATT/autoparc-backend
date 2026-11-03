@@ -9,6 +9,8 @@ use App\Enums\VehicleCondition;
 use App\Enums\VehicleDealType;
 use App\Enums\VehicleStatus;
 use App\Models\Concerns\HasPartnerOwner;
+use App\Models\Concerns\HasStaffInspections;
+use App\Models\Concerns\HasFaultDeclaration;
 use App\Observers\PromotionObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
@@ -20,7 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[ObservedBy(PromotionObserver::class)]
 class Vehicle extends Model
 {
-    use HasFactory, HasPartnerOwner, SoftDeletes;
+    use HasFactory, HasPartnerOwner, HasStaffInspections, HasFaultDeclaration, SoftDeletes;
 
     /**
      * References de consommation distinctes, chargees par le controleur.
@@ -58,6 +60,7 @@ class Vehicle extends Model
             'condition' => VehicleCondition::class,
             'transmission' => Transmission::class,
             'manufacturing_year' => 'integer',
+            'fault_declared_at' => 'datetime',
             'consumption_urban' => 'decimal:2',
             'consumption_extra_urban' => 'decimal:2',
             'consumption_combined' => 'decimal:2',

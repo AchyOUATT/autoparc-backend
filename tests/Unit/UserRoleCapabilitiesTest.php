@@ -25,6 +25,7 @@ class UserRoleCapabilitiesTest extends TestCase
             'manage-catalog'   => ['manage-catalog',   [UserRole::Admin, UserRole::Manager, UserRole::Sales]],
             'delete-catalog'   => ['delete-catalog',   [UserRole::Admin, UserRole::Manager]],
             'manage-faults'    => ['manage-faults',    [UserRole::Admin, UserRole::Manager, UserRole::Mechanic]],
+            'manage-inspections' => ['manage-inspections', [UserRole::Admin, UserRole::Manager, UserRole::Mechanic]],
             'manage-stock'     => ['manage-stock',     [UserRole::Admin, UserRole::Manager, UserRole::Warehouse]],
             'manage-orders'    => ['manage-orders',    [UserRole::Admin, UserRole::Manager, UserRole::Sales]],
             'manage-customers' => ['manage-customers', [UserRole::Admin, UserRole::Manager, UserRole::Sales]],

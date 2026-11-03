@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\ScheduledTaskController;
 use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\VehicleCheckController;
 use App\Http\Controllers\Api\VehicleFaultController;
+use App\Http\Controllers\Api\StaffVehicleInspectionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -61,6 +62,7 @@ Route::get('app/contact', [ContactSettingsController::class, 'show']);
 
 /* ---------------------- Catalogue public (lecture) ---------------------- */
 Route::prefix('catalog')->group(function () {
+    Route::get('vehicle-inspections/{inspection}', [StaffVehicleInspectionController::class, 'show'])->whereNumber('inspection');
     Route::get('vehicle-listings', [CatalogVehicleListingController::class, 'index']);
     Route::get('vehicles', [VehicleController::class, 'index']);
     Route::get('vehicles/{vehicle}', [VehicleController::class, 'show']);
@@ -225,6 +227,14 @@ Route::middleware('firebase')->prefix('my')->group(function () {
 // La consultation reste ouverte a tout le personnel ; seules les ecritures
 // sont filtrees.
 Route::middleware(['auth:sanctum', 'staff'])->group(function () {
+
+    Route::get('vehicle-inspections/{source}/{sourceId}', [StaffVehicleInspectionController::class, 'index'])
+        ->whereIn('source', ['vehicle', 'private_listing'])->whereNumber('sourceId');
+    Route::post('vehicle-inspections/{source}/{sourceId}', [StaffVehicleInspectionController::class, 'store'])
+        ->whereIn('source', ['vehicle', 'private_listing'])->whereNumber('sourceId')
+        ->middleware('capability:manage-inspections');
+    Route::post('vehicle-inspections/{inspection}/withdraw', [StaffVehicleInspectionController::class, 'withdraw'])
+        ->whereNumber('inspection')->middleware('capability:manage-inspections');
 
     Route::get('dashboard', [DashboardController::class, 'index']);
 

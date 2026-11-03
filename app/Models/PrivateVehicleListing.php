@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasStaffInspections;
+use App\Models\Concerns\HasFaultDeclaration;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /** A public snapshot, never a public view of the owner's garage or the shop's stock. */
 class PrivateVehicleListing extends Model
 {
+    use HasStaffInspections, HasFaultDeclaration;
+
     protected $guarded = ['id'];
     protected $attributes = ['revision' => 1, 'status' => 'draft', 'currency' => 'XOF'];
 
@@ -16,6 +20,7 @@ class PrivateVehicleListing extends Model
         return [
             'year' => 'integer', 'mileage_km' => 'integer', 'price' => 'integer',
             'revision' => 'integer',
+            'fault_declared_at' => 'datetime',
             'vehicle_identity' => 'array',
             'brand_id' => 'integer', 'vehicle_model_id' => 'integer', 'trim_id' => 'integer',
             'engine_type_id' => 'integer', 'drivetrain_id' => 'integer', 'color_id' => 'integer',
@@ -32,6 +37,11 @@ class PrivateVehicleListing extends Model
     public function photos()
     {
         return $this->hasMany(PrivateListingPhoto::class)->orderBy('id');
+    }
+
+    public function faults()
+    {
+        return $this->hasMany(PrivateListingFault::class);
     }
 
     public function scopePublished(Builder $query): Builder

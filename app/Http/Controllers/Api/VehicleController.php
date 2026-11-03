@@ -13,6 +13,7 @@ use App\Models\CustomerNeed;
 use App\Models\Vehicle;
 use App\Services\FcmService;
 use App\Services\ReferenceGenerator;
+use App\Services\FaultDeclarations;
 use App\Support\PartnerOwnership;
 use App\Support\TriPublic;
 use App\Support\VehicleCatalogQuery;
@@ -30,7 +31,7 @@ class VehicleController extends Controller
     /** Catalogue filtre du parc. */
     public function index(Request $request)
     {
-        $vehicles = VehicleCatalogQuery::filtered($request)
+        $vehicles = VehicleCatalogQuery::filtered($request, publicOnly: $request->is('api/catalog/*'))
             ->with([
                 'brand', 'vehicleModel', 'trim', 'engineType', 'drivetrain', 'color',
                 'location', 'sellerAccount',
@@ -59,7 +60,7 @@ class VehicleController extends Controller
             $data['partner_published_at'] = null;
         }
 
-        $vehicle = DB::transaction(function () use ($data) {
+        $vehicle = DB::transaction(function () use ($data, $request) {
             // ── LE STATUT ENVOYE PRIME SUR LA PLAQUE ─────────────────────
             //
             // Le statut etait DEDUIT de la plaque, et ce qui arrivait dans
@@ -92,7 +93,7 @@ class VehicleController extends Controller
             $data['availability'] ??= 'sale';
 
             $vehicle = Vehicle::create(array_merge(
-                collect($data)->except(['import', 'registration', 'faults', 'features', 'plate_number'])->all(),
+                collect($data)->except(['import', 'registration', 'faults', 'fault_declaration_state', 'features', 'plate_number'])->all(),
                 [
                     'reference'  => $data['reference'] ?? $this->references->next('VEH'),
                     'created_by' => auth()->id(),
@@ -113,9 +114,7 @@ class VehicleController extends Controller
                 $vehicle->features()->sync($data['features']);
             }
 
-            foreach ($data['faults'] ?? [] as $fault) {
-                $vehicle->faults()->create($fault);
-            }
+            app(FaultDeclarations::class)->sync($vehicle, $data, $request->user());
 
             return $vehicle;
         });
@@ -202,7 +201,7 @@ class VehicleController extends Controller
 
     public function show(Vehicle $vehicle): VehicleResource
     {
-        if (! request()->user()?->isStaff()) {
+        if (request()->is('api/catalog/*') || ! request()->user()?->isStaff()) {
             abort_unless(Vehicle::visibleToPublic()->whereKey($vehicle->id)->exists(), 404);
         }
 
@@ -219,8 +218,10 @@ class VehicleController extends Controller
     {
         $data = $request->validated();
 
-        DB::transaction(function () use ($vehicle, $data) {
-            $vehicle->update(collect($data)->except(['import', 'registration', 'faults', 'features'])->all());
+        DB::transaction(function () use ($vehicle, $data, $request) {
+            $vehicle = Vehicle::whereKey($vehicle->id)->lockForUpdate()->firstOrFail();
+            $vehicle->update(collect($data)->except(['import', 'registration', 'faults', 'fault_declaration_state', 'features'])->all());
+            app(FaultDeclarations::class)->sync($vehicle, $data, $request->user());
 
             $this->syncTypeSpecificDetails($vehicle, $data);
 
