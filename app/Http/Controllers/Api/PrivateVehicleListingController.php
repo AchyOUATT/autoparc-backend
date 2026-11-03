@@ -382,7 +382,7 @@ class PrivateVehicleListingController extends Controller
             'drivetrain_id' => ['nullable', 'integer', 'exists:drivetrains,id'],
             'color_id' => ['nullable', 'integer', 'exists:colors,id'],
             'year' => ['required', 'integer', 'min:1900', 'max:'.(date('Y') + 1)],
-            'mileage_km' => ['required', 'integer', 'min:0', 'max:3000000'],
+            'mileage_km' => ['nullable', 'integer', 'min:0', 'max:3000000'],
             'price' => ['required', 'integer', 'min:1', 'max:100000000000'],
             'city' => ['required', 'string', 'max:100'],
             'description' => ['required', 'string', 'min:20', 'max:5000'],
@@ -414,7 +414,7 @@ class PrivateVehicleListingController extends Controller
         // preventing an old trim from silently following a newly selected model.
         $input = array_replace(array_fill_keys([
             'vehicle_model_id', 'model_libre', 'trim_id', 'engine_type_id',
-            'drivetrain_id', 'color_id', 'transmission',
+            'drivetrain_id', 'color_id', 'transmission', 'mileage_km',
         ], null), $request->all());
         $validator = Validator::make($input, $rules);
         $validator->after(fn ($validator) => VehicleClassification::validate($validator, array_intersect_key($input, $allowedFields)));

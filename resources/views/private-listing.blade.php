@@ -1,15 +1,16 @@
+@php($mileageLabel = $listing->mileage_km === null ? 'Kilométrage non renseigné' : number_format($listing->mileage_km, 0, ',', ' ').' km')
 <!doctype html>
 <html lang="fr">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{{ $listing->title }} — AutoParc</title>
-    <meta name="description" content="{{ $listing->year }} · {{ number_format($listing->mileage_km, 0, ',', ' ') }} km · {{ $listing->city }} · Particulier">
+    <meta name="description" content="{{ $listing->year }} · {{ $mileageLabel }} · {{ $listing->city }} · Particulier">
 
     <meta property="og:type" content="product">
     <meta property="og:site_name" content="{{ config('boutique.nom') }}">
     <meta property="og:title" content="{{ $listing->title }} — {{ number_format($listing->price, 0, ',', ' ') }} FCFA">
-    <meta property="og:description" content="{{ $listing->year }} · {{ number_format($listing->mileage_km, 0, ',', ' ') }} km · {{ $listing->city }} · Particulier">
+    <meta property="og:description" content="{{ $listing->year }} · {{ $mileageLabel }} · {{ $listing->city }} · Particulier">
     {{-- L'adresse vient de la configuration, pas de la requete : voir
          PrivateVehicleListingController::share(). Le canonique est le meme ici
          — une annonce de particulier n'a pas de marqueur de version, son
@@ -49,7 +50,7 @@
     <span class="badge">Particulier</span>
     <h1>{{ $listing->title }}</h1>
     <h2>{{ number_format($listing->price, 0, ',', ' ') }} FCFA</h2>
-    <p>{{ $listing->year }} · {{ number_format($listing->mileage_km, 0, ',', ' ') }} km · {{ $listing->city }}</p>
+    <p>{{ $listing->year }} · {{ $mileageLabel }} · {{ $listing->city }}</p>
     <p class="description">{{ $listing->description }}</p>
     <section aria-label="Défauts déclarés par le vendeur">
         <h2>Défauts déclarés par le vendeur</h2>
