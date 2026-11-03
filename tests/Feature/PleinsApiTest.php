@@ -184,6 +184,17 @@ class PleinsApiTest extends TestCase
         $this->assertSame(97400, $vehicule->fresh()->mileage_km);
     }
 
+    public function test_un_releve_explicitement_a_zero_complete_un_compteur_inconnu(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        $vehicule = $this->vehiculeDe($user);
+        $vehicule->update(['mileage_km' => null]);
+        $this->actingAsClient($user)->postJson("/api/my/vehicles/{$vehicule->id}/fuel-fills", [
+            'mileage_km' => 0, 'litres' => 20, 'is_full' => true,
+        ])->assertCreated();
+        $this->assertSame(0, $vehicule->fresh()->mileage_km);
+    }
+
     /**
      * Un passage saisi en retard ne fait pas reculer le vehicule.
      *

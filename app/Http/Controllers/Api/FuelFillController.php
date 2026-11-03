@@ -182,7 +182,7 @@ class FuelFillController extends Controller
      */
     private function releverLeCompteur(OwnedVehicle $vehicule, FuelFill $passage): void
     {
-        if ((int) $passage->mileage_km > (int) $vehicule->mileage_km) {
+        if ($vehicule->mileage_km === null || (int) $passage->mileage_km > $vehicule->mileage_km) {
             $vehicule->update(['mileage_km' => (int) $passage->mileage_km]);
         }
     }

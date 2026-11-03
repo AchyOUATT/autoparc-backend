@@ -118,6 +118,30 @@ class PrivateVehicleSalesTest extends TestCase
         $this->getJson('/api/private-listing-reviews')->assertNotFound();
     }
 
+    public function test_absent_private_mileage_is_stored_and_published_as_unknown(): void
+    {
+        $fields = $this->fields();
+        unset($fields['mileage_km']);
+        $id = $this->postJson('/api/my/private-listings', $fields)->assertCreated()
+            ->assertJsonPath('data.mileage_km', null)->json('data.id');
+        $listing = PrivateVehicleListing::findOrFail($id);
+        $this->assertNull($listing->mileage_km);
+        $listing->update(['status' => 'published', 'published_at' => now()]);
+        $this->anonymous();
+        $this->getJson('/api/private-listings/'.$id)->assertOk()->assertJsonPath('data.mileage_km', null);
+        $this->get('/annonces/'.$id)->assertOk()->assertSee('Kilométrage non renseigné')->assertDontSee('0 km');
+        $this->getJson('/api/catalog/vehicle-listings?mileage_max=0')->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_private_explicit_zero_is_kept_and_a_cleared_reading_becomes_null(): void
+    {
+        $id = $this->postJson('/api/my/private-listings', $this->fields(['mileage_km' => 0]))
+            ->assertCreated()->assertJsonPath('data.mileage_km', 0)->json('data.id');
+        $this->putJson('/api/my/private-listings/'.$id, $this->fields(['mileage_km' => '']))
+            ->assertOk()->assertJsonPath('data.mileage_km', null);
+        $this->assertNull(PrivateVehicleListing::findOrFail($id)->mileage_km);
+    }
+
     public function test_authentication_is_required_and_staff_cannot_become_a_private_seller(): void
     {
         $this->flushHeaders();

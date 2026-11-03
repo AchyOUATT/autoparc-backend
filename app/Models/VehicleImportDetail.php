@@ -29,6 +29,7 @@ class VehicleImportDetail extends Model
             'customs_cleared'     => 'boolean',
             'customs_duty_amount' => 'decimal:2',
             'freight_cost'        => 'decimal:2',
+            'odometer_at_import_km' => 'integer',
         ];
     }
 

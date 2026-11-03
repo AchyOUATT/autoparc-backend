@@ -80,7 +80,7 @@ class RentalService
 
             $mileageEnd = $data['mileage_end_km'] ?? null;
 
-            if ($mileageEnd !== null && $rental->mileage_limit_km && $rental->extra_km_rate) {
+            if ($mileageEnd !== null && $rental->mileage_start_km !== null && $rental->mileage_limit_km && $rental->extra_km_rate) {
                 $done = $mileageEnd - (int) $rental->mileage_start_km;
                 $over = max(0, $done - $rental->mileage_limit_km);
                 $extra += $over * (float) $rental->extra_km_rate;
