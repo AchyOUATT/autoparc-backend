@@ -540,12 +540,14 @@ class ArticleController extends Controller
     private function boite(?Transmission $transmission): ?string
     {
         return match ($transmission) {
-            Transmission::Manual      => 'Manuelle',
-            Transmission::Automatic   => 'Automatique',
-            Transmission::Cvt         => 'CVT',
-            Transmission::DualClutch  => 'Double embrayage',
-            Transmission::SingleSpeed => 'Réducteur simple',
-            default                   => null,
+            Transmission::Manual          => 'Manuelle',
+            Transmission::Automatic       => 'Automatique',
+            Transmission::AutomatedManual => 'Robotisée (AMT)',
+            Transmission::DualClutch      => 'Double embrayage (DCT)',
+            Transmission::Cvt             => 'Variation continue (CVT)',
+            Transmission::ECvt            => 'Hybride e-CVT',
+            Transmission::SingleSpeed     => 'Rapport unique',
+            default                       => null,
         };
     }
 }
