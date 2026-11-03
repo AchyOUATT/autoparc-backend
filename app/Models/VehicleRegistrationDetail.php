@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Observers\StaffInspectionDetailObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /** Donnees propres a un vehicule DEJA IMMATRICULE. */
+#[ObservedBy(StaffInspectionDetailObserver::class)]
 class VehicleRegistrationDetail extends Model
 {
     use HasFactory;

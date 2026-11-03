@@ -5,11 +5,14 @@ namespace App\Models;
 use App\Enums\FaultCategory;
 use App\Enums\FaultSeverity;
 use App\Enums\FaultStatus;
+use App\Observers\DeclaredFaultObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /** Panne declaree sur un vehicule (surtout pertinent pour l'occasion immatriculee). */
+#[ObservedBy(DeclaredFaultObserver::class)]
 class VehicleFault extends Model
 {
     use HasFactory;
@@ -30,6 +33,8 @@ class VehicleFault extends Model
             'affects_drivability'   => 'boolean',
             'is_safety_critical'    => 'boolean',
             'disclosed_to_buyer'    => 'boolean',
+            'declared_by_user_id'   => 'integer',
+            'staff_managed_at'      => 'datetime',
             'detected_at'           => 'date',
             'repaired_at'           => 'date',
             'estimated_repair_cost' => 'decimal:2',

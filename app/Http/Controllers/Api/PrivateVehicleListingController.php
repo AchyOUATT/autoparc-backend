@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Services\FaultDeclarations;
+use App\Support\FaultDeclarationInput;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PrivateVehicleListingResource;
+use App\Http\Resources\PrivateVehicleListingManagementResource;
 use App\Enums\Transmission;
 use App\Models\Brand;
 use App\Models\Color;
@@ -14,6 +17,7 @@ use App\Models\PrivateVehicleListing;
 use App\Models\Trim;
 use App\Models\User;
 use App\Models\VehicleModel;
+use App\Services\AutoParcContact;
 use App\Support\PartnerMedia;
 use App\Support\PhotoPartage;
 use App\Support\VehicleClassification;
@@ -49,7 +53,7 @@ class PrivateVehicleListingController extends Controller
 
     public function mine(Request $request)
     {
-        return PrivateVehicleListingResource::collection(
+        return PrivateVehicleListingManagementResource::collection(
             PrivateVehicleListing::where('user_id', $request->user()->id)->with('photos')->latest('id')->paginate(20)
         );
     }
@@ -58,7 +62,7 @@ class PrivateVehicleListingController extends Controller
     {
         $this->authorizeOwner($request, $listing);
 
-        return new PrivateVehicleListingResource($listing->load('photos'));
+        return new PrivateVehicleListingManagementResource($listing->load('photos'));
     }
 
     public function store(Request $request)
@@ -75,20 +79,23 @@ class PrivateVehicleListingController extends Controller
                 throw ValidationException::withMessages(['listing' => __('Vous avez déjà une annonce en cours. Retirez-la ou marquez-la vendue avant d’en créer une autre.')]);
             }
 
-            return PrivateVehicleListing::create($data + [
+            $listing = PrivateVehicleListing::create(collect($data)->except(['faults', 'fault_declaration_state'])->all() + [
                 'user_id' => $request->user()->id, 'active_user_id' => $request->user()->id,
                 'status' => 'draft', 'currency' => 'XOF',
             ]);
+            app(FaultDeclarations::class)->sync($listing, $data, $request->user());
+
+            return $listing;
         });
 
-        return (new PrivateVehicleListingResource($listing->load('photos')))->response()->setStatusCode(201);
+        return (new PrivateVehicleListingManagementResource($listing->load('photos')))->response()->setStatusCode(201);
     }
 
     public function update(Request $request, PrivateVehicleListing $listing)
     {
         $this->authorizeOwner($request, $listing);
         $data = $this->validateFields($request, false, $listing);
-        DB::transaction(function () use ($listing, $data) {
+        DB::transaction(function () use ($request, $listing, $data) {
             $locked = PrivateVehicleListing::whereKey($listing->id)->lockForUpdate()->firstOrFail();
             $this->requireEditable($locked);
 
@@ -104,11 +111,12 @@ class PrivateVehicleListingController extends Controller
                 $locked->forceFill(['verified_phone' => null, 'phone_verified_at' => null]);
             }
 
-            $locked->fill($data);
+            $locked->fill(collect($data)->except(['faults', 'fault_declaration_state'])->all());
+            app(FaultDeclarations::class)->sync($locked, $data, $request->user());
             $locked->resetReview();
         });
 
-        return new PrivateVehicleListingResource($listing->refresh()->load('photos'));
+        return new PrivateVehicleListingManagementResource($listing->refresh()->load('photos'));
     }
 
     public function submit(Request $request, PrivateVehicleListing $listing)
@@ -119,6 +127,7 @@ class PrivateVehicleListingController extends Controller
             $locked = PrivateVehicleListing::whereKey($listing->id)->lockForUpdate()->firstOrFail();
             abort_unless(in_array($locked->status, ['draft', 'rejected'], true), 422, __('Cette annonce ne peut pas être envoyée dans son état actuel.'));
             abort_unless($locked->photos()->exists(), 422, __('Ajoutez au moins une photo.'));
+            FaultDeclarations::requireComplete($locked);
 
             // LE NUMERO DOIT ETRE COMPOSABLE, et c'est tout ce que l'envoi
             // exige : la verification, elle, est le geste du moderateur.
@@ -142,7 +151,7 @@ class PrivateVehicleListingController extends Controller
             ]);
         });
 
-        return new PrivateVehicleListingResource($listing->refresh()->load('photos'));
+        return new PrivateVehicleListingManagementResource($listing->refresh()->load('photos'));
     }
 
     public function withdraw(Request $request, PrivateVehicleListing $listing)
@@ -198,7 +207,7 @@ class PrivateVehicleListingController extends Controller
             $locked->update(['status' => $status, 'active_user_id' => null, 'published_at' => null, 'revision' => $locked->revision + 1]);
         });
 
-        return new PrivateVehicleListingResource($listing->refresh()->load('photos'));
+        return new PrivateVehicleListingManagementResource($listing->refresh()->load('photos'));
     }
 
     public function upload(Request $request, PrivateVehicleListing $listing)
@@ -292,7 +301,7 @@ class PrivateVehicleListingController extends Controller
             throw $error;
         }
 
-        return new PrivateVehicleListingResource($listing->refresh()->load('photos'));
+        return new PrivateVehicleListingManagementResource($listing->refresh()->load('photos'));
     }
 
     public function deletePhoto(Request $request, PrivateVehicleListing $listing, int $photo)
@@ -310,10 +319,10 @@ class PrivateVehicleListingController extends Controller
             DB::afterCommit(fn () => Storage::disk($image->disk)->delete($fichiers));
         });
 
-        return new PrivateVehicleListingResource($listing->refresh()->load('photos'));
+        return new PrivateVehicleListingManagementResource($listing->refresh()->load('photos'));
     }
 
-    public function share(PrivateVehicleListing $listing)
+    public function share(PrivateVehicleListing $listing, AutoParcContact $contact)
     {
         abort_unless(PrivateVehicleListing::published()->whereKey($listing->id)->exists(), 404);
 
@@ -321,7 +330,9 @@ class PrivateVehicleListingController extends Controller
         $couverture = $listing->photos->first();
 
         return response()->view('private-listing', [
-            'listing' => $listing,
+            // Give Blade public data only, including for future JSON-LD or metadata.
+            'listing' => (object) (new PrivateVehicleListingResource($listing))->resolve(request()),
+            'autoparc_contact' => $contact->coordinates(),
             // Ce que l'apercu sert, et ses dimensions : la variante bornee a
             // 1200x630 quand elle existe, l'original sinon, et `null` quand le
             // disque n'offre aucune adresse qu'un robot puisse atteindre. Toute
@@ -392,7 +403,9 @@ class PrivateVehicleListingController extends Controller
         if ($creating) {
             $rules['owned_vehicle_id'] = ['nullable', 'integer'];
         }
-        $allowedFields = array_fill_keys(array_keys($rules), true);
+        $rules = array_merge($rules, FaultDeclarationInput::rules());
+        $allowedFields = array_fill_keys(array_filter(array_keys($rules), fn ($key) => ! str_contains($key, '.')
+            && ! in_array($key, ['fault_declared_at', 'fault_declaration', 'fault_declaration_editable'], true)), true);
         foreach (['title', 'vehicle_identity', 'fuel_type', 'status', 'revision', 'user_id', 'active_user_id', 'verified_phone', 'phone_verified_at', 'published_at', 'reviewed_by', 'review_reason', 'currency', 'seller_type'] as $field) {
             $rules[$field] = ['prohibited'];
         }
