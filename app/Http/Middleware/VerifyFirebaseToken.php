@@ -44,7 +44,10 @@ class VerifyFirebaseToken
         $user = $this->resolveUser($claims);
 
         if (! $user->is_active) {
-            abort(403, __('Compte desactive.'));
+            abort(response()->json([
+                'message' => __('Compte desactive.'),
+                'code' => 'account_disabled',
+            ], 403));
         }
 
         $request->setUserResolver(fn () => $user);
@@ -87,7 +90,7 @@ class VerifyFirebaseToken
         $user = User::where('firebase_uid', $claims['uid'])->first();
 
         if ($user) {
-            abort_unless($user->isClient(), 403, __('Ce compte ne peut pas utiliser la connexion client Firebase.'));
+            $this->requireClient($user);
 
             return $user;
         }
@@ -97,7 +100,7 @@ class VerifyFirebaseToken
         if ($claims['email'] && $existing = User::whereRaw('LOWER(email) = ?', [mb_strtolower($claims['email'])])->first()) {
             // Verifier AVANT le rattachement : un email Firebase ne transforme
             // jamais un employe ou une entreprise en compte client.
-            abort_unless($existing->isClient(), 403, __('Ce compte ne peut pas utiliser la connexion client Firebase.'));
+            $this->requireClient($existing);
             $existing->update(['firebase_uid' => $claims['uid']]);
 
             return $existing;
@@ -111,5 +114,21 @@ class VerifyFirebaseToken
             'firebase_uid' => $claims['uid'],
             'is_active' => true,
         ]);
+    }
+
+    private function requireClient(User $user): void
+    {
+        if ($user->isClient()) {
+            return;
+        }
+
+        abort(response()->json([
+            'message' => $user->isPartner()
+                ? __('Ce compte est un compte partenaire. Connectez-vous à l’espace partenaire.')
+                : __('Ce compte appartient au personnel. Utilisez la connexion du personnel.'),
+            'code' => $user->isPartner()
+                ? 'client_account_requires_partner_login'
+                : 'client_account_requires_staff_login',
+        ], 403));
     }
 }

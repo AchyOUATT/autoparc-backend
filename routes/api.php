@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\CatalogSyncController;
 use App\Http\Controllers\Api\CatalogVehicleListingController;
 use App\Http\Controllers\Api\CompatibilityController;
 use App\Http\Controllers\Api\ContactSettingsController;
+use App\Http\Controllers\Api\ClientSessionController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\CustomerNeedController;
 use App\Http\Controllers\Api\FcmTokenController;
@@ -169,6 +170,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
 /* --------------- Zone client : "mon garage" (auth Firebase) ------------- */
 Route::middleware('firebase')->prefix('my')->group(function () {
+    // A Firebase login alone does not grant the customer role. Confirm this
+    // profile before opening the garage or announcing a successful sign-in.
+    Route::get('account', ClientSessionController::class);
     // `parameters` est indispensable : apiResource nommerait le parametre
     // {vehicle}, alors que le controleur attend $ownedVehicle. Sans
     // correspondance, Laravel n'injecte aucun modele — il en construit un vide,

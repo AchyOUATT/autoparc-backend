@@ -194,6 +194,8 @@
   "Token Firebase manquant.": "Missing Firebase token.",
   "Token Firebase invalide ou expire.": "Invalid or expired Firebase token.",
   "Compte desactive.": "Account disabled.",
+  "Ce compte est un compte partenaire. Connectez-vous à l’espace partenaire.": "This is a partner account. Sign in to the partner area.",
+  "Ce compte appartient au personnel. Utilisez la connexion du personnel.": "This is a staff account. Use staff sign-in.",
   "Ce compte ne peut pas utiliser la connexion client Firebase.": "This account cannot use Firebase customer sign-in.",
   "Cette annonce ne remplit plus les conditions de publication.": "This listing no longer meets the publication requirements.",
   "Appelez le vendeur au numéro indiqué et confirmez qu’il a bien déposé cette annonce avant de publier.": "Call the seller at the given number and confirm that they submitted this listing before publishing it.",
