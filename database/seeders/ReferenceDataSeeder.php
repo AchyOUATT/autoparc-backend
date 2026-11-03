@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Brand;
 use App\Models\Color;
 use App\Models\Country;
-use App\Models\Drivetrain;
 use App\Models\EngineType;
 use App\Models\Feature;
 use App\Models\Manufacturer;
@@ -83,14 +82,7 @@ class ReferenceDataSeeder extends Seeder
         }
 
         // ---- Drivetrains ----
-        foreach ([
-            ['code' => 'FWD', 'label' => 'Traction avant'],
-            ['code' => 'RWD', 'label' => 'Propulsion'],
-            ['code' => 'AWD', 'label' => 'Intégrale permanente'],
-            ['code' => '4WD', 'label' => '4x4 enclenchable'],
-        ] as $d) {
-            Drivetrain::create($d);
-        }
+        $this->call(DrivetrainsSeeder::class);
 
         // ---- Engine types ----
         foreach ([

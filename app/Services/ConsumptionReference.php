@@ -101,7 +101,7 @@ class ConsumptionReference
             $manual = $sourceTransmission[1] === 'M';
             $transmission = $context['transmission'] ?? null;
             if (($transmission === 'manual' && ! $manual)
-                || (in_array($transmission, ['automatic', 'cvt', 'dual_clutch', 'single_speed'], true) && $manual)) {
+                || (in_array($transmission, ['automatic', 'cvt', 'e_cvt', 'automated_manual', 'dual_clutch', 'single_speed'], true) && $manual)) {
                 $reasons[] = 'transmission_mismatch';
             }
 

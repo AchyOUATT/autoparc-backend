@@ -4,11 +4,13 @@ namespace App\Enums;
 
 enum Transmission: string
 {
-    case Manual        = 'manual';
-    case Automatic     = 'automatic';
-    case Cvt           = 'cvt';
-    case DualClutch    = 'dual_clutch';
-    case SingleSpeed   = 'single_speed'; // electrique
+    case Manual          = 'manual';
+    case Automatic       = 'automatic';
+    case AutomatedManual = 'automated_manual';
+    case DualClutch      = 'dual_clutch';
+    case Cvt             = 'cvt';
+    case ECvt            = 'e_cvt';
+    case SingleSpeed     = 'single_speed'; // electrique
 
     public static function values(): array
     {

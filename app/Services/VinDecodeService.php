@@ -466,36 +466,32 @@ class VinDecodeService
             return null;
         }
 
-        $keywords = match (true) {
-            str_contains($drive, 'fwd') || str_contains($drive, 'front')
-                => ['fwd', 'traction', 'front'],
+        // NHTSA combines aliases of one family with slashes. Match the
+        // explicit codes rather than overlapping labels: an AWD row must
+        // never win a 4WD lookup merely because it was inserted first.
+        $code = null;
+        foreach (explode('/', $drive) as $part) {
+            $alias = preg_replace('/[\s-]+/u', '', str_replace('×', 'x', $part));
+            $candidate = match ($alias) {
+                'fwd', 'frontwheeldrive' => 'FWD',
+                'rwd', 'rearwheeldrive' => 'RWD',
+                'awd', 'allwheeldrive' => 'AWD',
+                '4wd', '4wheeldrive', 'fourwheeldrive', '4x4' => '4WD',
+                default => null,
+            };
 
-            str_contains($drive, 'rwd') || str_contains($drive, 'rear')
-                => ['rwd', 'propulsion', 'rear'],
-
-            str_contains($drive, 'awd') || str_contains($drive, 'all-wheel')
-                => ['awd', 'integral', 'intégral', '4x4'],
-
-            str_contains($drive, '4wd') || str_contains($drive, '4-wheel') || str_contains($drive, '4x4')
-                => ['4wd', '4x4', 'integral', 'intégral', 'awd'],
-
-            default => [],
-        };
-
-        if (empty($keywords)) {
-            return null;
+            // 4x2 does not identify the driven axle; mixed/unknown families
+            // also remain unresolved instead of inventing a reference ID.
+            if ($candidate === null || ($code !== null && $candidate !== $code)) {
+                return null;
+            }
+            $code = $candidate;
         }
 
-        $drivetrain = Drivetrain::where(function ($q) use ($keywords) {
-            foreach ($keywords as $kw) {
-                $q->orWhereRaw('LOWER(code) LIKE ?',  ["%{$kw}%"])
-                  ->orWhereRaw('LOWER(label) LIKE ?', ["%{$kw}%"]);
-            }
-        })
-        ->orderByRaw('LENGTH(code)')
-        ->first(['id', 'code', 'label']);
+        $matches = Drivetrain::whereRaw('UPPER(code) = ?', [$code])
+            ->limit(2)->get(['id', 'code', 'label']);
 
-        return $drivetrain?->toArray();
+        return $matches->count() === 1 ? $matches->first()->toArray() : null;
     }
 
     // -----------------------------------------------------------------------
