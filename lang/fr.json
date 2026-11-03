@@ -1,4 +1,10 @@
 {
+  "Vous ne pouvez pas modifier la déclaration des défauts.": "Vous ne pouvez pas modifier la déclaration des défauts.",
+  "Un défaut ne peut être modifié que sur son véhicule et par son déclarant autorisé.": "Un défaut ne peut être modifié que sur son véhicule et par son déclarant autorisé.",
+  "La déclaration des défauts et la liste renseignée sont incohérentes.": "La déclaration des défauts et la liste renseignée sont incohérentes.",
+  "Déclarez explicitement les défauts connus ou l’absence de défaut connu avant de soumettre cette annonce.": "Déclarez explicitement les défauts connus ou l’absence de défaut connu avant de soumettre cette annonce.",
+  "Au moins un point doit avoir été réellement contrôlé.": "Au moins un point doit avoir été réellement contrôlé.",
+  "Seule une inspection active peut être retirée.": "Seule une inspection active peut être retirée.",
   "Attestation d'assurance valide": "Attestation d'assurance valide",
   "Sur le pare-brise et dans la boîte à gants. À un contrôle, une attestation périmée ne se discute pas : amende, et le véhicule reste sur place.": "Sur le pare-brise et dans la boîte à gants. À un contrôle, une attestation périmée ne se discute pas : amende, et le véhicule reste sur place.",
   "Visite technique valide": "Visite technique valide",

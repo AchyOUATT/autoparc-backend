@@ -17,22 +17,9 @@
     <meta property="og:url" content="{{ $url }}">
     <link rel="canonical" href="{{ $url }}">
 
-    {{-- PAS D'INDEXATION, et c'est la seule partie vraiment irréversible de
-         cette page.
-
-         Elle porte le nom, la ville et le téléphone d'un particulier. Une
-         annonce retirée rend 404 — `share()` exige `published()` —, mais un
-         cache de moteur de recherche, lui, ne se reprend pas : le numéro
-         resterait trouvable après le retrait, et le cycle de vie que la
-         documentation décrit serait démenti par Google plutôt que par notre
-         code.
-
-         DANS LA VUE ET JAMAIS DANS robots.txt. Un `Disallow` y serait respecté
-         par `facebookexternalhit`, et tuerait la vignette WhatsApp — c'est-à-
-         dire la raison d'être de cette page. La balise, elle, écarte les
-         moteurs sans gêner les robots d'aperçu, qui ne lisent que l'en-tête
-         Open Graph. `public/robots.txt` reste donc « Disallow: » (tout
-         autorisé) et ne doit pas être touché pour ce motif. --}}
+    {{-- A withdrawn listing must not remain indexed. Keep preview robots able
+         to read Open Graph; no robots.txt exclusion is needed. The view only
+         receives the public listing snapshot, without the seller's contact. --}}
     <meta name="robots" content="noindex, nofollow">
 
     @if($apercu)
@@ -64,20 +51,43 @@
     <h2>{{ number_format($listing->price, 0, ',', ' ') }} FCFA</h2>
     <p>{{ $listing->year }} · {{ number_format($listing->mileage_km, 0, ',', ' ') }} km · {{ $listing->city }}</p>
     <p class="description">{{ $listing->description }}</p>
+    <section aria-label="Défauts déclarés par le vendeur">
+        <h2>Défauts déclarés par le vendeur</h2>
+        @if($listing->fault_declaration['state'] === 'unknown')
+            <p>Déclaration des défauts non renseignée.</p>
+        @elseif($listing->fault_declaration['state'] === 'none')
+            <p>Le vendeur déclare ne connaître aucun défaut. Cette déclaration ne constitue pas une inspection AutoParc.</p>
+        @else
+            <p>{{ $listing->fault_declaration['unresolved_count'] }} défaut(s) déclaré(s) non réparé(s).</p>
+            <ul>
+                @foreach($listing->fault_declaration['faults'] as $fault)
+                    <li><strong>{{ $fault['title'] }}</strong>
+                        — {{ ['repaired' => 'réparé', 'wont_fix' => 'non réparé, réparation non prévue'][$fault['status']] ?? 'déclaré' }}
+                        @if($fault['description'])<p>{{ $fault['description'] }}</p>@endif
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+    </section>
     @foreach($listing->photos as $photo)
-        <img src="{{ \Illuminate\Support\Facades\Storage::disk($photo->disk)->url($photo->path) }}" alt="Photo du véhicule" loading="lazy">
+        <img src="{{ $photo['url'] }}" alt="Photo du véhicule" loading="lazy">
     @endforeach
-    {{-- « Téléphone vérifié » est une affirmation, pas une décoration : elle
-         dit au visiteur qu'une personne d'AutoParc a appelé ce numéro et que
-         le vendeur a confirmé avoir déposé l'annonce. `approve()` l'exige pour
-         publier, donc elle est vraie de toute annonce servie ici — mais on la
-         pose sur la DONNÉE et non sur cette garantie, pour qu'elle disparaisse
-         d'elle-même si le chemin de publication change un jour. Une mention de
-         confiance qui survit à ce qui la fondait est pire que son absence. --}}
-    <p>{{ $listing->seller_name }}@if($listing->phone_verified_at) · Téléphone vérifié@endif</p>
-    <a href="tel:{{ $listing->verified_phone }}">Appeler le vendeur</a>
-    @if($listing->whatsapp_enabled)
-        <a href="https://wa.me/{{ ltrim($listing->verified_phone, '+') }}">Contacter sur WhatsApp</a>
+    <p>Contactez AutoParc pour cette annonce.</p>
+    <a href="tel:{{ $autoparc_contact['phone'] }}">Appeler AutoParc</a>
+    <a href="https://wa.me/{{ $autoparc_contact['whatsapp'] }}?text={{ rawurlencode('Bonjour AutoParc, je vous contacte pour cette annonce : '.$url) }}">Contacter AutoParc sur WhatsApp</a>
+    <small>Annonce d’un particulier. Les échanges passent par AutoParc.</small>
+    @if($listing->inspection)
+        <section aria-label="Inspection AutoParc">
+            <span class="badge">✓ Inspecté par AutoParc</span>
+            <p>Contrôlé le {{ \Carbon\Carbon::parse($listing->inspection['inspected_at'])->format('d/m/Y') }}
+                à {{ number_format($listing->inspection['mileage_km'], 0, ',', ' ') }} km.
+                {{ $listing->inspection['checked_count'] }} point(s) contrôlé(s),
+                {{ $listing->inspection['attention_count'] }} point(s) à surveiller,
+                {{ $listing->inspection['blocking_count'] }} anomalie(s) bloquante(s).</p>
+            <a href="{{ url('/api/catalog/vehicle-inspections/'.$listing->inspection['id']) }}">Consulter le compte rendu</a>
+            <small>Constat au moment du contrôle sur les points indiqués. Cette inspection ne constitue pas une garantie.</small>
+        </section>
+    @else
+        <small>Le véhicule n’a pas été inspecté par AutoParc.</small>
     @endif
-    <small>Annonce d’un particulier. Le téléphone a été vérifié ; le véhicule n’a pas été inspecté par AutoParc.</small>
 </main></body></html>

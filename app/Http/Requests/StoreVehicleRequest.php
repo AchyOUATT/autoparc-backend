@@ -10,6 +10,7 @@ use App\Enums\VehicleDealType;
 use App\Enums\VehicleStatus;
 use App\Support\EngineCode;
 use App\Support\VehicleClassification;
+use App\Support\FaultDeclarationInput;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -56,7 +57,7 @@ class StoreVehicleRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        return array_merge([
             'reference'           => ['nullable', 'string', 'max:50', Rule::unique('vehicles', 'reference')],
             'vin'                 => ['nullable', 'string', 'size:17', Rule::unique('vehicles', 'vin')],
             // Envoye, il prime. Absent, il est DEDUIT de `plate_number` :
@@ -167,12 +168,7 @@ class StoreVehicleRequest extends FormRequest
             'registration.has_accident_history'     => ['boolean'],
             'registration.notes'                    => ['nullable', 'string'],
 
-            // ---- Pannes declarees a la creation (optionnel) ---------------
-            'faults'   => ['array'],
-            'faults.*.title'    => ['required_with:faults', 'string', 'max:180'],
-            'faults.*.category' => ['required_with:faults', 'string'],
-            'faults.*.severity' => ['nullable', 'string'],
-        ];
+        ], FaultDeclarationInput::rules($this->user()?->role?->canManageFaults() ?? false));
     }
 
     public function withValidator($validator): void

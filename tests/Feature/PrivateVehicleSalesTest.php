@@ -51,6 +51,7 @@ class PrivateVehicleSalesTest extends TestCase
     private function fields(array $extra = []): array
     {
         return array_replace([
+            'fault_declaration_state' => 'none',
             'brand_id' => $this->brand->id, 'vehicle_model_id' => $this->vehicleModel->id,
             'year' => 2020, 'mileage_km' => 80000,
             'price' => 4500000, 'city' => 'Ouagadougou',
@@ -673,7 +674,7 @@ class PrivateVehicleSalesTest extends TestCase
         $page->assertSee('name="twitter:card"', false);
         // La mention de confiance : elle est posee sur `phone_verified_at`, et
         // c'est `approve()` qui garantit qu'une annonce publiee le porte.
-        $page->assertSee('Téléphone vérifié');
+        $page->assertDontSee('Téléphone vérifié')->assertSee('Appeler AutoParc');
         $page->assertSee('property="og:url" content="'.rtrim((string) config('app.url'), '/').'/annonces/'.$id.'"', false);
         // Et surtout : l'original n'est PAS ce que le robot recoit.
         $page->assertDontSee('property="og:image" content="'.Storage::disk('public')->url($photo->path).'"', false);
@@ -737,8 +738,8 @@ class PrivateVehicleSalesTest extends TestCase
      * `GET private-listings` ne porte aucune authentification et rend vingt
      * fiches par page. Avec le numero dans chacune, un seul appel livrait le
      * nom, la ville et le telephone de vingt vendeurs burkinabe — et les
-     * identifiants sont sequentiels. Le numero vit donc sur la FICHE, d'ou l'on
-     * appelle, et pas dans la liste, qu'on parcourt.
+     * identifiants sont sequentiels. Le public contacte AutoParc, tandis que
+     * les coordonnees du vendeur restent dans les vues de gestion autorisees.
      *
      * Les quatre lecteurs sont ici, parce que c'est l'ecart entre eux qui est
      * la correction : l'inconnu sur la liste, l'inconnu sur la fiche, le
@@ -757,11 +758,11 @@ class PrivateVehicleSalesTest extends TestCase
             ->assertJsonMissingPath('data.0.phone')
             ->assertJsonMissingPath('data.0.phone_claimed');
 
-        // Mais celui qui ouvre une annonce peut appeler : c'est tout l'objet
-        // de la page, et le bouton disparaitrait sans cela.
+        // La fiche publique passe elle aussi par AutoParc.
         $this->getJson('/api/private-listings/'.$listing->id)
-            ->assertOk()->assertJsonPath('data.phone', '+22670000000')
-            ->assertJsonMissingPath('data.phone_claimed');
+            ->assertOk()->assertJsonPath('data.contact_via', 'autoparc')
+            ->assertJsonMissingPath('data.phone')->assertJsonMissingPath('data.phone_claimed')
+            ->assertJsonMissingPath('data.seller_name')->assertJsonMissingPath('data.whatsapp_enabled');
 
         // Le vendeur voit son propre numero saisi, meme dans une liste.
         $this->client();
@@ -980,6 +981,84 @@ class PrivateVehicleSalesTest extends TestCase
         Sanctum::actingAs(User::factory()->create(['role' => 'viewer']));
         $this->deleteJson('/api/private-listing-reviews/'.$listing->id.'/photos/'.$listing->photos()->firstOrFail()->id)
             ->assertForbidden();
+    }
+
+    public function test_all_public_listing_routes_hide_personal_contacts_even_from_owner_or_staff(): void
+    {
+        $listing = $this->listing('published');
+        $listing->update(['seller_name' => 'PRIVATE-SELLER-NAME']);
+        $staff = User::factory()->create(['role' => 'manager']);
+        $other = User::factory()->create(['role' => 'client']);
+
+        foreach ([null, $this->seller, $staff, $other] as $actor) {
+            $this->anonymous();
+            if ($actor !== null) {
+                Sanctum::actingAs($actor);
+            }
+            foreach ([
+                '/api/private-listings' => 'data.0',
+                '/api/private-listings/'.$listing->id => 'data',
+                '/api/catalog/vehicle-listings' => 'data.0.private_listing',
+            ] as $url => $prefix) {
+                $response = $this->getJson($url)->assertOk()
+                    ->assertJsonPath($prefix.'.id', $listing->id)
+                    ->assertJsonPath($prefix.'.contact_via', 'autoparc');
+                foreach (['seller_name', 'phone', 'phone_claimed', 'verified_phone', 'whatsapp_enabled', 'phone_verified', 'phone_verified_at', 'user_id'] as $field) {
+                    $response->assertJsonMissingPath($prefix.'.'.$field);
+                }
+                $this->assertStringNotContainsString('PRIVATE-SELLER-NAME', $response->getContent());
+                $this->assertStringNotContainsString('+22670000000', $response->getContent());
+            }
+        }
+    }
+
+    public function test_owner_and_moderation_keep_private_contacts_in_management_responses_only(): void
+    {
+        $listing = $this->listing('published');
+        foreach (['/api/my/private-listings' => 'data.0', '/api/my/private-listings/'.$listing->id => 'data'] as $url => $prefix) {
+            $this->getJson($url)->assertOk()
+                ->assertJsonPath($prefix.'.seller_name', 'Vendeur particulier')
+                ->assertJsonPath($prefix.'.phone_claimed', '+22670000000')
+                ->assertJsonPath($prefix.'.phone', '+22670000000')
+                ->assertJsonPath($prefix.'.whatsapp_enabled', true);
+        }
+
+        $this->anonymous();
+        $other = User::factory()->create(['role' => 'client', 'firebase_uid' => 'private-contact-other']);
+        $this->client($other);
+        $this->getJson('/api/my/private-listings/'.$listing->id)->assertNotFound();
+
+        $this->anonymous();
+        Sanctum::actingAs(User::factory()->create(['role' => 'manager']));
+        $this->getJson('/api/private-listing-reviews?status=published')->assertOk()
+            ->assertJsonPath('data.0.seller_name', 'Vendeur particulier')
+            ->assertJsonPath('data.0.phone_claimed', '+22670000000')
+            ->assertJsonPath('data.0.whatsapp_enabled', true);
+
+        $this->anonymous();
+        Sanctum::actingAs(User::factory()->create(['role' => 'viewer']));
+        $this->getJson('/api/private-listing-reviews?status=published')->assertForbidden();
+    }
+
+    public function test_share_page_uses_updated_autoparc_contact_without_receiving_personal_fields(): void
+    {
+        $listing = $this->listing('published');
+        $listing->update(['seller_name' => 'PRIVATE-SELLER-NAME', 'whatsapp_enabled' => false]);
+        $this->anonymous();
+
+        foreach (['+22675570484', '+33123456789'] as $phone) {
+            app(\App\Services\AutoParcContact::class)->updatePhone($phone);
+            $response = $this->get('/annonces/'.$listing->id)->assertOk()
+                ->assertSee('tel:'.$phone, false)
+                ->assertSee('https://wa.me/'.substr($phone, 1), false)
+                ->assertSee('Appeler AutoParc')
+                ->assertDontSee('PRIVATE-SELLER-NAME')
+                ->assertDontSee('+22670000000');
+            $response->assertViewHas('listing', fn ($public) => ! ($public instanceof PrivateVehicleListing)
+                && ! property_exists($public, 'seller_name') && ! property_exists($public, 'phone')
+                && ! property_exists($public, 'phone_claimed') && ! property_exists($public, 'whatsapp_enabled')
+                && $public->contact_via === 'autoparc');
+        }
     }
 
     /** Des pixels completement transparents, avec du noir dessous, et un carre opaque au centre. */

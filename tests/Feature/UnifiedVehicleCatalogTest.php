@@ -239,11 +239,11 @@ class UnifiedVehicleCatalogTest extends TestCase
         foreach ([$owner, User::factory()->create(['role' => 'manager'])] as $actor) {
             Sanctum::actingAs($actor);
             $response = $this->getJson(self::ENDPOINT)->assertOk();
-            foreach (['phone', 'phone_claimed', 'status', 'revision', 'review_reason', 'owned_vehicle_id', 'user_id', 'reviewed_by'] as $field) {
+            foreach (['seller_name', 'phone', 'phone_claimed', 'whatsapp_enabled', 'phone_verified', 'status', 'revision', 'review_reason', 'owned_vehicle_id', 'user_id', 'reviewed_by'] as $field) {
                 $response->assertJsonMissingPath('data.0.private_listing.'.$field);
             }
             $this->assertStringNotContainsString('MODERATION-SECRET', $response->getContent());
-            $response->assertJsonPath('data.0.private_listing.phone_verified', true);
+            $response->assertJsonPath('data.0.private_listing.contact_via', 'autoparc');
         }
     }
 

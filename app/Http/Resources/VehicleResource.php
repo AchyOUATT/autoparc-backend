@@ -7,6 +7,8 @@ use App\Support\PartnerListingPresentation;
 use App\Support\PartnerMedia;
 use App\Support\PhotoPartage;
 use App\Support\VersionPartage;
+use App\Services\StaffVehicleInspections;
+use App\Services\FaultDeclarations;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -15,9 +17,14 @@ class VehicleResource extends JsonResource
     public function toArray(Request $request): array
     {
         $private = PartnerListingPresentation::canSeePrivateData($this->resource, $request);
+        $faultManagement = FaultDeclarations::canManageStock($request, $this->resource);
+        $fullFaultManagement = $faultManagement && $request->user()?->isStaff();
+        $faultDeclaration = FaultDeclarations::present($this->resource, $request, $faultManagement);
 
         $data = [
             'id'           => $this->id,
+            'inspection' => StaffVehicleInspections::summary($this->resource),
+            'fault_declaration' => $faultDeclaration,
             'brand_id' => $this->brand_id,
             'vehicle_model_id' => $this->vehicle_model_id,
             'trim_id' => $this->trim_id,
@@ -163,9 +170,9 @@ class VehicleResource extends JsonResource
                 'has_accident_history'    => $this->registrationDetail->has_accident_history,
             ] : null),
 
-            'faults'       => VehicleFaultResource::collection($this->whenLoaded('faults')),
-            'faults_count' => $this->whenCounted('faults'),
-            'fault_score'  => $this->when($this->relationLoaded('faults'), fn () => $this->fault_score),
+            'faults'       => $fullFaultManagement ? VehicleFaultResource::collection($this->whenLoaded('faults')) : $faultDeclaration['faults'],
+            'faults_count' => $fullFaultManagement ? $this->whenCounted('faults') : count($faultDeclaration['faults']),
+            'fault_score'  => $this->when($fullFaultManagement && $this->relationLoaded('faults'), fn () => $this->fault_score),
 
             'features' => $this->whenLoaded('features', fn () => $this->features->map(fn ($f) => [
                 'id'       => $f->id,

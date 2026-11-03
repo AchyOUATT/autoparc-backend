@@ -66,6 +66,12 @@ enum UserRole: string
         return in_array($this, [self::Admin, self::Manager, self::Mechanic], true);
     }
 
+    /** Record or withdraw an actual AutoParc staff inspection. */
+    public function canManageInspections(): bool
+    {
+        return in_array($this, [self::Admin, self::Manager, self::Mechanic], true);
+    }
+
     /** Entrees, sorties et disponibilite du stock. */
     public function canManageStock(): bool
     {
@@ -119,6 +125,7 @@ enum UserRole: string
             'manage-catalog' => $this->canManageCatalog(),
             'delete-catalog' => $this->canDeleteCatalog(),
             'manage-faults' => $this->canManageFaults(),
+            'manage-inspections' => $this->canManageInspections(),
             'manage-stock' => $this->canManageStock(),
             'manage-orders' => $this->canManageOrders(),
             'manage-customers' => $this->canManageCustomers(),

@@ -10,23 +10,20 @@ de contacts vers un partenaire n’est prévu.
 - Une annonce en cours gratuite par compte : les brouillons et annonces à
   corriger occupent aussi cette place. Retirer ou marquer vendu libère la place.
 - Création directe ou préremplissage choisi depuis « Mon garage ».
+- Déclaration explicite des défauts connus avant soumission et approbation ;
+  une donnée non renseignée reste `unknown`. Voir [le contrat des défauts](declared-vehicle-faults.md).
 - Informations publiques : titre, année, kilométrage, prix XOF, ville,
-  énergie/boîte facultatives, description, nom affiché, téléphone vérifié et photos.
-- MAIS LE TÉLÉPHONE N’EST PAS DANS LA LISTE. Il est servi sur la fiche
-  (`GET private-listings/{id}`) et sur la page de partage, pas sur l’index
-  (`GET private-listings`). La condition est la présence du paramètre de route,
-  dans `PrivateVehicleListingResource` : on appelle depuis une fiche, on ne
-  parcourt pas une liste pour téléphoner. Vingt fiches par page et aucune
-  authentification en faisaient sinon un annuaire de particuliers moissonnable
-  d’un seul appel. Ne pas « simplifier » cette condition sans lire le
-  commentaire qui l’accompagne : `$request->user() !== null` ferait disparaître
-  les boutons d’appel pour tous les acheteurs, aucun intergiciel ne résolvant
-  de compte sur ces routes.
-- Et la fiche reste publique : les identifiants sont séquentiels, donc un
-  moissonneur obstiné passe d’un appel pour vingt vendeurs à un appel par
-  vendeur. Fermer vraiment la porte demande de poser `firebase` sur la lecture
-  publique — une décision de produit, qui contredirait la ligne ci-dessus, et
-  qui n’est pas prise.
+  énergie/boîte facultatives, description et photos.
+- Les coordonnées du vendeur sont privées sur toutes les sorties publiques :
+  index, fiche, catalogue commun et page de partage. `contact_via: "autoparc"`
+  indique que l’acheteur passe par le contact AutoParc configurable au back-office.
+  La fiche et le partage restent publics, même sans compte.
+- Le nom, le numéro saisi, le numéro vérifié et le choix WhatsApp du vendeur
+  restent accessibles dans « Mes annonces » et dans la modération autorisée.
+  `PrivateVehicleListingResource` est toujours public ; seuls les contrôleurs
+  de gestion utilisent `PrivateVehicleListingManagementResource`, qui vérifie
+  encore les droits du lecteur. Être connecté comme propriétaire ou membre du
+  personnel ne transforme pas une URL publique en réponse privée.
 - La page de partage porte `noindex, nofollow`. C’est la seule partie
   irréversible : une annonce retirée rend 404, mais un cache de moteur de
   recherche ne se reprend pas. La balise est dans la vue et JAMAIS dans
@@ -34,8 +31,8 @@ de contacts vers un partenaire n’est prévu.
   ce qui tuerait la vignette WhatsApp, donc la raison d’être de la page.
 - Le garage reste privé : aucun VIN, immatriculation, assurance, historique de
   carburant ou entretien n’est copié dans l’annonce.
-- Envoi après au moins une photo, un numéro joignable et le consentement à
-  publier le contact. Le vendeur SAISIT son numéro ; l’envoi ne le vérifie pas.
+- Envoi après au moins une photo, un numéro joignable et l’autorisation de
+  contact par AutoParc. Le vendeur SAISIT son numéro ; l’envoi ne le vérifie pas.
 - Le numéro est vérifié PAR APPEL, par le personnel, pendant la modération.
   Deux colonnes le distinguent et il ne faut pas les confondre : `phone` est ce
   que le vendeur a tapé, `verified_phone` et `phone_verified_at` sont ce qu’un
@@ -56,7 +53,10 @@ de contacts vers un partenaire n’est prévu.
   que le vendeur a changée depuis l’ouverture de la liste de validation.
 - États : brouillon → en attente → publiée ; refus → à corriger ; retrait ou vente
   → clôturée. Une annonce vendue ou retirée ne se rouvre pas : on en crée une autre.
-- Consultation publique distincte, contact téléphone/WhatsApp et page de partage.
+- Consultation publique distincte, appel/WhatsApp vers AutoParc et page de partage.
+  La page de partage reçoit uniquement l’instantané public expurgé. En modération,
+  contrôler aussi les coordonnées éventuellement écrites dans le texte ou sur
+  une photo : ces contenus libres ne sont pas réécrits automatiquement.
 - Photos limitées à 10, 2048 × 2048 pixels et 9 Mo chacune. Le serveur les réencode
   en JPEG pour supprimer les métadonnées EXIF/GPS. La première sert de couverture.
 - Suppression du compte : cascade des annonces et enregistrements photo, puis

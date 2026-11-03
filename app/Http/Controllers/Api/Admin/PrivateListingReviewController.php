@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Services\FaultDeclarations;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\PrivateVehicleListingResource;
+use App\Http\Resources\PrivateVehicleListingManagementResource;
 use App\Models\PrivateVehicleListing;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -57,14 +58,14 @@ class PrivateListingReviewController extends Controller
             DB::afterCommit(fn () => Storage::disk($image->disk)->delete($fichiers));
         });
 
-        return new PrivateVehicleListingResource($listing->refresh()->load('photos'));
+        return new PrivateVehicleListingManagementResource($listing->refresh()->load('photos'));
     }
 
     public function index(Request $request)
     {
         $data = $request->validate(['status' => ['sometimes', 'in:pending,published,rejected']]);
 
-        return PrivateVehicleListingResource::collection(PrivateVehicleListing::with('photos')
+        return PrivateVehicleListingManagementResource::collection(PrivateVehicleListing::with('photos')
             ->where('status', $data['status'] ?? 'pending')->oldest('submitted_at')->paginate(20));
     }
 
@@ -83,6 +84,7 @@ class PrivateListingReviewController extends Controller
             $locked = PrivateVehicleListing::whereKey($listing->id)->lockForUpdate()->firstOrFail();
             abort_unless($locked->revision === (int) $data['revision'], 409, __('L’annonce a changé. Actualisez-la avant de décider.'));
             abort_unless($locked->status === 'pending', 422, __('Cette annonce n’est plus en attente. Actualisez la liste.'));
+            FaultDeclarations::requireComplete($locked);
             abort_unless($locked->photos()->exists()
                 && $locked->seller?->is_active && $locked->seller->isClient(), 422, __('Cette annonce ne remplit plus les conditions de publication.'));
 
@@ -124,7 +126,7 @@ class PrivateListingReviewController extends Controller
             $locked->update($miseAJour);
         });
 
-        return new PrivateVehicleListingResource($listing->refresh()->load('photos'));
+        return new PrivateVehicleListingManagementResource($listing->refresh()->load('photos'));
     }
 
     public function reject(Request $request, PrivateVehicleListing $listing)
@@ -141,6 +143,6 @@ class PrivateListingReviewController extends Controller
             ]);
         });
 
-        return new PrivateVehicleListingResource($listing->refresh()->load('photos'));
+        return new PrivateVehicleListingManagementResource($listing->refresh()->load('photos'));
     }
 }

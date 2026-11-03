@@ -81,9 +81,11 @@ Le drapeau serveur `private_sales.enabled` ferme la branche particuliers du
 flux. Le paramètre `include_private=0` permet également de demander le stock
 seul. Le stock reste consultable lorsque le module particuliers est fermé.
 
-Le mobile ouvre la fiche native correspondant à `source`. La fiche d’un
-particulier recharge ses coordonnées depuis `/api/private-listings/{id}` ; le
-numéro du vendeur n’est pas inclus dans la grille commune. Les liens de
+Le mobile ouvre la fiche native correspondant à `source`. Les annonces de
+particuliers portent `contact_via: "autoparc"` : la fiche utilise le contact
+AutoParc configurable, comme la page de partage. Le nom et les coordonnées du
+vendeur restent réservés à « Mes annonces » et à la modération autorisée ; ils
+ne figurent ni dans la grille commune ni dans la fiche publique. Les liens de
 partage existants sont conservés pour chaque source.
 
 ## Intégration mobile

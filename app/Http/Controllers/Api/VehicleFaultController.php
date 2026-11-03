@@ -32,7 +32,8 @@ class VehicleFaultController extends Controller
         $data = $request->validated();
 
         $fault = DB::transaction(function () use ($vehicle, $data) {
-            $fault = $vehicle->faults()->create(collect($data)->except('parts')->all());
+            $fault = $vehicle->faults()->make(collect($data)->except('parts')->all());
+            $fault->forceFill(['staff_managed_at' => now()])->save();
 
             foreach ($data['parts'] ?? [] as $part) {
                 $fault->parts()->attach($part['part_id'], ['quantity' => $part['quantity'] ?? 1]);
@@ -51,7 +52,7 @@ class VehicleFaultController extends Controller
         abort_unless($fault->vehicle_id === $vehicle->id, 404);
 
         $data = $request->validated();
-        $fault->update(collect($data)->except('parts')->all());
+        $fault->forceFill(collect($data)->except('parts')->all() + ['staff_managed_at' => now()])->save();
 
         if (array_key_exists('parts', $data)) {
             $sync = collect($data['parts'])->mapWithKeys(
@@ -74,11 +75,12 @@ class VehicleFaultController extends Controller
             'notes'              => ['nullable', 'string'],
         ]);
 
-        $fault->update([
+        $fault->forceFill([
+            'staff_managed_at' => now(),
             'status'             => FaultStatus::Repaired,
             'actual_repair_cost' => $data['actual_repair_cost'] ?? $fault->actual_repair_cost,
             'repaired_at'        => $data['repaired_at'] ?? now()->toDateString(),
-        ]);
+        ])->save();
 
         return new VehicleFaultResource($fault->refresh());
     }
