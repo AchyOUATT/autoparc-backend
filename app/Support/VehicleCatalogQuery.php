@@ -33,9 +33,11 @@ final class VehicleCatalogQuery
             ->when($request->filled('origin_country_id'), fn ($q) => $q->fromCountry((int) $request->origin_country_id))
             ->when($request->boolean('customs_cleared'), fn ($q) => $q->whereHas('importDetail', fn ($d) => $d->where('customs_cleared', true)))
             ->when($request->filled('mileage_max'), fn ($q) => $q->whereHas('registrationDetail', fn ($d) => $d->where('mileage_km', '<=', $request->mileage_max)))
-            ->when($request->boolean('without_faults'), fn ($q) => $q
-                ->whereIn('fault_declaration_state', ['none', 'has_faults'])
-                ->whereDoesntHave('faults', fn ($fault) => $fault->where('status', '!=', 'repaired')))
+            ->when($request->boolean('validated_by_autoparc'), fn ($q) => $q->whereHas(
+                'staffInspections',
+                fn ($i) => $i->whereNull('withdrawn_at')
+                    ->where(fn ($v) => $v->whereNull('valid_until')->orWhere('valid_until', '>=', now()))
+            ))
             ->when($request->filled('fault_category'), fn ($q) => $q->whereHas('faults', fn ($fault) => $fault
                 ->where('category', $request->fault_category)
                 ->when($publicOnly || $request->is('api/catalog/*') || ! $request->user()?->isStaff(), fn ($f) => $f->where('disclosed_to_buyer', true))))
