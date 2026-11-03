@@ -72,6 +72,7 @@ class OwnedVehicleResource extends JsonResource
             // Indicateur général de présence d'un code moteur exploitable.
             // Le verdict par pièce est fourni par compatibility_assessment.
             'compatibility_ready' => $this->hasPreciseEngineData(),
+            'engine_data_provided' => $this->hasEngineData(),
 
             // La cote officielle du moteur choisi, quand il l'a ete. Nulle
             // sinon : l'application propose alors de le choisir, plutot que

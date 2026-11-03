@@ -283,6 +283,14 @@ class OwnedVehicle extends Model
         return EngineCode::forCompatibility($this->engine_code);
     }
 
+    /** Données moteur renseignées, sans présumer du verdict par pièce. */
+    public function hasEngineData(): bool
+    {
+        return $this->effective_engine_type_id !== null
+            || $this->motorisation_id !== null
+            || $this->effective_engine_code !== null;
+    }
+
     /**
      * Le vehicule a-t-il de quoi trancher une compatibilite ?
      *
