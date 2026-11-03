@@ -36,6 +36,11 @@ final class VehicleCatalogQuery
             ->when($request->boolean('without_faults'), fn ($q) => $q
                 ->whereIn('fault_declaration_state', ['none', 'has_faults'])
                 ->whereDoesntHave('faults', fn ($fault) => $fault->where('status', '!=', 'repaired')))
+            ->when($request->boolean('validated_by_autoparc'), fn ($q) => $q->whereHas(
+                'activeStaffInspection',
+                fn ($i) => $i->whereNull('withdrawn_at')
+                    ->where(fn ($v) => $v->whereNull('valid_until')->orWhere('valid_until', '>', now()))
+            ))
             ->when($request->filled('fault_category'), fn ($q) => $q->whereHas('faults', fn ($fault) => $fault
                 ->where('category', $request->fault_category)
                 ->when($publicOnly || $request->is('api/catalog/*') || ! $request->user()?->isStaff(), fn ($f) => $f->where('disclosed_to_buyer', true))))

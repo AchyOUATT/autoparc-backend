@@ -141,6 +141,32 @@ class CompatibilityAssessmentApiTest extends TestCase
             ->assertJsonPath('data.0.reason', 'generated_fitment');
     }
 
+    public function test_les_donnees_moteur_sont_distinctes_de_la_compatibilite(): void
+    {
+        $url = "/api/my/vehicles/{$this->vehicle->id}";
+        $this->actingAsClient($this->owner)->getJson($url)->assertOk()
+            ->assertJsonPath('data.engine_data_provided', true)
+            ->assertJsonPath('data.compatibility_ready', false);
+
+        $this->vehicle->update(['engine_type_id' => null, 'engine_code' => 'K']);
+        $this->getJson($url)->assertOk()->assertJsonPath('data.engine_data_provided', false);
+
+        $trim = Trim::create([
+            'vehicle_model_id' => $this->model->id,
+            'name' => 'Finition moteur',
+            'default_engine_type_id' => $this->petrol->id,
+        ]);
+        $this->vehicle->update(['trim_id' => $trim->id]);
+        $this->getJson($url)->assertOk()
+            ->assertJsonPath('data.engine_data_provided', true)
+            ->assertJsonPath('data.compatibility_ready', false);
+
+        $this->vehicle->update(['trim_id' => null, 'engine_code' => 'TEST-A']);
+        $this->getJson($url)->assertOk()
+            ->assertJsonPath('data.engine_data_provided', true)
+            ->assertJsonPath('data.compatibility_ready', true);
+    }
+
     public function test_un_ancien_caractere_vin_ne_masque_plus_les_candidats_et_reste_stocke(): void
     {
         $this->vehicle->update(['engine_code' => 'K']);

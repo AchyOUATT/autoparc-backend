@@ -245,6 +245,35 @@ class DeclaredVehicleFaultsTest extends TestCase
         $this->getJson('/api/catalog/vehicle-listings?fault_category=engine')->assertOk()->assertJsonCount(2, 'data');
     }
 
+    public function test_validated_filter_requires_an_active_unexpired_inspection_for_both_sources(): void
+    {
+        $this->stock();
+        $this->privateListing();
+        $valid = $this->stock();
+        $this->inspect($valid);
+        $this->owner = User::factory()->create(['role' => 'client']);
+        $private = $this->privateListing();
+        $this->inspect($private);
+
+        $expired = $this->inspect($this->stock());
+        DB::table('staff_vehicle_inspections')->where('id', $expired->id)->update(['valid_until' => now()->subSecond()]);
+        $superseded = $this->inspect($this->stock());
+        $superseded->forceFill(['status' => 'superseded', 'active_key' => null])->save();
+        $this->owner = User::factory()->create(['role' => 'client']);
+        $withdrawn = $this->inspect($this->privateListing());
+        app(StaffVehicleInspections::class)->withdraw($withdrawn, 'Retirée du catalogue', $this->manager);
+
+        $response = $this->getJson('/api/catalog/vehicle-listings?validated_by_autoparc=1')
+            ->assertOk()->assertJsonCount(2, 'data');
+        $this->assertEqualsCanonicalizing(
+            ['vehicle:'.$valid->id, 'private_listing:'.$private->id],
+            collect($response->json('data'))->map(fn ($row) => $row['source'].':'.$row['source_id'])->all()
+        );
+        $this->getJson('/api/catalog/vehicles?validated_by_autoparc=1')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $valid->id);
+        $this->getJson('/api/catalog/vehicle-listings?validated_by_autoparc=invalid')->assertUnprocessable();
+    }
+
     public function test_fault_declarations_are_loaded_in_batches_and_raw_changes_invalidate_inspection_hash(): void
     {
         $vehicle = $this->stock();
