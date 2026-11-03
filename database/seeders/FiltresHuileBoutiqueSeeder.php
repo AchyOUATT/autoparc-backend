@@ -663,7 +663,7 @@ class FiltresHuileBoutiqueSeeder extends Seeder
         // motricite rendrait les deux cartouches indiscernables.
         $motricites = [
             'RWD' => Drivetrain::firstOrCreate(['code' => 'RWD'], ['label' => 'Propulsion arrière'])->id,
-            'AWD' => Drivetrain::firstOrCreate(['code' => 'AWD'], ['label' => 'Transmission intégrale permanente'])->id,
+            'AWD' => Drivetrain::firstOrCreate(['code' => 'AWD'], ['label' => DrivetrainsSeeder::LABELS['AWD']])->id,
         ];
 
         $ecrits = 0;
