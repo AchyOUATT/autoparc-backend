@@ -129,3 +129,8 @@ Appliquer cette migration avant de publier la nouvelle API.
 
 Les régressions sont couvertes par `DeclaredVehicleFaultsTest`, les parcours privés,
 les tests catalogue, partenaire et inspection existants.
+
+Le filtre affiché « Validés par AutoParc » utilise `validated_by_autoparc=1`
+sur les deux API catalogue. Il exige une inspection staff active, non retirée
+et non expirée, pour le stock comme pour les annonces de particuliers.
+Le paramètre historique `without_faults` reste disponible pour les anciens clients.

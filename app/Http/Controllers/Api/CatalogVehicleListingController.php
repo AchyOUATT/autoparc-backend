@@ -35,7 +35,7 @@ class CatalogVehicleListingController extends Controller
         foreach (['registration_status', 'status', 'availability', 'condition', 'city', 'fault_category', 'vehicle_type', 'body_style', 'deal_type'] as $field) {
             $rules[$field] = ['sometimes', 'nullable', 'string', 'max:100'];
         }
-        foreach (['include_private', 'customs_cleared', 'without_faults', 'available_for_rent', 'deal'] as $field) {
+        foreach (['include_private', 'customs_cleared', 'without_faults', 'validated_by_autoparc', 'available_for_rent', 'deal'] as $field) {
             $rules[$field] = ['sometimes', $boolean];
         }
         $request->validate($rules);
