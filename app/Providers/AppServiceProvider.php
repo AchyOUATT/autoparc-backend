@@ -218,6 +218,18 @@ class AppServiceProvider extends ServiceProvider
      */
     private function registerRateLimiters(): void
     {
+        // Recovery stays bounded even when the caller forges proxy headers.
+        RateLimiter::for('password-recovery', fn (Request $request) => [
+            Limit::perMinute(5)->by('password-recovery:ip:'.$request->ip()),
+            Limit::perMinute(5)->by('password-recovery:email:'.hash('sha256', Str::lower(trim(is_string($request->input('email')) ? $request->input('email') : '')))),
+            Limit::perMinute(60)->by('password-recovery:global'),
+        ]);
+        RateLimiter::for('password-reset', fn (Request $request) => [
+            Limit::perMinute(20)->by('password-reset:ip:'.$request->ip()),
+            Limit::perMinute(10)->by('password-reset:token:'.hash('sha256', (string) $request->route('token'))),
+            Limit::perMinute(120)->by('password-reset:global'),
+        ]);
+
         // ── Connexion ────────────────────────────────────────────────────────
         //
         // Deux limites superposees. La premiere vise l'attaque classique :

@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'title' => 'Reset your password',
+    'partner' => 'Partner space',
+    'staff' => 'Staff space',
+    'requested' => 'If an account in this space matches this email address, you will receive a password reset link. Check your spam folder too. If it does not arrive, contact AutoParc.',
+    'unavailable' => 'Email password recovery is temporarily unavailable. Contact AutoParc for assistance.',
+    'mail_subject' => 'AutoParc — Password reset',
+    'mail_intro' => 'A password reset was requested for your AutoParc account.',
+    'mail_expiry' => 'This link is valid for :minutes minutes and can only be used once.',
+    'mail_ignore' => 'If you did not request this, ignore this message. Your password will remain unchanged.',
+    'mail_link_help' => 'If the button does not work, copy this link into your browser:',
+    'password' => 'New password',
+    'confirmation' => 'Confirm password',
+    'password_hint' => 'At least 12 characters, including letters and numbers.',
+    'password_invalid' => 'Enter at least 12 characters, including letters and numbers.',
+    'password_too_long' => 'This password is too long. Use a shorter password.',
+    'confirmation_invalid' => 'The passwords do not match.',
+    'submit' => 'Save new password',
+    'invalid_title' => 'This link can no longer be used',
+    'invalid' => 'It has expired, has already been used, or is not valid for this account. Return to the app to request a new link.',
+    'success_title' => 'Password updated',
+    'success' => 'Sign in to your usual space in the app with your new password. Previous sessions have been signed out.',
+    'contact' => 'Contact AutoParc',
+    'support' => 'Need help or no longer have access to your email? AutoParc can assist after verifying your identity.',
+];
