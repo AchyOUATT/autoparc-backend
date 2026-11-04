@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'title' => 'Réinitialiser votre mot de passe',
+    'partner' => 'Espace partenaire',
+    'staff' => 'Espace du personnel',
+    'requested' => 'Si un compte de cet espace correspond à cette adresse, vous recevrez un lien de réinitialisation. Vérifiez aussi les courriers indésirables. Si vous ne le recevez pas, contactez AutoParc.',
+    'unavailable' => 'La récupération par email est momentanément indisponible. Contactez AutoParc pour vous faire accompagner.',
+    'mail_subject' => 'AutoParc — Réinitialisation du mot de passe',
+    'mail_intro' => 'Une réinitialisation du mot de passe de votre compte AutoParc a été demandée.',
+    'mail_expiry' => 'Ce lien est valable :minutes minutes et ne peut être utilisé qu’une seule fois.',
+    'mail_ignore' => 'Si vous n’êtes pas à l’origine de cette demande, ignorez ce message : votre mot de passe reste inchangé.',
+    'mail_link_help' => 'Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :',
+    'password' => 'Nouveau mot de passe',
+    'confirmation' => 'Confirmer le mot de passe',
+    'password_hint' => 'Au moins 12 caractères, avec des lettres et des chiffres.',
+    'password_invalid' => 'Indiquez un mot de passe d’au moins 12 caractères, avec des lettres et des chiffres.',
+    'password_too_long' => 'Ce mot de passe est trop long. Utilisez un mot de passe plus court.',
+    'confirmation_invalid' => 'Les deux mots de passe ne correspondent pas.',
+    'submit' => 'Enregistrer le nouveau mot de passe',
+    'invalid_title' => 'Ce lien ne peut plus être utilisé',
+    'invalid' => 'Il a expiré, a déjà été utilisé ou n’est pas valide pour ce compte. Retournez dans l’application pour demander un nouveau lien.',
+    'success_title' => 'Mot de passe modifié',
+    'success' => 'Reconnectez-vous dans votre espace habituel de l’application avec votre nouveau mot de passe. Les anciennes sessions ont été fermées.',
+    'contact' => 'Contacter AutoParc',
+    'support' => 'Besoin d’aide ou plus d’accès à votre email ? AutoParc peut vous accompagner après vérification de votre identité.',
+];

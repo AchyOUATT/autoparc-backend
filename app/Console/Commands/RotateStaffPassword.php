@@ -5,7 +5,9 @@ namespace App\Console\Commands;
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
 /**
@@ -54,12 +56,23 @@ class RotateStaffPassword extends Command
         foreach ($users as $user) {
             // 24 caracteres : hors de portee d'une attaque hors ligne, et
             // destines a un gestionnaire de mots de passe, pas a la memoire.
-            $password = Str::password(24);
+            $row = DB::transaction(function () use ($user): ?array {
+                $current = User::query()->whereKey($user->id)->whereIn('role', UserRole::staffValues())->lockForUpdate()->first();
+                if (! $current) {
+                    return null;
+                }
+                $password = Str::password(24);
+                $current->forceFill(['password' => Hash::make($password), 'remember_token' => Str::random(60)])->save();
+                $revoked = $current->tokens()->delete();
+                if ($current->email !== null) {
+                    Password::broker('users')->deleteToken($current);
+                }
 
-            $user->forceFill(['password' => Hash::make($password)])->save();
-            $revoked = $user->tokens()->delete();
-
-            $rows[] = [$user->email, $user->role->value ?? '—', $password, $revoked];
+                return [$current->email, $current->role->value, $password, $revoked];
+            });
+            if ($row !== null) {
+                $rows[] = $row;
+            }
         }
 
         $this->newLine();

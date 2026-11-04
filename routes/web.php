@@ -6,6 +6,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/password/reset/{token}', [\App\Http\Controllers\PasswordRecoveryController::class, 'show'])
+    ->middleware('throttle:password-reset')->name('password.reset');
+Route::post('/password/reset/{token}', [\App\Http\Controllers\PasswordRecoveryController::class, 'reset'])
+    ->middleware('throttle:password-reset');
+
 /*
 | Les pages de partage d'un article — /v/{vehicle}, /p/{part}, /a/{accessory} —
 | ne sont PAS ici : elles vivent dans routes/partage.php, enregistre hors du
