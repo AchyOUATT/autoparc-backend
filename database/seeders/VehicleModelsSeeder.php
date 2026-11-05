@@ -492,9 +492,22 @@ class VehicleModelsSeeder extends Seeder
             ['kia', 'Rio',           'YB',  'berline',   'B', 2017, null],
             ['kia', 'Rio',           'UB',  'berline',   'B', 2011, 2017],
             ['kia', 'Cerato',        'BD',  'berline',   'C', 2018, null],
+            // Ajouts Kia YD/SL/XM/MQ4 fournis par patch, à vérifier par marché.
+            // Voir docs/kia-generations-validation.md pour leur statut documentaire.
+            // YD : génération précédente, absente. Un Cerato 2015 n'avait
+            // aucune génération. Bornes de production 2012-2018.
+            ['kia', 'Cerato',        'YD',  'berline',   'C', 2013, 2018],
             ['kia', 'Sportage',      'QL',  'suv',       'C', 2015, 2021],
             ['kia', 'Sportage',      'NQ5', 'suv',       'C', 2021, null],
+            // SL : troisième génération, absente. Un Sportage 2012 n'avait
+            // aucune génération. Production 2010-2015, millésimes US 2011-2016.
+            ['kia', 'Sportage',      'SL',  'suv',       'C', 2010, 2015],
             ['kia', 'Sorento',       'UM',  'suv',       'D', 2014, 2020],
+            // XM : génération précédente, absente. Un Sorento 2012 n'avait
+            // aucune génération. Production 2009-2014.
+            ['kia', 'Sorento',       'XM',  'suv',       'D', 2009, 2014],
+            // MQ4 : génération actuelle, absente. Production 2020-.
+            ['kia', 'Sorento',       'MQ4', 'suv',       'D', 2020, null],
             ['kia', 'Stonic',        'YB CUV',  'suv',       'B', 2017, null],
             ['kia', 'Seltos',        'SP2',  'suv',       'B', 2019, null],
 
