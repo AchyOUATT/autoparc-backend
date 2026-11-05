@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Mail\Transport\GmailApiTransport;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -98,6 +100,13 @@ class AppServiceProvider extends ServiceProvider
         $this->exigerUneAdressePubliqueAbsolue();
         $this->registerRateLimiters();
         $this->enregistrerRechercheInsensibleALaCasse();
+        Mail::extend('gmail_api', fn (array $config) => new GmailApiTransport(
+            (string) config('services.gmail.client_id'),
+            (string) config('services.gmail.client_secret'),
+            (string) config('services.gmail.refresh_token'),
+            (string) config('mail.from.address'),
+            (int) ($config['timeout'] ?? 10),
+        ));
     }
 
     /**

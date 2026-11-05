@@ -2,6 +2,12 @@
 
 return [
 
+    'gmail' => [
+        'client_id' => env('GMAIL_CLIENT_ID'),
+        'client_secret' => env('GMAIL_CLIENT_SECRET'),
+        'refresh_token' => env('GMAIL_REFRESH_TOKEN'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -34,10 +40,10 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-	
-	'firebase' => [
-		'credentials' => env('FIREBASE_CREDENTIALS') ?: storage_path('app/firebase/service-account.json'),
-	],
+
+    'firebase' => [
+        'credentials' => env('FIREBASE_CREDENTIALS') ?: storage_path('app/firebase/service-account.json'),
+    ],
 
     /*
      * Secret partage du declencheur de taches planifiees.

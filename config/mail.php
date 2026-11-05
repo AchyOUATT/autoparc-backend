@@ -37,6 +37,11 @@ return [
 
     'mailers' => [
 
+        'gmail_api' => [
+            'transport' => 'gmail_api',
+            'timeout' => (int) env('MAIL_TIMEOUT', 10),
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),

@@ -50,6 +50,10 @@ réseau SMTP est borné à `MAIL_TIMEOUT`, 10 secondes par défaut. Les transpor
 API exigent aussi leur bibliothèque optionnelle et leurs clés configurées ;
 aucune nouvelle dépendance de prestataire n’est installée par ce lot.
 
+Sur Render Free, les ports SMTP standards sont bloqués. Pour une boîte Gmail,
+le transport HTTPS `gmail_api` est disponible sans nouvelle dépendance ; suivre
+[sa configuration](gmail-api.md) et [l’autorisation de l’expéditeur](gmail-autorisation.md).
+
 `log`, `array`, un repli vers `log`, un serveur SMTP local, un expéditeur
 `hello@example.com` ou une URL de production non HTTPS ne constituent pas un
 envoi disponible. Dans ce cas, **toutes** les demandes rendent 503
