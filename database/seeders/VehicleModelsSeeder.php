@@ -486,17 +486,7 @@ class VehicleModelsSeeder extends Seeder
             ['hyundai', 'Creta',        null,  'suv',       'B', 2015, null],
             ['hyundai', 'Sonata',       'LF',  'berline',   'D', 2014, 2019],
 
-            // ─── KIA ───────────────────────────────────────────────────
-            ['kia', 'Picanto',       'JA',  'citadine',  'A', 2017, null],
-            ['kia', 'Picanto',       'TA',  'citadine',  'A', 2011, 2017],
-            ['kia', 'Rio',           'YB',  'berline',   'B', 2017, null],
-            ['kia', 'Rio',           'UB',  'berline',   'B', 2011, 2017],
-            ['kia', 'Cerato',        'BD',  'berline',   'C', 2018, null],
-            ['kia', 'Sportage',      'QL',  'suv',       'C', 2015, 2021],
-            ['kia', 'Sportage',      'NQ5', 'suv',       'C', 2021, null],
-            ['kia', 'Sorento',       'UM',  'suv',       'D', 2014, 2020],
-            ['kia', 'Stonic',        'YB CUV',  'suv',       'B', 2017, null],
-            ['kia', 'Seltos',        'SP2',  'suv',       'B', 2019, null],
+            // KIA definitions are versioned in database/catalogue/kia-models.json.
 
             // ─── PEUGEOT ───────────────────────────────────────────────
             ['peugeot', '207',       null,  'citadine',  'B', 2006, 2012],
@@ -841,6 +831,14 @@ class VehicleModelsSeeder extends Seeder
             $models[] = ['toyota', $nom, $gen, $carrosserie, $segment, $de, $a];
         }
 
+        $kiaModels = json_decode(file_get_contents(database_path('catalogue/kia-models.json')), true, flags: JSON_THROW_ON_ERROR)['models'];
+        $kiaAliases = [];
+        foreach ($kiaModels as $model) {
+            $models[] = ['kia', $model['name'], $model['generation'], $model['body_type'],
+                $model['segment'], $model['production_start'], $model['production_end']];
+            $kiaAliases[$model['slug']] = $model['aliases'];
+        }
+
         foreach ($models as [$brandSlug, $name, $generation, $bodyType, $segment, $yearStart, $yearEnd]) {
             $brandId = $brandMap[$brandSlug] ?? null;
             if (! $brandId) {
@@ -868,10 +866,7 @@ class VehicleModelsSeeder extends Seeder
             // reproposait six entrees pour deux vehicules.
             $actif = ! in_array($slug, self::SLUGS_NUS_DESACTIVES, true);
 
-            ReferenceCatalogWriter::upsert('vehicle_models', [
-                'brand_id'         => $brandId,
-                'slug'             => $slug,
-            ], [
+            $attributes = [
                 'name'             => $name,
                 'generation'       => $generation,
                 'body_type'        => $bodyType,
@@ -879,7 +874,15 @@ class VehicleModelsSeeder extends Seeder
                 'production_start' => $yearStart,
                 'production_end'   => $yearEnd,
                 'is_active'        => $actif,
-            ]);
+            ];
+            if ($brandSlug === 'kia') {
+                $attributes['aliases'] = json_encode($kiaAliases[$slug], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            }
+
+            ReferenceCatalogWriter::upsert('vehicle_models', [
+                'brand_id'         => $brandId,
+                'slug'             => $slug,
+            ], $attributes);
         }
     }
 }

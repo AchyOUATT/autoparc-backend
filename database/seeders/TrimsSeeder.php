@@ -1098,10 +1098,12 @@ class TrimsSeeder extends Seeder
             ['hyundai', 'sonata-lf', 'Sport', null, 4, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
 
             // ── KIA SPORTAGE QL ──────────────────────────────────────────
-            ['kia', 'sportage-ql', 'LX',           'LX',   1, $petrol, $fwd, 132, 1591, 4, 'manual'],
-            ['kia', 'sportage-ql', 'EX',           'EX',   2, $petrol, $fwd, 177, 1999, 4, 'automatic'],
-            ['kia', 'sportage-ql', 'SX',           'SX',   3, $diesel, $awd, 182, 1685, 4, 'automatic'],
-            ['kia', 'sportage-ql', 'GT Line',      'GTL',  4, $diesel, $awd, 182, 1685, 4, 'automatic'],
+            // Names alone do not determine an engine or drivetrain. Keep
+            // legacy names/codes; KiaCatalogueSeeder documents specific scopes.
+            ['kia', 'sportage-ql', 'LX',           'LX',   1, null, null, null, null, null, null],
+            ['kia', 'sportage-ql', 'EX',           'EX',   2, null, null, null, null, null, null],
+            ['kia', 'sportage-ql', 'SX',           'SX',   3, null, null, null, null, null, null],
+            ['kia', 'sportage-ql', 'GT Line',      'GTL',  4, null, null, null, null, null, null],
 
             // ── MITSUBISHI PAJERO V80 ────────────────────────────────────
             ['mitsubishi', 'pajero-v80', 'GLX',    'GLX',  1, $diesel, $dwa, 170, 3200, 4, 'manual'],

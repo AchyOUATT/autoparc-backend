@@ -414,6 +414,8 @@ CMD php artisan config:cache \
         || echo "ATTENTION : referentiel des modeles non mis a jour") \
     && (php artisan db:seed --class=TrimsSeeder --force \
         || echo "ATTENTION : referentiel des finitions non mis a jour") \
+    && (php artisan db:seed --class=KiaCatalogueSeeder --force \
+        || echo "ATTENTION : lot documente Kia non importe") \
     && (php artisan db:seed --class=VehicleCheckItemsSeeder --force \
         || echo "ATTENTION : points de controle non mis a jour") \
     && (nohup sh -c ' \

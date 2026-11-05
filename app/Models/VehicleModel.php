@@ -11,7 +11,7 @@ class VehicleModel extends Model
     use HasFactory;
 
     protected $fillable = [
-        'brand_id', 'name', 'slug', 'generation', 'body_type',
+        'brand_id', 'name', 'slug', 'generation', 'body_type', 'aliases',
         'segment', 'production_start', 'production_end', 'is_active',
         'default_vehicle_type', 'default_seats', 'default_doors',
         'default_transmission', 'default_power_hp',
@@ -20,6 +20,7 @@ class VehicleModel extends Model
     protected function casts(): array
     {
         return [
+            'aliases'             => 'array',
             'is_active'           => 'boolean',
             'production_start'    => 'integer',
             'production_end'      => 'integer',
