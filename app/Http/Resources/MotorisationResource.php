@@ -24,6 +24,7 @@ class MotorisationResource extends JsonResource
             'cylinders' => $this->cylinders,
             'consumption' => $references->values($this->resource, $match),
             'match' => $match,
+            'recommendation' => $request->attributes->get('consumption_reference_recommendations', [])[$this->id] ?? null,
             'source' => [
                 'code' => $this->source,
                 'label' => $this->libelle_source,

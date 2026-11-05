@@ -41,6 +41,13 @@ class BrandsSeeder extends Seeder
             ['BMW',             'DE', '11'],
             ['Opel',            'DE', '90'],
 
+            // Poids lourds : aucun préfixe OEM déduit des WMI.
+            ['MAN',             'DE', null],
+            ['Scania',          'SE', null],
+            ['Volvo',           'SE', null],
+            ['Iveco',           'IT', null],
+            ['DAF',             'NL', null],
+
             // Américaines
             ['Ford',            'US', '6C'],
             ['Chevrolet',       'US', '94'],
@@ -61,7 +68,7 @@ class BrandsSeeder extends Seeder
             ReferenceCatalogWriter::upsert('brands', ['slug' => Str::slug($name)], [
                 'name'       => $name,
                 'country_id' => $countryMap[$iso2] ?? null,
-                'oem_prefix' => $prefix,
+                ...($prefix !== null ? ['oem_prefix' => $prefix] : []),
                 'is_active'  => true,
             ]);
         }

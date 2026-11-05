@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\ConsumptionReferenceRecommendation;
 use App\Support\CotesOfficielles;
 use App\Support\PartnerListingPresentation;
 use App\Support\PartnerMedia;
@@ -275,11 +276,15 @@ class VehicleResource extends JsonResource
 
         // Do not alter the request context shared with any other resource.
         $referenceRequest = $request->duplicate();
-        $referenceRequest->attributes->set('consumption_reference_context', CotesOfficielles::context($this->resource));
-
-        return array_map(
-            fn ($reference) => (new MotorisationResource($reference))->resolve($referenceRequest),
-            $this->resource->cotesOfficielles,
+        $context = CotesOfficielles::context($this->resource);
+        $ranked = app(ConsumptionReferenceRecommendation::class)->rank(
+            collect($this->resource->cotesOfficielles), $context,
         );
+        $referenceRequest->attributes->set('consumption_reference_context', $context);
+        $referenceRequest->attributes->set('consumption_reference_recommendations', $ranked['recommendations']);
+
+        return $ranked['ratings']->map(
+            fn ($reference) => (new MotorisationResource($reference))->resolve($referenceRequest),
+        )->all();
     }
 }

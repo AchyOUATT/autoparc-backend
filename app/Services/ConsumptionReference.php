@@ -29,6 +29,10 @@ class ConsumptionReference
             'model_year' => $vehicle->model_year,
             'specification_market' => $vehicle->specification_market,
             'requested_year' => $vehicle->manufacturing_year,
+            'engine_displacement_cc' => $vehicle->engine_displacement_cc,
+            'engine_displacement_l' => $vehicle->engine_displacement_l,
+            'cylinders' => $vehicle->cylinders,
+            'power_hp' => $vehicle->power_hp,
         ]);
     }
 

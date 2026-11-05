@@ -8,13 +8,14 @@ use App\Models\Motorisation;
 use App\Models\OwnedVehicle;
 use App\Models\Trim;
 use App\Services\ConsumptionReference;
+use App\Services\ConsumptionReferenceRecommendation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Validation\ValidationException;
 
 class MotorisationController extends Controller
 {
-    public function index(Request $request, ConsumptionReference $references): AnonymousResourceCollection
+    public function index(Request $request, ConsumptionReference $references, ConsumptionReferenceRecommendation $recommendations): AnonymousResourceCollection
     {
         $validated = $request->validate([
             'vehicle_model_id' => ['required', 'integer', 'exists:vehicle_models,id'],
@@ -25,6 +26,10 @@ class MotorisationController extends Controller
             'engine_type_id' => ['nullable', 'integer', 'exists:engine_types,id'],
             'drivetrain_id' => ['nullable', 'integer', 'exists:drivetrains,id'],
             'engine_code' => ['nullable', 'string', 'max:20'],
+            'engine_displacement_cc' => ['nullable', 'integer', 'min:1', 'max:30000'],
+            'engine_displacement_l' => ['nullable', 'numeric', 'decimal:0,3', 'gt:0', 'max:30'],
+            'cylinders' => ['nullable', 'integer', 'min:1', 'max:24'],
+            'power_hp' => ['nullable', 'integer', 'min:1', 'max:5000'],
         ]);
         // Use the same effective engine/drivetrain as selection validation:
         // an omitted explicit value may fall back to the selected trim.
@@ -49,20 +54,18 @@ class MotorisationController extends Controller
             ->where('reference_status', '!=', 'withdrawn')
             ->get()
             ->filter(fn (Motorisation $rating) => $references->contradictions($rating, $context) === [])
-            ->sortBy(fn (Motorisation $rating) => [
-                empty($validated['year']) || $rating->year_kind !== 'model_year'
-                    ? PHP_INT_MAX : abs($rating->model_year - $validated['year']),
-                (float) ($rating->engine_l ?? 0),
-                $rating->source, $rating->cycle, $rating->id,
-            ])
             ->values();
+        $ranked = $recommendations->rank($ratings, $context);
+        $request->attributes->set('consumption_reference_recommendations', $ranked['recommendations']);
 
-        return MotorisationResource::collection($ratings)->additional(['meta' => [
+        return MotorisationResource::collection($ranked['ratings'])->additional(['meta' => [
             'complete' => true,
             'scope' => 'stored_current_references',
             'total' => $ratings->count(),
             'requested_year' => $validated['year'] ?? null,
             'automatic_selection' => false,
+            'ranked' => true,
+            'recommended_ids' => $ranked['recommended_ids'],
         ]]);
     }
 }

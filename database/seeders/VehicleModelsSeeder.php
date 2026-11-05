@@ -584,6 +584,29 @@ class VehicleModelsSeeder extends Seeder
             ['mercedes-benz', 'Sprinter', null,   'utilitaire','F', 2006, null],
             ['mercedes-benz', 'Vito',     'W447', 'utilitaire','D', 2014, null],
 
+            // ─── POIDS LOURDS ──────────────────────────────────────────
+            // Familles sans génération ni dates de production non documentées.
+            // Mercedes
+            ['mercedes-benz', 'Actros',  null, 'truck', null, null, null],
+            ['mercedes-benz', 'Axor',    null, 'truck', null, null, null],
+            ['mercedes-benz', 'Atego',   null, 'truck', null, null, null],
+            // MAN
+            ['man', 'TGX', null, 'truck', null, null, null],
+            ['man', 'TGS', null, 'truck', null, null, null],
+            ['man', 'TGL', null, 'truck', null, null, null],
+            // Scania
+            ['scania', 'R-Series', null, 'truck', null, null, null],
+            ['scania', 'S-Series', null, 'truck', null, null, null],
+            // Volvo
+            ['volvo', 'FH',  null, 'truck', null, null, null],
+            ['volvo', 'FM',  null, 'truck', null, null, null],
+            // Iveco
+            ['iveco', 'Stralis', null, 'truck', null, null, null],
+            ['iveco', 'S-Way',   null, 'truck', null, null, null],
+            // DAF
+            ['daf', 'XF', null, 'truck', null, null, null],
+            ['daf', 'CF', null, 'truck', null, null, null],
+
             // ─── BMW ───────────────────────────────────────────────────
             // Les neuf premieres lignes couvrent 2009 et au-dela. Les cinq
             // ajoutees ferment le trou qui precede IMMEDIATEMENT chacune
@@ -892,6 +915,7 @@ class VehicleModelsSeeder extends Seeder
                 'production_start' => $yearStart,
                 'production_end'   => $yearEnd,
                 'is_active'        => $actif,
+                ...($bodyType === 'truck' ? ['default_vehicle_type' => 'heavy'] : []),
             ]);
         }
     }

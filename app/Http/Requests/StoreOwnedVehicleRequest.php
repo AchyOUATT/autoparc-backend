@@ -97,6 +97,12 @@ class StoreOwnedVehicleRequest extends FormRequest
             // Code moteur fourni par le decodage VIN (NHTSA) ou saisi manuellement.
             // Exemples : "1NZ", "K20", "OM651". Max 20 chars, tout format accepte.
             'engine_code'        => ['nullable', 'string', 'max:20'],
+            // Optional owner-supplied description, not fitment evidence.
+            'engine_displacement_cc' => ['nullable', 'integer', 'min:1', 'max:30000'],
+            'engine_displacement_l' => ['nullable', 'numeric', 'decimal:0,3', 'gt:0', 'max:30'],
+            'cylinders' => ['nullable', 'integer', 'min:1', 'max:24'],
+            'engine_layout' => ['nullable', 'string', 'in:inline,v,boxer,w,other'],
+            'power_hp' => ['nullable', 'integer', 'min:1', 'max:5000'],
             'plate_number'       => ['nullable', 'string', 'max:30'],
             'nickname'           => ['nullable', 'string', 'max:80'],
             // Le plafond vient de StoreVehicleCheckRequest, qui le posait deja
