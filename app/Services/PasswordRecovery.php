@@ -70,6 +70,8 @@ class PasswordRecovery
         }
 
         return match ($config['transport'] ?? '') {
+            'gmail_api' => filled(config('services.gmail.client_id'))
+                && filled(config('services.gmail.client_secret')) && filled(config('services.gmail.refresh_token')),
             'smtp' => $this->usableSmtp($config),
             'sendmail' => filled($config['path'] ?? null),
             'resend' => class_exists(Client::class) && filled(config('services.resend.key')),
