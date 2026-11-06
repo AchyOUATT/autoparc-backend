@@ -410,5 +410,15 @@
   "Hybride (type à préciser)": "Hybrid (type to be confirmed)",
   "Bonne affaire": "Good deal",
   "Vente flash": "Flash sale",
-  "Déstockage": "Clearance"
+  "Déstockage": "Clearance",
+  "Trop de tentatives de connexion. Patientez une minute avant de reessayer.": "Too many sign-in attempts. Wait a minute before trying again.",
+  "Trop de tentatives depuis cet appareil. Patientez une minute.": "Too many attempts from this device. Wait a minute.",
+  "Trop de tentatives sur ce compte. Patientez une minute avant de reessayer.": "Too many attempts on this account. Wait a minute before trying again.",
+  "Trop de tentatives de connexion en cours. Patientez une minute.": "Too many sign-in attempts in progress. Wait a minute.",
+  "Trop de demandes envoyees. Patientez une minute avant de reessayer.": "Too many requests sent. Wait a minute before trying again.",
+  "Trop de demandes en cours. Patientez une minute avant de reessayer.": "Too many requests in progress. Wait a minute before trying again.",
+  "Trop de photos envoyees en meme temps. Patientez une minute avant de reessayer.": "Too many photos sent at once. Wait a minute before trying again.",
+  "Trop de photos en cours de depot. Patientez une minute avant de reessayer.": "Too many photos being uploaded. Wait a minute before trying again.",
+  "Trop de declenchements. Une tache planifiee ne se lance pas en rafale.": "Too many triggers. A scheduled task is not launched in bursts.",
+  "Trop de requetes. Patientez un instant.": "Too many requests. Please wait a moment."
 }

@@ -532,10 +532,31 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /** Reponse 429 lisible, en conservant les en-tetes calcules par Laravel. */
+    /**
+     * Le refus d'un limiteur, DANS LA LANGUE DE LA REQUETE.
+     *
+     * LA TRADUCTION SE FAIT ICI, ET AU MOMENT DE REPONDRE — pas chez l'appelant.
+     *
+     * Les dix messages de ce fichier partaient en francais quelle que soit la
+     * langue demandee : aucun n'etait passe par __(). Les envelopper un par un
+     * aurait repare aujourd'hui et laisse la meme faute ouverte au onzieme
+     * limiteur. Ici, un appelant ne peut pas l'oublier.
+     *
+     * Et « au moment de repondre » compte : la fermeture rendue s'execute quand
+     * le 429 se construit, donc APRES `ResolveApiLocale`, pose en tete du groupe
+     * `api` (bootstrap/app.php). Traduire plus tot, a l'enregistrement des
+     * limiteurs, figerait la langue du demarrage pour toutes les requetes.
+     *
+     * Les cles de lang/*.json sont les chaines francaises telles qu'ecrites
+     * ci-dessus, sans accents : un client qui n'annonce aucune langue — le
+     * binaire deja installe — recoit exactement le texte d'avant.
+     * RateLimitTest verifie que chaque message passe a cette methode a bien sa
+     * traduction, pour qu'un ajout ne puisse pas rester francais en silence.
+     */
     private function refus(string $message): \Closure
     {
         return fn (Request $request, array $headers) => response()->json(
-            ['message' => $message],
+            ['message' => __($message)],
             429,
             $headers,
         );
