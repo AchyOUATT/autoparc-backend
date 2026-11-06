@@ -91,6 +91,41 @@ class ApiLanguageTest extends TestCase
             ->assertJsonPath('data.answers.0.title', "Attestation d'assurance valide");
     }
 
+    /**
+     * La pastille de mise en avant suit la langue de la requete.
+     *
+     * L'application affiche `deal_label` tel que le serveur le rend, sans le
+     * traduire. Tant que l'enum le rendait en dur, la section « Good deals »
+     * d'un accueil anglais etait remplie de pastilles « Bonne affaire ».
+     *
+     * Les trois cas sont eprouves, et pas seulement le premier : un `match`
+     * dont une seule branche passerait par `__()` laisserait les deux autres
+     * en francais sans qu'un banc le voie. Et l'absence d'en-tete — le binaire
+     * deja installe — doit rendre exactement le texte d'avant.
+     */
+    public function test_the_deal_badge_follows_the_request_language(): void
+    {
+        $this->seed(\Database\Seeders\ReferenceDataSeeder::class);
+
+        $attendus = [
+            'good_deal' => ['Bonne affaire', 'Good deal'],
+            'flash_sale' => ['Vente flash', 'Flash sale'],
+            'clearance' => ['Déstockage', 'Clearance'],
+        ];
+
+        foreach ($attendus as $type => [$francais, $anglais]) {
+            $id = \App\Models\Vehicle::factory()->create(['deal_type' => $type])->id;
+            $chemin = '/api/catalog/vehicles/'.$id;
+
+            $this->withHeader('Accept-Language', 'en')->getJson($chemin)
+                ->assertOk()->assertJsonPath('data.commercial.deal_label', $anglais);
+            $this->withHeader('Accept-Language', 'fr')->getJson($chemin)
+                ->assertOk()->assertJsonPath('data.commercial.deal_label', $francais);
+            $this->withHeader('Accept-Language', '')->getJson($chemin)
+                ->assertOk()->assertJsonPath('data.commercial.deal_label', $francais);
+        }
+    }
+
     public function test_an_unsupported_or_absent_language_defaults_to_french_after_an_english_request(): void
     {
         $vehicle = $this->garage();
