@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PartnerAccountResource;
+use App\Models\AppNotification;
 use App\Models\PartnerAccount;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -73,9 +75,53 @@ class PartnerApplicationController extends Controller
                 $user->tokens()->delete();
             }
 
+            $this->notifier($user, $account, $status);
+
             return $account->setRelation('user', $user);
         });
 
         return new PartnerAccountResource($account);
+    }
+
+    /**
+     * Le partenaire apprend l'issue de l'examen dans sa boîte.
+     *
+     * Dans la transaction, avec la décision : une décision enregistrée sans
+     * sa notification, ou l'inverse, raconterait deux histoires.
+     *
+     * ── CE QU'UN COMPTE REFUSÉ OU SUSPENDU PEUT EN LIRE ──────────────────
+     *
+     * Rien, tant qu'il reste dans cet état : ses jetons viennent d'être
+     * révoqués et `AuthController::login` lui refuse une nouvelle session
+     * (403, avec le motif). Le motif lui parvient donc par la réponse de
+     * connexion ; la notification est la trace qu'il retrouvera dans sa
+     * boîte si le compte est réapprouvé — l'historique de son examen, dans
+     * l'ordre.
+     *
+     * ── POURQUOI PAS DE PUSH ─────────────────────────────────────────────
+     *
+     * Aucune route partenaire n'enregistre de jeton FCM — `POST /api/fcm-token`
+     * est réservée au personnel — si bien que `users.fcm_token` est toujours
+     * nul pour un partenaire. Le jour où les partenaires enregistreront un
+     * appareil, c'est ici qu'il faudra brancher `FcmService::sendToToken`.
+     *
+     * Les textes sont en français, la langue source de toutes les
+     * notifications automatiques, et traduits à la livraison par
+     * `NotificationText` : la boîte se lit dans la langue de la requête, pas
+     * dans celle du personnel qui a cliqué. Le motif, lui, est du texte
+     * humain : il voyage tel quel.
+     */
+    private function notifier(User $user, PartnerAccount $account, string $status): void
+    {
+        [$type, $title, $body] = match ($status) {
+            'approved' => ['partner_account_approved', 'Compte approuvé', 'Votre compte est approuvé. Publiez votre première annonce.'],
+            'rejected' => ['partner_account_rejected', 'Demande refusée', 'Votre demande a été refusée : '.$account->review_reason],
+            'suspended' => ['partner_account_suspended', 'Compte suspendu', 'Votre compte est suspendu : '.$account->review_reason],
+        };
+
+        AppNotification::notifyPartner($user->id, $type, $title, $body, [
+            'status' => $status,
+            'partner_account_id' => $account->id,
+        ]);
     }
 }

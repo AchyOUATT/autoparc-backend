@@ -50,6 +50,15 @@ class NotificationTextTest extends TestCase
                 'Citroën: Vehicle inspection expired 2 day(s) ago.'],
             'insurance today' => ['maintenance_insurance', 'Assurance bientot a echeance',
                 "René : Assurance expire aujourd'hui.", 'Insurance due soon', 'René: Insurance expires today.'],
+            'partner account approved' => ['partner_account_approved', 'Compte approuvé',
+                'Votre compte est approuvé. Publiez votre première annonce.', 'Account approved',
+                'Your account is approved. Publish your first listing.'],
+            'partner account rejected keeps the reason' => ['partner_account_rejected', 'Demande refusée',
+                'Votre demande a été refusée : Document de vérification manquant.', 'Application declined',
+                'Your application was declined: Document de vérification manquant.'],
+            'partner account suspended keeps the reason' => ['partner_account_suspended', 'Compte suspendu',
+                'Votre compte est suspendu : Trois plaintes « non livré ».', 'Account suspended',
+                'Your account is suspended: Trois plaintes « non livré ».'],
         ];
     }
 

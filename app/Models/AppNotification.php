@@ -167,6 +167,31 @@ class AppNotification extends Model
     }
 
     /**
+     * Une notification pour UN partenaire — l'issue de l'examen de son compte.
+     *
+     * Adressee comme la diffusion ci-dessus : `recipient_type` `partner` et
+     * `recipient_id` l'identifiant de l'UTILISATEUR, puisque c'est lui qui
+     * lit. Un compte en attente peut la lire — sa boite est hors de
+     * `partner.approved`, et c'est precisement pour cette notification-la.
+     */
+    public static function notifyPartner(
+        int    $userId,
+        string $type,
+        string $title,
+        string $body,
+        array  $data = [],
+    ): void {
+        self::create([
+            'recipient_type' => 'partner',
+            'recipient_id'   => (string) $userId,
+            'type'           => $type,
+            'title'          => $title,
+            'body'           => $body,
+            'data'           => $data,
+        ]);
+    }
+
+    /**
      * Cree une notification pour un client identifié par son firebase_uid.
      */
     public static function notifyClient(
