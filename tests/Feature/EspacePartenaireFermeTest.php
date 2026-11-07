@@ -77,10 +77,18 @@ class EspacePartenaireFermeTest extends TestCase
         // Le motif compte autant que le code. Un 404 muet se confondrait avec
         // un serveur ou la fonctionnalite n'a jamais ete deployee — l'etat
         // d'hier, et ce que l'application publiee rend deja.
-        $this->assertStringContainsString(
-            'pas encore ouvert',
-            (string) $reponse->json('message'),
+        //
+        // Et il parle a celui qui le lit : un vendeur qui vient d'installer la
+        // derniere version. Lui dire de « mettre a jour l'application »
+        // l'enverrait chercher une mise a jour qui n'existe pas.
+        $this->assertSame(
+            "L'inscription des vendeurs n'est pas encore ouverte. Revenez bientôt.",
+            $reponse->json('message'),
             "Le refus doit dire POURQUOI, sinon il est indiscernable d'un serveur non deploye.",
+        );
+        $this->assertSame(
+            'Seller registration is not open yet. Please check back soon.',
+            $this->withHeader('Accept-Language', 'en')->{$verbe.'Json'}($route, $corps)->json('message'),
         );
     }
 
