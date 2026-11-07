@@ -218,11 +218,13 @@ class StoreVehicleRequest extends FormRequest
             }
 
             $dailyRate = $this->input('rental_daily_rate', $vehicle?->rental_daily_rate);
+            $weeklyRate = $this->input('rental_weekly_rate', $vehicle?->rental_weekly_rate);
             $monthlyRate = $this->input('rental_monthly_rate', $vehicle?->rental_monthly_rate);
 
-            if ($dailyRate === null && $monthlyRate === null) {
-                $message = __('Renseignez un prix journalier ou un forfait mensuel pour proposer ce véhicule à la location.');
+            if ($dailyRate === null && $weeklyRate === null && $monthlyRate === null) {
+                $message = __('Renseignez un tarif journalier, hebdomadaire ou mensuel pour proposer ce véhicule à la location.');
                 $validator->errors()->add('rental_daily_rate', $message);
+                $validator->errors()->add('rental_weekly_rate', $message);
                 $validator->errors()->add('rental_monthly_rate', $message);
             }
         });

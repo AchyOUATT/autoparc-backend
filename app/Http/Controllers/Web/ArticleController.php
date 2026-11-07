@@ -195,6 +195,9 @@ class ArticleController extends Controller
             tarifLocation: $vehicle->availability?->allowsRent() && $vehicle->rental_daily_rate !== null
                 ? (float) $vehicle->rental_daily_rate
                 : null,
+            tarifLocationHebdomadaire: $vehicle->availability?->allowsRent() && $vehicle->rental_weekly_rate !== null
+                ? (float) $vehicle->rental_weekly_rate
+                : null,
             tarifLocationMensuel: $vehicle->availability?->allowsRent() && $vehicle->rental_monthly_rate !== null
                 ? (float) $vehicle->rental_monthly_rate
                 : null,

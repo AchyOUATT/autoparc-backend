@@ -16,6 +16,7 @@ use App\Services\ReferenceGenerator;
 use App\Services\FaultDeclarations;
 use App\Support\PartnerOwnership;
 use App\Support\HeavyVehicleConfiguration;
+use App\Support\MargePartenaire;
 use App\Support\TriPublic;
 use App\Support\VehicleCatalogQuery;
 use Illuminate\Http\JsonResponse;
@@ -225,6 +226,35 @@ class VehicleController extends Controller
 
         DB::transaction(function () use ($vehicle, $data, $request) {
             $vehicle = Vehicle::whereKey($vehicle->id)->lockForUpdate()->firstOrFail();
+            if ($request->user()?->isPartner()) {
+                // Merge against the locked row, not a stale route binding.
+                // safe() contains validated seller inputs before their margin,
+                // so each supplied price is marked up once and omitted prices
+                // keep both their public value and their original calculation.
+                $data = MargePartenaire::appliquer($request->safe()->all(), MargePartenaire::CHAMPS_VEHICULE, $vehicle->partner_pricing);
+            }
+            // Another partial update may have removed a different rental
+            // rate since request validation. Validate the final locked row.
+            $availability = array_key_exists('availability', $data)
+                ? $data['availability'] : $vehicle->availability?->value;
+            if (in_array($availability, ['rent', 'both'], true)) {
+                $rentalFields = ['rental_daily_rate', 'rental_weekly_rate', 'rental_monthly_rate'];
+                $hasRentalRate = false;
+                foreach ($rentalFields as $field) {
+                    $rate = array_key_exists($field, $data) ? $data[$field] : $vehicle->getAttribute($field);
+                    if ($rate !== null) {
+                        $hasRentalRate = true;
+
+                        break;
+                    }
+                }
+                if (! $hasRentalRate) {
+                    throw ValidationException::withMessages(array_fill_keys(
+                        $rentalFields,
+                        __('Renseignez un tarif journalier, hebdomadaire ou mensuel pour proposer ce véhicule à la location.'),
+                    ));
+                }
+            }
             if (array_key_exists('heavy_configuration', $data)) {
                 $data['heavy_configuration'] = HeavyVehicleConfiguration::merge($vehicle->heavy_configuration, $data['heavy_configuration']);
                 // Recheck against the locked row: another PATCH may have

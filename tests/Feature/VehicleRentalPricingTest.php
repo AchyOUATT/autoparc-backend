@@ -42,6 +42,7 @@ class VehicleRentalPricingTest extends TestCase
     {
         return [
             'journalier seul' => [['rental_daily_rate' => 25_000]],
+            'hebdomadaire seul' => [['rental_weekly_rate' => 150_000]],
             'mensuel seul' => [['rental_monthly_rate' => 500_000]],
             'journalier explicitement vide' => [['rental_daily_rate' => null, 'rental_monthly_rate' => 500_000]],
             'deux tarifs' => [['rental_daily_rate' => 25_000, 'rental_monthly_rate' => 500_000]],
@@ -54,7 +55,7 @@ class VehicleRentalPricingTest extends TestCase
     }
 
     #[DataProvider('validCreationPrices')]
-    public function test_vehicle_registration_accepts_daily_or_monthly_pricing(array $prices): void
+    public function test_vehicle_registration_accepts_daily_weekly_or_monthly_pricing(array $prices): void
     {
         $data = array_replace($this->identity, ['availability' => 'rent'], $prices);
 
@@ -65,7 +66,7 @@ class VehicleRentalPricingTest extends TestCase
 
         $public = $this->getJson('/api/catalog/vehicles/'.$id)->assertOk();
 
-        foreach (['rental_daily_rate', 'rental_monthly_rate'] as $field) {
+        foreach (['rental_daily_rate', 'rental_weekly_rate', 'rental_monthly_rate'] as $field) {
             $value = $prices[$field] ?? null;
             $serialized = $value === null ? null : number_format($value, 2, '.', '');
             $response->assertJsonPath('data.commercial.'.$field, $serialized);
@@ -80,7 +81,6 @@ class VehicleRentalPricingTest extends TestCase
             'deux tarifs vides' => [[
                 'rental_daily_rate' => null, 'rental_monthly_rate' => null,
             ], ['rental_daily_rate', 'rental_monthly_rate']],
-            'hebdomadaire seul' => [['rental_weekly_rate' => 150_000], ['rental_daily_rate', 'rental_monthly_rate']],
             'mensuel negatif' => [['rental_monthly_rate' => -1], ['rental_monthly_rate']],
             'mensuel non numerique' => [['rental_monthly_rate' => ['incorrect']], ['rental_monthly_rate']],
             'journalier invalide meme avec mensuel' => [[
@@ -126,6 +126,10 @@ class VehicleRentalPricingTest extends TestCase
             'mensuel conserve apres retrait journalier' => [
                 ['rental_daily_rate' => 25_000, 'rental_monthly_rate' => 500_000], ['rental_daily_rate' => null],
             ],
+            'hebdomadaire conserve apres retrait journalier et mensuel' => [
+                ['rental_daily_rate' => 25_000, 'rental_monthly_rate' => 500_000, 'rental_weekly_rate' => 150_000],
+                ['rental_daily_rate' => null, 'rental_monthly_rate' => null],
+            ],
             'vente devient location mensuelle' => [
                 ['availability' => 'sale', 'sale_price' => 8_000_000],
                 ['availability' => 'rent', 'rental_monthly_rate' => 500_000],
@@ -160,9 +164,9 @@ class VehicleRentalPricingTest extends TestCase
             'retrait du dernier mensuel' => [
                 ['rental_monthly_rate' => 500_000], ['availability' => 'rent', 'rental_monthly_rate' => null],
             ],
-            'retrait de tous les tarifs malgre hebdomadaire' => [
+            'retrait de tous les tarifs y compris hebdomadaire' => [
                 ['rental_daily_rate' => 25_000, 'rental_monthly_rate' => 500_000, 'rental_weekly_rate' => 150_000],
-                ['rental_daily_rate' => null, 'rental_monthly_rate' => null],
+                ['rental_daily_rate' => null, 'rental_weekly_rate' => null, 'rental_monthly_rate' => null],
             ],
             'vente devient location sans tarif' => [
                 ['availability' => 'sale', 'sale_price' => 8_000_000], ['availability' => 'rent'],
@@ -175,13 +179,13 @@ class VehicleRentalPricingTest extends TestCase
     }
 
     #[DataProvider('invalidPriceChanges')]
-    public function test_updates_cannot_leave_a_rental_vehicle_without_daily_or_monthly_price(array $prices, array $changes): void
+    public function test_updates_cannot_leave_a_rental_vehicle_without_a_price(array $prices, array $changes): void
     {
         $vehicle = $this->vehicle($prices);
         $before = $vehicle->fresh()->getAttributes();
 
         $this->patchJson('/api/vehicles/'.$vehicle->id, $this->identity + $changes)
-            ->assertUnprocessable()->assertJsonValidationErrors(['rental_daily_rate', 'rental_monthly_rate']);
+            ->assertUnprocessable()->assertJsonValidationErrors(['rental_daily_rate', 'rental_weekly_rate', 'rental_monthly_rate']);
 
         $this->assertSame($before, $vehicle->fresh()->getAttributes());
     }
