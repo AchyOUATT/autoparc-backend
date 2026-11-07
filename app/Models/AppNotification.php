@@ -73,6 +73,20 @@ class AppNotification extends Model
         return $query->whereNull('read_at');
     }
 
+    /**
+     * Le nombre de non lues d'un partenaire, tel que sa pastille le lit.
+     *
+     * Une seule definition, partagee par la route des notifications et par le
+     * tableau de bord. Deux requetes ecrites a deux endroits finiraient par
+     * diverger, et le partenaire lirait un chiffre sur sa tuile et un autre en
+     * ouvrant sa boite — le genre d'ecart qu'on ne remarque qu'en comptant
+     * a la main.
+     */
+    public static function unreadCountForPartner(int $userId): int
+    {
+        return self::forPartner($userId)->unread()->count();
+    }
+
     // ── Factory methods ──────────────────────────────────────────────
 
     /**

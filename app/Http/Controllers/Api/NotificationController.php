@@ -54,14 +54,14 @@ class NotificationController extends Controller
     /**
      * Nombre de notifications non lues du partenaire connecté.
      * GET /partner/notifications/unread-count
+     *
+     * La requête vit sur le modèle, parce que le tableau de bord la partage :
+     * le chiffre d'ici et celui de `GET /partner/dashboard` doivent être le
+     * même, et le seul moyen sûr est qu'il n'y en ait qu'un.
      */
     public function unreadCountPartner(Request $request): JsonResponse
     {
-        $count = AppNotification::forPartner($request->user()->id)
-            ->unread()
-            ->count();
-
-        return response()->json(['count' => $count]);
+        return response()->json(['count' => AppNotification::unreadCountForPartner($request->user()->id)]);
     }
 
     /**
