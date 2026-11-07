@@ -42,6 +42,7 @@ class DatabaseSeeder extends Seeder
             PartCategoriesSeeder::class,
             FeaturesSeeder::class,
             VehicleModelsSeeder::class,
+            SinotrukCatalogSeeder::class,
             TrimsSeeder::class,
             KiaCatalogueSeeder::class,
             // Les points du controle avant voyage : du referentiel, pas des
