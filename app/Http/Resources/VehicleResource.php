@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Services\ConsumptionReferenceRecommendation;
 use App\Support\CotesOfficielles;
+use App\Support\HeavyVehicleConfiguration;
 use App\Support\PartnerListingPresentation;
 use App\Support\PartnerMedia;
 use App\Support\PhotoPartage;
@@ -21,6 +22,7 @@ class VehicleResource extends JsonResource
         $faultManagement = FaultDeclarations::canManageStock($request, $this->resource);
         $fullFaultManagement = $faultManagement && $request->user()?->isStaff();
         $faultDeclaration = FaultDeclarations::present($this->resource, $request, $faultManagement);
+        $heavyConfiguration = HeavyVehicleConfiguration::normalize($this->heavy_configuration);
 
         $data = [
             'id'           => $this->id,
@@ -79,6 +81,8 @@ class VehicleResource extends JsonResource
                 'seats'                  => $this->seats,
                 'doors'                  => $this->doors,
                 'mileage_km'             => $this->mileage_km,
+                'heavy_configuration'    => $heavyConfiguration,
+                'heavy_configuration_status' => $heavyConfiguration === null ? null : 'declared',
             ],
 
             'consumption' => [

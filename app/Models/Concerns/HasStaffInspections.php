@@ -5,6 +5,7 @@ namespace App\Models\Concerns;
 use App\Models\StaffVehicleInspection;
 use App\Models\Vehicle;
 use App\Services\StaffVehicleInspections;
+use App\Support\HeavyVehicleConfiguration;
 
 trait HasStaffInspections
 {
@@ -33,7 +34,15 @@ trait HasStaffInspections
     protected static function bootHasStaffInspections(): void
     {
         static::updated(function ($model) {
-            if (array_intersect(array_keys($model->getChanges()), StaffVehicleInspections::technicalFields($model))) {
+            $technicalChanges = array_intersect(array_keys($model->getChanges()), StaffVehicleInspections::technicalFields($model));
+            // An array cast considers object key order significant. Compare
+            // the same canonical values used by the inspection fingerprint.
+            if ($model instanceof Vehicle && in_array('heavy_configuration', $technicalChanges, true)
+                && HeavyVehicleConfiguration::normalize($model->heavy_configuration)
+                    === HeavyVehicleConfiguration::normalize($model->getOriginal('heavy_configuration'))) {
+                $technicalChanges = array_diff($technicalChanges, ['heavy_configuration']);
+            }
+            if ($technicalChanges !== []) {
                 app(StaffVehicleInspections::class)->invalidate($model, 'Vehicle technical information changed after inspection.');
             }
         });

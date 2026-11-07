@@ -9,6 +9,7 @@ use App\Enums\VehicleCondition;
 use App\Enums\VehicleDealType;
 use App\Enums\VehicleStatus;
 use App\Support\EngineCode;
+use App\Support\HeavyVehicleConfiguration;
 use App\Support\VehicleClassification;
 use App\Support\FaultDeclarationInput;
 use Illuminate\Foundation\Http\FormRequest;
@@ -91,6 +92,18 @@ class StoreVehicleRequest extends FormRequest
             'seats'              => ['nullable', 'integer', 'min:1', 'max:70'],
             'doors'              => ['nullable', 'integer', 'min:0', 'max:8'],
             'engine_code'        => ['nullable', 'string', 'max:50'],
+
+            'heavy_configuration' => ['nullable', 'array:'.implode(',', HeavyVehicleConfiguration::KEYS)],
+            'heavy_configuration.version_label' => ['nullable', 'string', 'max:100'],
+            'heavy_configuration.cab_label' => ['nullable', 'string', 'max:100'],
+            'heavy_configuration.axle_configuration' => ['nullable', 'string', 'max:40'],
+            'heavy_configuration.chassis_type' => ['nullable', Rule::in(['tractor', 'rigid', 'other'])],
+            'heavy_configuration.body_use' => ['nullable', 'string', 'max:100'],
+            'heavy_configuration.emission_standard' => ['nullable', 'string', 'max:40'],
+            'heavy_configuration.ptac_kg' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+            'heavy_configuration.ptra_kg' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+            // Derived response metadata must never be supplied by the client.
+            'heavy_configuration_status' => ['missing'],
 
             'consumption_urban'        => ['nullable', 'numeric', 'min:0', 'max:99.99'],
             'consumption_extra_urban'  => ['nullable', 'numeric', 'min:0', 'max:99.99'],
@@ -184,6 +197,16 @@ class StoreVehicleRequest extends FormRequest
 
             if ($validator->errors()->isNotEmpty()) {
                 return;
+            }
+
+            if ($this->exists('heavy_configuration')) {
+                $configuration = HeavyVehicleConfiguration::merge(
+                    $vehicle?->heavy_configuration,
+                    $this->input('heavy_configuration'),
+                );
+                if (! HeavyVehicleConfiguration::massesAreConsistent($configuration)) {
+                    $validator->errors()->add('heavy_configuration.ptra_kg', __('Le PTRA doit être supérieur ou égal au PTAC.'));
+                }
             }
 
             // En modification, un champ omis conserve sa valeur ; un null

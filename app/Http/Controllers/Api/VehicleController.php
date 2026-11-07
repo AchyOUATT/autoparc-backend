@@ -15,11 +15,13 @@ use App\Services\FcmService;
 use App\Services\ReferenceGenerator;
 use App\Services\FaultDeclarations;
 use App\Support\PartnerOwnership;
+use App\Support\HeavyVehicleConfiguration;
 use App\Support\TriPublic;
 use App\Support\VehicleCatalogQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class VehicleController extends Controller
 {
@@ -55,6 +57,9 @@ class VehicleController extends Controller
     public function store(StoreVehicleRequest $request): JsonResponse
     {
         $data = $request->validated();
+        if (array_key_exists('heavy_configuration', $data)) {
+            $data['heavy_configuration'] = HeavyVehicleConfiguration::normalize($data['heavy_configuration']);
+        }
         if ($request->user()?->isPartner()) {
             $data['owner_partner_account_id'] = PartnerOwnership::accountId($request->user());
             $data['partner_published_at'] = null;
@@ -220,6 +225,16 @@ class VehicleController extends Controller
 
         DB::transaction(function () use ($vehicle, $data, $request) {
             $vehicle = Vehicle::whereKey($vehicle->id)->lockForUpdate()->firstOrFail();
+            if (array_key_exists('heavy_configuration', $data)) {
+                $data['heavy_configuration'] = HeavyVehicleConfiguration::merge($vehicle->heavy_configuration, $data['heavy_configuration']);
+                // Recheck against the locked row: another PATCH may have
+                // changed the other mass after request validation.
+                if (! HeavyVehicleConfiguration::massesAreConsistent($data['heavy_configuration'])) {
+                    throw ValidationException::withMessages([
+                        'heavy_configuration.ptra_kg' => __('Le PTRA doit être supérieur ou égal au PTAC.'),
+                    ]);
+                }
+            }
             $vehicle->update(collect($data)->except(['import', 'registration', 'faults', 'fault_declaration_state', 'features'])->all());
             app(FaultDeclarations::class)->sync($vehicle, $data, $request->user());
 

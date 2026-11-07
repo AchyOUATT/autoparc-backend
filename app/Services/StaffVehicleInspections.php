@@ -6,6 +6,7 @@ use App\Models\PrivateVehicleListing;
 use App\Models\StaffVehicleInspection;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Support\HeavyVehicleConfiguration;
 use BackedEnum;
 use Illuminate\Support\Facades\DB;
 
@@ -19,7 +20,7 @@ final class StaffVehicleInspections
             'vin', 'registration_status', 'vehicle_type', 'body_style', 'manufacturing_year',
             'gear_count', 'engine_displacement_cc', 'power_hp', 'power_kw', 'torque_nm',
             'cylinders', 'seats', 'doors', 'engine_code', 'condition',
-            'battery_capacity_kwh', 'fuel_tank_liters',
+            'battery_capacity_kwh', 'fuel_tank_liters', 'heavy_configuration',
         ] : ['model_libre', 'year', 'mileage_km', 'fuel_type']);
     }
 
@@ -28,6 +29,14 @@ final class StaffVehicleInspections
         $data = [];
         foreach (self::technicalFields($target) as $field) {
             $value = $target->getAttribute($field);
+            if ($field === 'heavy_configuration') {
+                $configuration = HeavyVehicleConfiguration::normalize($value);
+                // Keep historical reports current when no configuration exists.
+                if ($configuration !== null) {
+                    $data[$field] = $configuration;
+                }
+                continue;
+            }
             if ($value instanceof BackedEnum) {
                 $value = $value->value;
             }
