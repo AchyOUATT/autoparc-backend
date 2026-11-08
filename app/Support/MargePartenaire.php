@@ -68,37 +68,59 @@ final class MargePartenaire
      *
      * @param  array<string, mixed>  $donnees  les champs valides
      * @param  list<string>  $champs  les prix a majorer
-     * @return array<string, mixed>  les memes donnees, prix majores, plus
-     *                               `partner_pricing`
+     * @param  array<string, mixed>|null  $detailExistant  le calcul conserve sur l'annonce
+     * @return array<string, mixed> les memes donnees, prix majores, plus `partner_pricing`
      */
-    public static function appliquer(array $donnees, array $champs): array
+    public static function appliquer(array $donnees, array $champs, ?array $detailExistant = null): array
     {
-        $taux = self::taux();
-        $proposes = [];
+        $modifies = array_intersect($champs, array_keys($donnees));
 
-        foreach ($champs as $champ) {
+        // A reduced form may edit a description or a deposit without changing
+        // a price. Preserve the complete stored calculation in that case.
+        if ($modifies === []) {
+            return $donnees;
+        }
+
+        $taux = self::taux();
+        $proposes = array_intersect_key($detailExistant['prix_proposes'] ?? [], array_flip($champs));
+        $tauxParChamp = [];
+        foreach (array_keys($proposes) as $champ) {
+            $tauxParChamp[$champ] = (float) ($detailExistant['taux_par_champ'][$champ] ?? $detailExistant['taux'] ?? 0);
+        }
+
+        foreach ($modifies as $champ) {
             // `array_key_exists` et non `isset` : un prix explicitement nul
             // est une REPONSE — « ce vehicule n'est pas a vendre » — et doit
             // traverser sans qu'on lui invente une majoration.
-            if (! array_key_exists($champ, $donnees) || $donnees[$champ] === null) {
+            if ($donnees[$champ] === null) {
+                unset($proposes[$champ], $tauxParChamp[$champ]);
+
                 continue;
             }
 
             $propose = (float) $donnees[$champ];
             $proposes[$champ] = $propose;
+            $tauxParChamp[$champ] = $taux;
             $donnees[$champ] = self::majorer($propose, $taux);
         }
 
-        // Aucun prix dans cette requete : on ne touche pas a
-        // `partner_pricing`. Une modification qui ne porte que sur la
-        // description ne doit pas effacer le detail de l'annonce, ni le
-        // reecrire au taux du jour alors que le prix, lui, n'a pas bouge.
+        // Explicit nulls remove only their own proposed prices. If the last
+        // tracked price is cleared, do not leave stale pricing metadata.
         if ($proposes === []) {
+            if ($detailExistant !== null) {
+                $donnees['partner_pricing'] = null;
+            }
+
             return $donnees;
         }
 
+        // Older clients display the global rate next to the main sale price.
+        // Keep that rate truthful when only a rental price changes at today's
+        // rate; the per-field map preserves both calculations independently.
+        $principal = array_values(array_intersect($champs, array_keys($proposes)))[0];
         $donnees['partner_pricing'] = [
-            'taux' => $taux,
+            'taux' => $tauxParChamp[$principal],
+            'taux_par_champ' => $tauxParChamp,
             'prix_proposes' => $proposes,
             'applique_le' => now()->toIso8601String(),
         ];

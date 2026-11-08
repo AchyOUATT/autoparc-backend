@@ -138,6 +138,59 @@ un seuil externe demanderait des références admissibles et une validation
 spécifique. Un changement de référence doit être testé aussi sur les
 intervalles retenus et sur les alertes.
 
+## Classement des références proposées
+
+La fiche détaillée d'une annonce applique ce même classement à toutes ses
+références préchargées avant leur sérialisation. La cylindrée exacte, le nombre
+de cylindres et la puissance explicitement enregistrés participent au contexte.
+Les zéros historiques de cylindrée, cylindres ou puissance restent inconnus.
+Une puissance en kW est prioritaire si disponible ; sa conversion en chevaux
+métriques ne sert qu'à la comparaison et ne modifie aucune valeur déclarée.
+L'année de fabrication et le pays d'importation ne fournissent ni millésime ni
+marché de spécification. Les références contradictoires restent consultables
+avec `eligible: false`, sans devenir une valeur principale de l'annonce.
+Les listes du catalogue continuent à rendre un tableau de références vide afin
+de ne pas ajouter une requête de consommation par véhicule.
+
+Le classement de présentation est distinct du niveau d'applicabilité. L'API
+`catalog/motorisations` considère toujours toutes les références actuelles du
+modèle avant de les classer ; les contradictions déjà exclues par le moteur de
+compatibilité restent exclues. Elle accepte aussi les détails facultatifs du
+garage : `engine_displacement_cc`, `engine_displacement_l`, `cylinders` et
+`power_hp`, avec les mêmes bornes de saisie.
+
+Chaque ligne peut porter `recommendation` : `rank` (rang dense avec égalités),
+`matched_criteria`, `missing_criteria`, `conflicting_criteria`, `eligible` et
+`has_discriminating_match`. Il s'agit d'indices de pertinence, sans pourcentage
+ni probabilité statistique. Les informations de contexte manquantes sont
+signalées séparément des contradictions connues. Une ligne avec une cylindrée
+exacte, un nombre de cylindres, une puissance, un millésime ou un marché
+explicitement contradictoire reste inspectable, mais n'entre pas dans la
+sélection proposée. Aucune valeur source n'est modifiée par ce classement.
+
+Les concordances de code moteur, cylindrée exacte et finition sont prioritaires,
+puis viennent les autres caractéristiques déclarées et la qualité documentaire.
+Des litres commerciaux ne reconstituent jamais des cm³ exacts ; ils constituent
+seulement une comparaison arrondie. Une différence supérieure à 0,2 L place
+la référence hors de la sélection proposée, avec une marge volontairement large
+pour les appellations commerciales. La puissance en chevaux métriques est
+convertie en kW avec une tolérance de comparaison (1 kW ou 2 % de la valeur source,
+au plus grand des deux), sans devenir une certification de configuration.
+
+L'année de fabrication peut ordonner l'affichage de références ex æquo, mais
+ne leur attribue aucun point de concordance avec un millésime et ne rompt pas
+leur égalité de rang. Sources et protocoles distincts restent consultables
+séparément ; le chiffre de consommation le plus bas n'a aucune priorité.
+`meta.recommended_ids` conserve tous les identifiants éligibles au premier rang,
+et reste vide si aucune ligne n'est éligible. Lorsque seules des informations
+grossières sont connues, `has_discriminating_match` reste faux : l'interface doit
+inviter à préciser le véhicule au lieu d'annoncer une version déterminée.
+
+`match.level`, les valeurs principales et les règles du suivi des pleins restent
+inchangés. Le classement n'enregistre aucune motorisation automatiquement et
+`meta.automatic_selection` reste faux. Une ressource rendue hors du contexte de
+classement porte `recommendation: null` pour ne pas inventer une précision.
+
 ## Sources et conditions de réutilisation
 
 Contrôle du 31 octobre 2026 : les accès HTTPS ci-dessous ont tous été refusés

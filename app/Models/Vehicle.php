@@ -40,6 +40,8 @@ class Vehicle extends Model
         'brand_id', 'vehicle_model_id', 'trim_id', 'engine_type_id', 'drivetrain_id', 'color_id',
         'manufacturing_year', 'transmission', 'gear_count', 'engine_displacement_cc',
         'power_hp', 'power_kw', 'torque_nm', 'cylinders', 'seats', 'doors', 'engine_code',
+        'heavy_configuration',
+        'asset_kind', 'equipment_type', 'equipment_details',
         'consumption_urban', 'consumption_extra_urban', 'consumption_combined',
         'electric_consumption_kwh', 'battery_capacity_kwh', 'electric_range_km',
         'co2_g_km', 'fuel_tank_liters',
@@ -60,6 +62,8 @@ class Vehicle extends Model
             'condition' => VehicleCondition::class,
             'transmission' => Transmission::class,
             'manufacturing_year' => 'integer',
+            'heavy_configuration' => 'array',
+            'equipment_details' => 'array',
             'fault_declared_at' => 'datetime',
             'consumption_urban' => 'decimal:2',
             'consumption_extra_urban' => 'decimal:2',
@@ -214,13 +218,19 @@ class Vehicle extends Model
 
     public function getDesignationAttribute(): string
     {
-        return trim(sprintf(
-            '%s %s %s %d',
-            $this->brand?->name,
-            $this->vehicleModel?->name,
-            $this->trim?->name ?? '',
-            $this->manufacturing_year
-        ));
+        $details = $this->equipment_details ?? [];
+
+        return implode(' ', array_filter([
+            $this->brand?->name ?? ($details['brand_label'] ?? null),
+            $this->vehicleModel?->name ?? ($details['model_label'] ?? null),
+            $this->trim?->name,
+            $this->manufacturing_year,
+        ], static fn ($value) => $value !== null && $value !== ''));
+    }
+
+    public function isEquipment(): bool
+    {
+        return $this->asset_kind === 'equipment';
     }
 
     /** Indice d'etat mecanique base sur les pannes ouvertes (0 = sain). */
@@ -354,6 +364,10 @@ class Vehicle extends Model
                 ->orWhereLike('vin', "%{$term}%")
                 ->orWhereHas('brand', fn ($b) => $b->whereLike('name', "%{$term}%"))
                 ->orWhereHas('vehicleModel', fn ($m) => $m->whereLike('name', "%{$term}%"))
+                ->orWhereLike('equipment_details->brand_label', "%{$term}%")
+                ->orWhereLike('equipment_details->model_label', "%{$term}%")
+                ->orWhereLike('equipment_details->serial_number', "%{$term}%")
+                ->orWhereLike('equipment_details->park_number', "%{$term}%")
                 ->orWhereHas('registrationDetail', fn ($r) => $r->whereLike('plate_number', "%{$term}%"));
         });
     }

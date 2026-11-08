@@ -5,8 +5,8 @@ namespace App\Http\Requests\Partner;
 use App\Support\MargePartenaire;
 use App\Support\PartnerOwnership;
 use App\Support\PromotionPartenaire;
-use Illuminate\Validation\Validator;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\Validator;
 
 trait AuthorizesPartnerCatalog
 {
@@ -201,7 +201,9 @@ trait AuthorizesPartnerCatalog
      */
     public function validated($key = null, $default = null)
     {
-        $donnees = MargePartenaire::appliquer(parent::validated(), $this->champsDePrix());
+        $produit = $this->route($this->partnerRouteParameter());
+        $detailExistant = $produit instanceof Model ? $produit->getAttribute('partner_pricing') : null;
+        $donnees = MargePartenaire::appliquer(parent::validated(), $this->champsDePrix(), $detailExistant);
 
         // On applique la marge AVANT d'extraire la clef, et non l'inverse :
         // `validated('sale_price')` doit rendre le meme nombre que

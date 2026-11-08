@@ -15,11 +15,15 @@ use App\Services\FcmService;
 use App\Services\ReferenceGenerator;
 use App\Services\FaultDeclarations;
 use App\Support\PartnerOwnership;
+use App\Support\EquipmentDetails;
+use App\Support\HeavyVehicleConfiguration;
+use App\Support\MargePartenaire;
 use App\Support\TriPublic;
 use App\Support\VehicleCatalogQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class VehicleController extends Controller
 {
@@ -55,6 +59,15 @@ class VehicleController extends Controller
     public function store(StoreVehicleRequest $request): JsonResponse
     {
         $data = $request->validated();
+        if (array_key_exists('heavy_configuration', $data)) {
+            $data['heavy_configuration'] = HeavyVehicleConfiguration::normalize($data['heavy_configuration']);
+        }
+        if (array_key_exists('equipment_details', $data)) {
+            $data['equipment_details'] = EquipmentDetails::normalize($data['equipment_details']);
+        }
+        if (($data['asset_kind'] ?? 'road_vehicle') === 'equipment') {
+            $data['vehicle_type'] = $data['body_style'] = $data['trim_id'] = null;
+        }
         if ($request->user()?->isPartner()) {
             $data['owner_partner_account_id'] = PartnerOwnership::accountId($request->user());
             $data['partner_published_at'] = null;
@@ -174,18 +187,20 @@ class VehicleController extends Controller
             // F. Année minimale
             ->where(fn ($q) => $q
                 ->whereNull('year_min')
-                ->orWhere('year_min', '<=', $vehicle->manufacturing_year)
+                ->when($vehicle->manufacturing_year !== null, fn ($q) => $q
+                    ->orWhere('year_min', '<=', $vehicle->manufacturing_year))
             )
             // F. Année maximale
             ->where(fn ($q) => $q
                 ->whereNull('year_max')
-                ->orWhere('year_max', '>=', $vehicle->manufacturing_year)
+                ->when($vehicle->manufacturing_year !== null, fn ($q) => $q
+                    ->orWhere('year_max', '>=', $vehicle->manufacturing_year))
             )
             ->get();
 
         foreach ($pendingNeeds as $need) {
             $title   = 'Un véhicule correspond à votre recherche';
-            $body    = "{$vehicle->brand->name} {$vehicle->vehicleModel->name} {$vehicle->manufacturing_year} vient d'être ajouté au catalogue.";
+            $body    = "{$vehicle->designation} vient d'être ajouté au catalogue.";
             $payload = [
                 'type'       => 'vehicle_match',
                 'vehicle_id' => (string) $vehicle->id,
@@ -220,6 +235,56 @@ class VehicleController extends Controller
 
         DB::transaction(function () use ($vehicle, $data, $request) {
             $vehicle = Vehicle::whereKey($vehicle->id)->lockForUpdate()->firstOrFail();
+            if ($request->user()?->isPartner()) {
+                // Merge against the locked row, not a stale route binding.
+                // safe() contains validated seller inputs before their margin,
+                // so each supplied price is marked up once and omitted prices
+                // keep both their public value and their original calculation.
+                $data = MargePartenaire::appliquer($request->safe()->all(), MargePartenaire::CHAMPS_VEHICULE, $vehicle->partner_pricing);
+            }
+            // Validate retained identity and merge owner-declared details
+            // against the row locked for this write.
+            if ($errors = EquipmentDetails::validationErrors($data, $vehicle)) {
+                throw ValidationException::withMessages($errors);
+            }
+            if (array_key_exists('equipment_details', $data)) {
+                $data['equipment_details'] = EquipmentDetails::merge($vehicle->equipment_details, $data['equipment_details']);
+            }
+            if ($vehicle->isEquipment()) {
+                $data['vehicle_type'] = $data['body_style'] = $data['trim_id'] = null;
+            }
+            // Another partial update may have removed a different rental
+            // rate since request validation. Validate the final locked row.
+            $availability = array_key_exists('availability', $data)
+                ? $data['availability'] : $vehicle->availability?->value;
+            if (in_array($availability, ['rent', 'both'], true)) {
+                $rentalFields = ['rental_daily_rate', 'rental_weekly_rate', 'rental_monthly_rate'];
+                $hasRentalRate = false;
+                foreach ($rentalFields as $field) {
+                    $rate = array_key_exists($field, $data) ? $data[$field] : $vehicle->getAttribute($field);
+                    if ($rate !== null) {
+                        $hasRentalRate = true;
+
+                        break;
+                    }
+                }
+                if (! $hasRentalRate) {
+                    throw ValidationException::withMessages(array_fill_keys(
+                        $rentalFields,
+                        __('Renseignez un tarif journalier, hebdomadaire ou mensuel pour proposer ce véhicule à la location.'),
+                    ));
+                }
+            }
+            if (array_key_exists('heavy_configuration', $data)) {
+                $data['heavy_configuration'] = HeavyVehicleConfiguration::merge($vehicle->heavy_configuration, $data['heavy_configuration']);
+                // Recheck against the locked row: another PATCH may have
+                // changed the other mass after request validation.
+                if (! HeavyVehicleConfiguration::massesAreConsistent($data['heavy_configuration'])) {
+                    throw ValidationException::withMessages([
+                        'heavy_configuration.ptra_kg' => __('Le PTRA doit être supérieur ou égal au PTAC.'),
+                    ]);
+                }
+            }
             $vehicle->update(collect($data)->except(['import', 'registration', 'faults', 'fault_declaration_state', 'features'])->all());
             app(FaultDeclarations::class)->sync($vehicle, $data, $request->user());
 

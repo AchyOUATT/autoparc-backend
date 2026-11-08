@@ -294,6 +294,7 @@ final class PartnerListingPresentation
         if ($type === 'vehicle') {
             $data = Arr::only($data, [
                 'id', 'designation', 'vehicle_type', 'body_style', 'registration_status',
+                'asset_kind', 'equipment_type', 'equipment_details', 'equipment_details_status',
                 'identity', 'technical', 'consumption', 'commercial', 'features',
                 'optional_feature_count', 'is_full_option', 'media', 'description',
                 'published_at', 'created_at', 'share_version', 'seller', 'deal',

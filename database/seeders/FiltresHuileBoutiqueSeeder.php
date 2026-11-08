@@ -116,7 +116,9 @@ use Illuminate\Support\Facades\DB;
  * `catalog:backfill-fitments` ne doit jamais les toucher.
  *
  * Le seeder est rejouable : il retrouve ses pieces par SKU et remplace leurs
- * compatibilites plutot que d'en empiler.
+ * compatibilites plutot que d'en empiler. Une reference explicitement en attente
+ * de verification conserve ses compatibilites existantes ; ses propositions ne
+ * sont pas publiees depuis le lot documentaire.
  */
 class FiltresHuileBoutiqueSeeder extends Seeder
 {
@@ -176,7 +178,7 @@ class FiltresHuileBoutiqueSeeder extends Seeder
      * par numero constructeur, ce qui est honnete — le catalogue ne promet rien
      * qu'il ne puisse tenir.
      *
-     * @var list<array{sku: string, nom: string, description: string, remplace?: list<string>, equivalents?: list<string>, compatibilites: list<array{0: string, 1: ?int, 2: ?int, 3: string, 4: string, 5?: string}>}>
+     * @var list<array{sku: string, nom: string, description: string, remplace?: list<string>, equivalents?: list<string>, compatibilites_a_verifier?: bool, compatibilites: list<array{0: string, 1: ?int, 2: ?int, 3: string, 4: string, 5?: string}>}>
      */
     private const FILTRES = [
         [
@@ -472,8 +474,13 @@ class FiltresHuileBoutiqueSeeder extends Seeder
         [
             "sku"           => "90915-10001",
             "nom"           => "Filtre a huile visse 90915-10001",
-            "description"   => "Visse, ancienne reference. Remplacee par le 90915-YZZN1 sur les catalogues nord-americains. Applications 4 cylindres pre-2008 a verifier selon le marche.",
+            "description"   => "Visse, ancienne reference. Compatibilite a verifier selon le marche, le code moteur et le VIN ; le remplacement commercial par le 90915-YZZN1 ne confirme pas a lui seul une application.",
             "remplace"      => [],
+            // Les propositions du patch toyota_10001_compat.patch attendent
+            // une preuve par marche, moteur et millesime. Elles sont conservees
+            // dans catalogue/fitment-candidates/toyota-90915-10001.json, jamais
+            // publiees depuis ce lot. Ne pas remplacer non plus les declarations
+            // que la boutique a pu renseigner entre-temps.
             "compatibilites_a_verifier" => true,
             "compatibilites" => [
                 // Propositions non publiees. Voir database/catalogue/fitment-candidates/90915-10001.json

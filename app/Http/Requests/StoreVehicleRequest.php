@@ -3,12 +3,15 @@
 namespace App\Http\Requests;
 
 use App\Enums\RegistrationStatus;
+use App\Enums\EquipmentType;
 use App\Enums\Transmission;
 use App\Enums\VehicleAvailability;
 use App\Enums\VehicleCondition;
 use App\Enums\VehicleDealType;
 use App\Enums\VehicleStatus;
 use App\Support\EngineCode;
+use App\Support\EquipmentDetails;
+use App\Support\HeavyVehicleConfiguration;
 use App\Support\VehicleClassification;
 use App\Support\FaultDeclarationInput;
 use Illuminate\Foundation\Http\FormRequest;
@@ -53,11 +56,46 @@ class StoreVehicleRequest extends FormRequest
         if ($this->has('engine_code') && (is_string($this->input('engine_code')) || $this->input('engine_code') === null)) {
             $this->merge(['engine_code' => EngineCode::normalize($this->input('engine_code'))]);
         }
+
+        if ($this->isEquipment()) {
+            $this->merge(['vehicle_type' => null, 'body_style' => null, 'trim_id' => null]);
+        }
+    }
+
+    protected function isEquipment(): bool
+    {
+        return $this->input('asset_kind', $this->route('vehicle')?->asset_kind) === 'equipment';
     }
 
     public function rules(): array
     {
+        $identityPresence = $this->isEquipment() ? 'nullable' : 'required';
+
         return array_merge([
+            'asset_kind' => ['sometimes', 'required', Rule::in(['road_vehicle', 'equipment'])],
+            'equipment_type' => ['nullable', Rule::in(EquipmentType::values())],
+            'equipment_details' => ['nullable', 'array:'.implode(',', EquipmentDetails::KEYS)],
+            'equipment_details.brand_label' => ['nullable', 'string', 'max:100'],
+            'equipment_details.model_label' => ['nullable', 'string', 'max:200'],
+            'equipment_details.serial_number' => ['nullable', 'string', 'max:100'],
+            'equipment_details.engine_serial_number' => ['nullable', 'string', 'max:100'],
+            'equipment_details.registration_number' => ['nullable', 'string', 'max:50'],
+            'equipment_details.park_number' => ['nullable', 'string', 'max:50'],
+            'equipment_details.operating_hours' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.hour_reading_date' => ['nullable', 'date', 'before_or_equal:today'],
+            'equipment_details.odometer_km' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.power_kw' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.transmission' => ['nullable', Rule::in(['mechanical', 'hydrostatic', 'powershift', 'electric', 'other'])],
+            'equipment_details.rated_load_kg' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.working_height_m' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.outreach_m' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.lift_height_m' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.operating_weight_kg' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.bucket_capacity_m3' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.pto_rpm' => ['nullable', 'integer', 'min:0'],
+            'equipment_details.cabin' => ['nullable', Rule::in(['open', 'closed', 'air_conditioned'])],
+            'equipment_details.quick_coupler' => ['nullable', 'boolean'],
+            'equipment_details.attachments' => ['nullable', 'string', 'max:2000'],
             'reference'           => ['nullable', 'string', 'max:50', Rule::unique('vehicles', 'reference')],
             'vin'                 => ['nullable', 'string', 'size:17', Rule::unique('vehicles', 'vin')],
             // Envoye, il prime. Absent, il est DEDUIT de `plate_number` :
@@ -73,14 +111,14 @@ class StoreVehicleRequest extends FormRequest
                 'pickup', 'van', 'minibus', 'bus', 'truck', 'other',
             ])],
 
-            'brand_id'           => ['required', 'integer', 'exists:brands,id'],
-            'vehicle_model_id'   => ['required', 'integer', 'exists:vehicle_models,id'],
+            'brand_id'           => [$identityPresence, 'integer', 'exists:brands,id'],
+            'vehicle_model_id'   => [$identityPresence, 'integer', 'exists:vehicle_models,id'],
             'trim_id'            => ['nullable', 'integer', 'exists:trims,id'],
-            'engine_type_id'     => ['required', 'exists:engine_types,id'],
+            'engine_type_id'     => [$identityPresence, 'exists:engine_types,id'],
             'drivetrain_id'      => ['nullable', 'exists:drivetrains,id'],
             'color_id'           => ['nullable', 'exists:colors,id'],
 
-            'manufacturing_year' => ['required', 'integer', 'min:1950', 'max:'.now()->year],
+            'manufacturing_year' => [$identityPresence, 'integer', 'min:1950', 'max:'.now()->year],
             'transmission'       => ['nullable', Rule::in(Transmission::values())],
             'gear_count'         => ['nullable', 'integer', 'min:1', 'max:12'],
             'engine_displacement_cc' => ['nullable', 'integer', 'min:0', 'max:20000'],
@@ -91,6 +129,18 @@ class StoreVehicleRequest extends FormRequest
             'seats'              => ['nullable', 'integer', 'min:1', 'max:70'],
             'doors'              => ['nullable', 'integer', 'min:0', 'max:8'],
             'engine_code'        => ['nullable', 'string', 'max:50'],
+
+            'heavy_configuration' => ['nullable', 'array:'.implode(',', HeavyVehicleConfiguration::KEYS)],
+            'heavy_configuration.version_label' => ['nullable', 'string', 'max:100'],
+            'heavy_configuration.cab_label' => ['nullable', 'string', 'max:100'],
+            'heavy_configuration.axle_configuration' => ['nullable', 'string', 'max:40'],
+            'heavy_configuration.chassis_type' => ['nullable', Rule::in(['tractor', 'rigid', 'other'])],
+            'heavy_configuration.body_use' => ['nullable', 'string', 'max:100'],
+            'heavy_configuration.emission_standard' => ['nullable', 'string', 'max:40'],
+            'heavy_configuration.ptac_kg' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+            'heavy_configuration.ptra_kg' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+            // Derived response metadata must never be supplied by the client.
+            'heavy_configuration_status' => ['missing'],
 
             'consumption_urban'        => ['nullable', 'numeric', 'min:0', 'max:99.99'],
             'consumption_extra_urban'  => ['nullable', 'numeric', 'min:0', 'max:99.99'],
@@ -186,6 +236,26 @@ class StoreVehicleRequest extends FormRequest
                 return;
             }
 
+            foreach (EquipmentDetails::validationErrors($this->only([
+                'asset_kind', 'equipment_type', 'equipment_details', 'brand_id', 'vehicle_model_id',
+            ]), $vehicle) as $field => $message) {
+                $validator->errors()->add($field, $message);
+            }
+
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            if ($this->exists('heavy_configuration')) {
+                $configuration = HeavyVehicleConfiguration::merge(
+                    $vehicle?->heavy_configuration,
+                    $this->input('heavy_configuration'),
+                );
+                if (! HeavyVehicleConfiguration::massesAreConsistent($configuration)) {
+                    $validator->errors()->add('heavy_configuration.ptra_kg', __('Le PTRA doit être supérieur ou égal au PTAC.'));
+                }
+            }
+
             // En modification, un champ omis conserve sa valeur ; un null
             // explicite retire le tarif. On controle donc la fiche resultante.
             $availability = $this->input('availability', $vehicle?->availability?->value);
@@ -195,11 +265,13 @@ class StoreVehicleRequest extends FormRequest
             }
 
             $dailyRate = $this->input('rental_daily_rate', $vehicle?->rental_daily_rate);
+            $weeklyRate = $this->input('rental_weekly_rate', $vehicle?->rental_weekly_rate);
             $monthlyRate = $this->input('rental_monthly_rate', $vehicle?->rental_monthly_rate);
 
-            if ($dailyRate === null && $monthlyRate === null) {
-                $message = __('Renseignez un prix journalier ou un forfait mensuel pour proposer ce véhicule à la location.');
+            if ($dailyRate === null && $weeklyRate === null && $monthlyRate === null) {
+                $message = __('Renseignez un tarif journalier, hebdomadaire ou mensuel pour proposer ce véhicule à la location.');
                 $validator->errors()->add('rental_daily_rate', $message);
+                $validator->errors()->add('rental_weekly_rate', $message);
                 $validator->errors()->add('rental_monthly_rate', $message);
             }
         });

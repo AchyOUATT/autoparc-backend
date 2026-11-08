@@ -14,6 +14,8 @@ final class VehicleCatalogQuery
         return Vehicle::query()
             ->when($publicOnly || ! $request->user()?->isStaff(), fn ($query) => $query->visibleToPublic())
             ->search($request->string('q')->toString() ?: null)
+            ->when($request->filled('asset_kind'), fn ($q) => $q->where('asset_kind', $request->asset_kind))
+            ->when($request->filled('equipment_type'), fn ($q) => $q->where('asset_kind', 'equipment')->where('equipment_type', $request->equipment_type))
             ->when($request->filled('registration_status'), fn ($q) => $q->where('registration_status', $request->registration_status))
             ->when($request->filled('brand_id'), fn ($q) => $q->where('brand_id', $request->brand_id))
             ->when($request->filled('vehicle_model_id'), fn ($q) => $q->where('vehicle_model_id', $request->vehicle_model_id))

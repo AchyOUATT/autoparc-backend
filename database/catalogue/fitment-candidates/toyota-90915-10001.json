@@ -1,0 +1,221 @@
+{
+    "version": 1,
+    "status": "pending_review",
+    "brand_slug": "toyota",
+    "part_sku": "90915-10001",
+    "origin": {
+        "file": "toyota_10001_compat.patch",
+        "received_on": "2026-11-07"
+    },
+    "notes": [
+        "Lot de recherche, sans publication en base et sans compatibilité confirmée.",
+        "Les périodes proposées et les affirmations de source sont conservées telles qu’elles ont été fournies pour permettre leur revue ; elles ne sont pas des applications validées.",
+        "Aucune compatibilité ne peut être déduite d’une supersession 90915-10001 vers 90915-YZZN1 ni de la seule présence de quatre cylindres."
+    ],
+    "entries": [
+        {
+            "model_slug": "corolla-e140",
+            "engine_code": "1ZZ-FE",
+            "proposed_year_from": 2006,
+            "proposed_year_to": 2008,
+            "claimed_market": "US",
+            "claimed_source": {
+                "label": "ToyotaPartsNow / catalogue US cité dans le patch, document non fourni",
+                "year_from": 1998,
+                "year_to": 2008,
+                "note": "Catalogue US ToyotaPartsNow : Corolla 1.8 1ZZ-FE 1998-2008. Borne basse a 2006, debut E140."
+            },
+            "sources": [],
+            "verified_on": null,
+            "review_notes": [
+                "Vérifier dans un catalogue identifiable l’application du filtre 90915-10001 à cette génération, ce moteur et ce marché.",
+                "Le patch rapproche une application US 1ZZ-FE 1998–2008 d’une génération E140 débutant en 2006 dans le catalogue global ; le dépôt décrit les E140 nord-américaines 2009–2013 en 2ZR-FE/2AZ-FE. Résoudre ce périmètre avant publication."
+            ]
+        },
+        {
+            "model_slug": "corolla-e130",
+            "engine_code": "1ZZ-FE",
+            "proposed_year_from": 2002,
+            "proposed_year_to": 2006,
+            "claimed_market": "US",
+            "claimed_source": {
+                "label": "ToyotaPartsNow / catalogue US cité dans le patch, document non fourni",
+                "year_from": 1998,
+                "year_to": 2008,
+                "note": "Catalogue US : Corolla 1ZZ-FE 1998-2008. Generation E130."
+            },
+            "sources": [],
+            "verified_on": null,
+            "review_notes": [
+                "Vérifier dans un catalogue identifiable l’application du filtre 90915-10001 à cette génération, ce moteur et ce marché."
+            ]
+        },
+        {
+            "model_slug": "corolla-e120",
+            "engine_code": "1ZZ-FE",
+            "proposed_year_from": 2000,
+            "proposed_year_to": 2002,
+            "claimed_market": "US",
+            "claimed_source": {
+                "label": "ToyotaPartsNow / catalogue US cité dans le patch, document non fourni",
+                "year_from": 1998,
+                "year_to": 2008,
+                "note": "Catalogue US : Corolla 1ZZ-FE 1998-2008. Generation E120."
+            },
+            "sources": [],
+            "verified_on": null,
+            "review_notes": [
+                "Vérifier dans un catalogue identifiable l’application du filtre 90915-10001 à cette génération, ce moteur et ce marché."
+            ]
+        },
+        {
+            "model_slug": "corolla-e110",
+            "engine_code": "4A-FE",
+            "proposed_year_from": 1995,
+            "proposed_year_to": 2000,
+            "claimed_market": "US",
+            "claimed_source": {
+                "label": "ToyotaPartsNow / catalogue US cité dans le patch, document non fourni",
+                "year_from": 1992,
+                "year_to": 2000,
+                "note": "Catalogue US : Corolla 4A-FE / 7A-FE 1992-2000. Generation E110."
+            },
+            "sources": [],
+            "verified_on": null,
+            "review_notes": [
+                "Vérifier dans un catalogue identifiable l’application du filtre 90915-10001 à cette génération, ce moteur et ce marché."
+            ]
+        },
+        {
+            "model_slug": "corolla-e110",
+            "engine_code": "7A-FE",
+            "proposed_year_from": 1995,
+            "proposed_year_to": 2000,
+            "claimed_market": "US",
+            "claimed_source": {
+                "label": "ToyotaPartsNow / catalogue US cité dans le patch, document non fourni",
+                "year_from": 1992,
+                "year_to": 2000,
+                "note": "Catalogue US : Corolla 4A-FE / 7A-FE 1992-2000. Generation E110."
+            },
+            "sources": [],
+            "verified_on": null,
+            "review_notes": [
+                "Vérifier dans un catalogue identifiable l’application du filtre 90915-10001 à cette génération, ce moteur et ce marché."
+            ]
+        },
+        {
+            "model_slug": "corolla-e100",
+            "engine_code": "4A-FE",
+            "proposed_year_from": 1991,
+            "proposed_year_to": 1995,
+            "claimed_market": "US",
+            "claimed_source": {
+                "label": "ToyotaPartsNow / catalogue US cité dans le patch, document non fourni",
+                "year_from": 1992,
+                "year_to": 1995,
+                "note": "Catalogue US : Corolla 4A-FE 1992-1995. Generation E100."
+            },
+            "sources": [],
+            "verified_on": null,
+            "review_notes": [
+                "Vérifier dans un catalogue identifiable l’application du filtre 90915-10001 à cette génération, ce moteur et ce marché.",
+                "La période proposée dépasse celle annoncée par la note source ; aucune extension n’est justifiée par le seul début mondial de la génération."
+            ]
+        },
+        {
+            "model_slug": "corolla-e100",
+            "engine_code": "7A-FE",
+            "proposed_year_from": 1991,
+            "proposed_year_to": 1995,
+            "claimed_market": "US",
+            "claimed_source": {
+                "label": "ToyotaPartsNow / catalogue US cité dans le patch, document non fourni",
+                "year_from": 1992,
+                "year_to": 1995,
+                "note": "Catalogue US : Corolla 7A-FE 1992-1995. Generation E100."
+            },
+            "sources": [],
+            "verified_on": null,
+            "review_notes": [
+                "Vérifier dans un catalogue identifiable l’application du filtre 90915-10001 à cette génération, ce moteur et ce marché.",
+                "La période proposée dépasse celle annoncée par la note source ; aucune extension n’est justifiée par le seul début mondial de la génération."
+            ]
+        },
+        {
+            "model_slug": "yaris-xp90",
+            "engine_code": "1NZ-FE",
+            "proposed_year_from": 2005,
+            "proposed_year_to": 2011,
+            "claimed_market": "US",
+            "claimed_source": {
+                "label": "ToyotaPartsNow / catalogue US cité dans le patch, document non fourni",
+                "year_from": null,
+                "year_to": null,
+                "note": "Catalogue US : Yaris / Echo 1NZ-FE. Generation XP90."
+            },
+            "sources": [],
+            "verified_on": null,
+            "review_notes": [
+                "Vérifier dans un catalogue identifiable l’application du filtre 90915-10001 à cette génération, ce moteur et ce marché.",
+                "La mention Yaris / Echo ne documente ni une équivalence de générations ni la période 2005–2011. La description pré-2008 du patch est également incompatible avec cette proposition."
+            ]
+        },
+        {
+            "model_slug": "camry-xv20",
+            "engine_code": "5S-FE",
+            "proposed_year_from": 1996,
+            "proposed_year_to": 2001,
+            "claimed_market": "US",
+            "claimed_source": {
+                "label": "ToyotaPartsNow / catalogue US cité dans le patch, document non fourni",
+                "year_from": 1992,
+                "year_to": 2001,
+                "note": "Catalogue US : Camry 2.2 5S-FE 1992-2001. Generation XV20."
+            },
+            "sources": [],
+            "verified_on": null,
+            "review_notes": [
+                "Vérifier dans un catalogue identifiable l’application du filtre 90915-10001 à cette génération, ce moteur et ce marché."
+            ]
+        },
+        {
+            "model_slug": "camry-xv10",
+            "engine_code": "5S-FE",
+            "proposed_year_from": 1991,
+            "proposed_year_to": 1996,
+            "claimed_market": "US",
+            "claimed_source": {
+                "label": "ToyotaPartsNow / catalogue US cité dans le patch, document non fourni",
+                "year_from": 1992,
+                "year_to": 1996,
+                "note": "Catalogue US : Camry 2.2 5S-FE 1992-1996. Generation XV10."
+            },
+            "sources": [],
+            "verified_on": null,
+            "review_notes": [
+                "Vérifier dans un catalogue identifiable l’application du filtre 90915-10001 à cette génération, ce moteur et ce marché.",
+                "La période proposée dépasse celle annoncée par la note source ; aucune extension n’est justifiée par le seul début mondial de la génération."
+            ]
+        },
+        {
+            "model_slug": "rav4-xa10",
+            "engine_code": "3S-FE",
+            "proposed_year_from": 1994,
+            "proposed_year_to": 2000,
+            "claimed_market": "US",
+            "claimed_source": {
+                "label": "ToyotaPartsNow / catalogue US cité dans le patch, document non fourni",
+                "year_from": 1996,
+                "year_to": 2000,
+                "note": "Catalogue US : RAV4 2.0 3S-FE 1996-2000. Generation XA10."
+            },
+            "sources": [],
+            "verified_on": null,
+            "review_notes": [
+                "Vérifier dans un catalogue identifiable l’application du filtre 90915-10001 à cette génération, ce moteur et ce marché.",
+                "La période proposée dépasse celle annoncée par la note source ; aucune extension n’est justifiée par le seul début mondial de la génération."
+            ]
+        }
+    ]
+}

@@ -15,6 +15,7 @@ class VehicleModel extends Model
         'segment', 'production_start', 'production_end', 'is_active',
         'default_vehicle_type', 'default_seats', 'default_doors',
         'default_transmission', 'default_power_hp',
+        'equipment_category',
     ];
 
     protected function casts(): array

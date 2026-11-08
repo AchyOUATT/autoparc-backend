@@ -15,6 +15,7 @@ class OwnedVehicle extends Model
     protected $fillable = [
         'user_id', 'brand_id', 'vehicle_model_id', 'model_libre', 'trim_id',
         'engine_type_id', 'motorisation_id', 'drivetrain_id', 'color_id',
+        'engine_displacement_cc', 'engine_displacement_l', 'cylinders', 'engine_layout', 'power_hp',
         'manufacturing_year', 'model_year', 'specification_market', 'vin', 'engine_code', 'plate_number', 'nickname', 'mileage_km',
         'technical_inspection_expiry', 'insurance_expiry',
         'last_service_date', 'last_service_mileage_km', 'service_interval_km',
@@ -23,6 +24,10 @@ class OwnedVehicle extends Model
     protected function casts(): array
     {
         return [
+            'engine_displacement_cc' => 'integer',
+            'engine_displacement_l' => 'decimal:3',
+            'cylinders' => 'integer',
+            'power_hp' => 'integer',
             'manufacturing_year'          => 'integer',
             'model_year' => 'integer',
             'mileage_km'                  => 'integer',

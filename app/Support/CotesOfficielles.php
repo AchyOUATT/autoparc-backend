@@ -20,7 +20,7 @@ class CotesOfficielles
      */
     public static function pourVehicule(Vehicle $vehicule): array
     {
-        if ($vehicule->vehicle_model_id === null) {
+        if (($vehicule->asset_kind ?? 'road_vehicle') === 'equipment' || $vehicule->vehicle_model_id === null) {
             return [];
         }
 
@@ -36,11 +36,7 @@ class CotesOfficielles
             ->whereNotNull('consumption_combined')
             ->get()
             ->filter(fn (Motorisation $reference) => $references->contradictions($reference, $context) === [])
-            ->sortBy(fn (Motorisation $reference) => [
-                $vehicule->manufacturing_year === null || $reference->year_kind !== 'model_year'
-                    ? PHP_INT_MAX : abs($reference->model_year - $vehicule->manufacturing_year),
-                $reference->source, $reference->cycle, $reference->model_year, $reference->id,
-            ])
+            // Ranking happens after the complete candidate set is loaded.
             ->values()
             ->all();
     }
@@ -56,6 +52,13 @@ class CotesOfficielles
             'transmission' => $vehicule->transmission?->value,
             'gear_count' => $vehicule->gear_count,
             'requested_year' => $vehicule->manufacturing_year,
+            'engine_displacement_cc' => (float) $vehicule->engine_displacement_cc > 0 ? $vehicule->engine_displacement_cc : null,
+            'cylinders' => (float) $vehicule->cylinders > 0 ? $vehicule->cylinders : null,
+            // Prefer explicit native kW when available. Conversion is only a
+            // comparison context; the listing's declared values stay intact.
+            'power_hp' => $vehicule->power_kw !== null && (float) $vehicule->power_kw > 0
+                ? (float) $vehicule->power_kw / 0.73549875
+                : ((float) $vehicule->power_hp > 0 ? $vehicule->power_hp : null),
             // Manufacturing year and import country do not establish either.
             'model_year' => null,
             'specification_market' => null,

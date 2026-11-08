@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\EquipmentType;
 use App\Enums\PartCondition;
 use App\Enums\Transmission;
 use App\Enums\VehicleCondition;
@@ -13,6 +14,7 @@ use App\Models\Part;
 use App\Models\Vehicle;
 use App\Services\AutoParcContact;
 use App\Support\ArticlePartage;
+use App\Support\EquipmentDetails;
 use App\Support\PartnerListingPresentation;
 use App\Support\PartnerMedia;
 use App\Support\PhotoPartage;
@@ -183,7 +185,7 @@ class ArticleController extends Controller
             // espaces de bord. Sans finition — la moitie du parc importe —, il
             // reste un espace double au milieu. Le HTML l'avale a l'affichage,
             // mais og:title non : c'est la ligne en gras de la conversation.
-            titre:       preg_replace('/\s+/', ' ', $vehicle->designation),
+            titre: $this->titreVehicule($vehicle),
             prix:        $vehicle->availability?->allowsSale() && $vehicle->sale_price !== null
                 ? (float) $vehicle->sale_price
                 : null,
@@ -195,10 +197,13 @@ class ArticleController extends Controller
             tarifLocation: $vehicle->availability?->allowsRent() && $vehicle->rental_daily_rate !== null
                 ? (float) $vehicle->rental_daily_rate
                 : null,
+            tarifLocationHebdomadaire: $vehicle->availability?->allowsRent() && $vehicle->rental_weekly_rate !== null
+                ? (float) $vehicle->rental_weekly_rate
+                : null,
             tarifLocationMensuel: $vehicle->availability?->allowsRent() && $vehicle->rental_monthly_rate !== null
                 ? (float) $vehicle->rental_monthly_rate
                 : null,
-            precisions:  array_filter([
+            precisions: $vehicle->isEquipment() ? $this->precisionsEngin($vehicle) : array_filter([
                 'Année'        => $vehicle->manufacturing_year ? (string) $vehicle->manufacturing_year : null,
                 'État'         => $this->etatVehicule($vehicle->condition),
                 'Kilométrage'  => $vehicle->mileage_km !== null
@@ -210,6 +215,61 @@ class ArticleController extends Controller
                 'Ville'        => $vehicle->location?->city,
             ]),
         ));
+    }
+
+    private function titreVehicule(Vehicle $vehicle): string
+    {
+        if (! $vehicle->isEquipment()) {
+            return preg_replace('/\s+/', ' ', $vehicle->designation);
+        }
+
+        $details = EquipmentDetails::normalize($vehicle->equipment_details) ?? [];
+        $title = implode(' ', array_filter([
+            $vehicle->brand?->name ?? ($details['brand_label'] ?? null),
+            $vehicle->vehicleModel?->name ?? ($details['model_label'] ?? null),
+            $vehicle->manufacturing_year > 0 ? $vehicle->manufacturing_year : null,
+        ], static fn ($value) => $value !== null && $value !== ''));
+
+        return preg_replace('/\s+/', ' ', $title) ?: EquipmentType::tryFrom($vehicle->equipment_type ?? '')?->label() ?? 'Engin et matériel';
+    }
+
+    /** Owner-declared equipment measurements do not imply road registration or certification. */
+    private function precisionsEngin(Vehicle $vehicle): array
+    {
+        $details = EquipmentDetails::normalize($vehicle->equipment_details) ?? [];
+        $precisions = [
+            'Type d’engin' => EquipmentType::tryFrom($vehicle->equipment_type ?? '')?->label(),
+            'Année' => $vehicle->manufacturing_year > 0 ? (string) $vehicle->manufacturing_year : null,
+            'État' => $this->etatVehicule($vehicle->condition),
+        ];
+
+        foreach ([
+            'operating_hours' => ['Horamètre', 'h'],
+            'odometer_km' => ['Compteur kilométrique', 'km'],
+            'power_kw' => ['Puissance', 'kW'],
+            'rated_load_kg' => ['Charge nominale', 'kg'],
+            'working_height_m' => ['Hauteur de travail', 'm'],
+            'outreach_m' => ['Déport', 'm'],
+            'lift_height_m' => ['Hauteur de levage', 'm'],
+            'operating_weight_kg' => ['Poids en ordre de marche', 'kg'],
+            'bucket_capacity_m3' => ['Capacité du godet', 'm³'],
+            'pto_rpm' => ['Prise de force', 'tr/min'],
+        ] as $key => [$label, $unit]) {
+            if (isset($details[$key])) {
+                $number = rtrim(rtrim(number_format((float) $details[$key], 3, ',', "\u{A0}"), '0'), ',');
+                $precisions[$label] = $number."\u{A0}".$unit;
+            }
+        }
+
+        $precisions += [
+            'Transmission' => $details['transmission'] ?? null,
+            'Cabine' => $details['cabin'] ?? null,
+            'Attache rapide' => isset($details['quick_coupler']) ? ($details['quick_coupler'] ? 'Oui' : 'Non') : null,
+            'Accessoires' => $details['attachments'] ?? null,
+            'Ville' => $vehicle->location?->city,
+        ];
+
+        return array_filter($precisions, static fn ($value) => $value !== null && $value !== '');
     }
 
     /** GET /p/{part} */

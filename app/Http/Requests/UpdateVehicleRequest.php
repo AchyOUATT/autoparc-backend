@@ -8,8 +8,9 @@ class UpdateVehicleRequest extends StoreVehicleRequest
 {
     public function rules(): array
     {
-        // Le parc conserve ses champs obligatoires. Les dependances omises,
-        // comme la finition, sont controlees sur l'etat final du vehicule.
+        // Les vehicules routiers conservent leurs champs obligatoires.
+        // L'identite d'un engin et les dependances omises sont controlees
+        // sur l'etat final de la fiche par la requete parente.
         $rules = parent::rules();
         $id = $this->route('vehicle')?->id ?? $this->route('vehicle');
 
