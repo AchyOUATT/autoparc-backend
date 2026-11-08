@@ -438,11 +438,25 @@ class VehicleModelsSeeder extends Seeder
             ['honda', 'Jazz',          'GE',    'citadine',  'B', 2008, 2013],
             ['honda', 'Civic',         'FC',    'berline',   'C', 2015, null],
             ['honda', 'Civic',         'FB',    'berline',   'C', 2011, 2015],
+            // Variantes EUROPEENNES, ajoutees a cote des lignes existantes sans
+            // en remplacer aucune (voir docs/honda-variantes-europeennes.md).
+            // Annees de PRODUCTION d'apres les fiches de secours Honda, pas
+            // des millesimes ; fin null = production en cours.
+            //  - FL4 : Civic e:HEV 5 portes a hayon (compacte), des 2022.
+            //  - FN  : Civic 3 portes, regroupement officiel FN1-FN4 de la
+            //    fiche Honda 2007-2011 ; aucun moteur ni sous-code invente.
+            //  - FD3 : Civic Hybrid berline 4 portes, 2006-2011.
+            ['honda', 'Civic e:HEV',   'FL4',   'compacte',  'C', 2022, null],
+            ['honda', 'Civic',         'FN',    'compacte',  'C', 2007, 2011],
+            ['honda', 'Civic Hybrid',  'FD3',   'berline',   'C', 2006, 2011],
             ['honda', 'Accord',        'CR',    'berline',   'D', 2012, 2017],
             ['honda', 'Accord',        'CV',    'berline',   'D', 2017, null],
             ['honda', 'CR-V',          'RW',    'suv',       'D', 2016, null],
             ['honda', 'CR-V',          'RM',    'suv',       'D', 2011, 2016],
             ['honda', 'HR-V',          'RU',    'suv',       'B', 2014, null],
+            // ZR-V e:HEV, SUV 5 portes, marche europeen, des 2023 (fiche de
+            // secours Honda Europe). Voir docs/honda-variantes-europeennes.md.
+            ['honda', 'ZR-V e:HEV',    'RZ4',   'suv',       'C', 2023, null],
             ['honda', 'Pilot',         'YF',    'suv',       'E', 2015, null],
             ['honda', 'City',          'GM6',   'berline',   'B', 2014, null],
 
