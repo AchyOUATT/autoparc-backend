@@ -36,9 +36,11 @@ class AuditFitmentCandidatesTest extends TestCase
     private function audit(array $args = []): array
     {
         $code = Artisan::call('catalog:audit-fitment-candidates', $args + ['--json' => true]);
-        $this->assertSame(0, $code, Artisan::output());
+        // `Artisan::output()` vide le tampon : une seule lecture.
+        $output = Artisan::output();
+        $this->assertSame(0, $code, $output);
 
-        return json_decode(Artisan::output(), true);
+        return json_decode($output, true);
     }
 
     public function test_the_audit_is_read_only_and_publishes_nothing(): void
