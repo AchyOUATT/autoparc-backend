@@ -35,7 +35,7 @@ class PartResource extends JsonResource
                 $this->resource->getAttribute('compatibility_assessment') !== null,
                 fn () => $this->resource->getAttribute('compatibility_assessment'),
             ),
-            'type'        => $this->type->value,
+            'type'        => $this->type?->value,
             'condition'   => $this->condition->value,
             'category'        => $this->whenLoaded('category', fn () => [
                 'id'   => $this->category->id,

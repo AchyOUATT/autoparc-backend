@@ -256,4 +256,34 @@ class PartnerCatalogTest extends TestCase
         $this->getJson('/api/partner/'.$type)->assertOk()
             ->assertJsonCount(1, 'data.0.media')->assertJsonPath('data.0.media.0.id', $image->id);
     }
+
+    public function test_a_part_can_be_created_without_an_origin_type_and_none_is_invented(): void
+    {
+        $payload = $this->payload('parts');
+        unset($payload['type']);
+
+        $id = $this->postJson('/api/partner/parts', $payload)->assertCreated()
+            ->assertJsonPath('data.type', null)
+            ->assertJsonPath('data.condition', 'new')
+            ->json('data.id');
+
+        $this->assertNull(Part::findOrFail($id)->type);
+    }
+
+    public function test_updating_a_part_without_type_preserves_its_existing_origin(): void
+    {
+        $part = $this->product('parts', $this->account, ['type' => 'oem']);
+        $payload = $this->payload('parts');
+        unset($payload['type']);
+
+        $this->patchJson('/api/partner/parts/'.$part->id, $payload + ['condition' => 'refurbished'])
+            ->assertOk()->assertJsonPath('data.type', 'oem');
+        $this->assertDatabaseHas('parts', ['id' => $part->id, 'type' => 'oem', 'condition' => 'refurbished']);
+    }
+
+    public function test_an_invalid_part_type_is_still_rejected(): void
+    {
+        $this->postJson('/api/partner/parts', ['type' => 'fake'] + $this->payload('parts'))
+            ->assertUnprocessable()->assertJsonValidationErrors('type');
+    }
 }

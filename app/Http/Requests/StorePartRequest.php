@@ -47,7 +47,7 @@ class StorePartRequest extends FormRequest
             'part_category_id'       => ['required', 'exists:part_categories,id'],
             'manufacturer_id'        => ['nullable', 'exists:manufacturers,id'],
             'manufacturer_reference' => ['nullable', 'string', 'max:80'],
-            'type'                   => ['required', Rule::in(PartType::values())],
+            'type'                   => ['sometimes', 'nullable', Rule::in(PartType::values())],
             'condition'              => ['required', Rule::in(PartCondition::values())],
             'donor_vehicle_id'       => ['nullable', 'exists:vehicles,id', 'required_if:condition,used'],
             'weight_kg'              => ['nullable', 'numeric', 'min:0'],
