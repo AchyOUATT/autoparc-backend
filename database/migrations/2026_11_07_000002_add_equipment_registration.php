@@ -9,16 +9,25 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('vehicles', function (Blueprint $table) {
+        $postgres = Schema::getConnection()->getDriverName() === 'pgsql';
+        Schema::table('vehicles', function (Blueprint $table) use ($postgres) {
             $table->string('asset_kind', 20)->default('road_vehicle')->index();
             $table->string('equipment_type', 40)->nullable()->index();
             $table->json('equipment_details')->nullable();
-            $table->enum('vehicle_type', ['passenger', 'utility', 'heavy'])->nullable()->default('passenger')->change();
+            if (! $postgres) {
+                $table->enum('vehicle_type', ['passenger', 'utility', 'heavy'])->nullable()->default('passenger')->change();
+            }
             $table->foreignId('brand_id')->nullable()->change();
             $table->foreignId('vehicle_model_id')->nullable()->change();
             $table->foreignId('engine_type_id')->nullable()->change();
             $table->unsignedSmallInteger('manufacturing_year')->nullable()->change();
         });
+        if ($postgres) {
+            // PostgreSQL enums are VARCHAR + CHECK in Laravel. Changing that
+            // blueprint emits an invalid ALTER TYPE ... CHECK. Preserve both
+            // the existing check and default, changing only nullability.
+            DB::statement('ALTER TABLE vehicles ALTER COLUMN vehicle_type DROP NOT NULL');
+        }
         Schema::table('vehicle_models', function (Blueprint $table) {
             $table->string('equipment_category', 40)->nullable()->index();
         });
@@ -45,13 +54,19 @@ return new class extends Migration
         Schema::table('vehicle_models', function (Blueprint $table) {
             $table->dropColumn('equipment_category');
         });
-        Schema::table('vehicles', function (Blueprint $table) {
+        $postgres = Schema::getConnection()->getDriverName() === 'pgsql';
+        Schema::table('vehicles', function (Blueprint $table) use ($postgres) {
             $table->dropColumn(['asset_kind', 'equipment_type', 'equipment_details']);
-            $table->enum('vehicle_type', ['passenger', 'utility', 'heavy'])->nullable(false)->default('passenger')->change();
+            if (! $postgres) {
+                $table->enum('vehicle_type', ['passenger', 'utility', 'heavy'])->nullable(false)->default('passenger')->change();
+            }
             $table->foreignId('brand_id')->nullable(false)->change();
             $table->foreignId('vehicle_model_id')->nullable(false)->change();
             $table->foreignId('engine_type_id')->nullable(false)->change();
             $table->unsignedSmallInteger('manufacturing_year')->nullable(false)->change();
         });
+        if ($postgres) {
+            DB::statement('ALTER TABLE vehicles ALTER COLUMN vehicle_type SET NOT NULL');
+        }
     }
 };
