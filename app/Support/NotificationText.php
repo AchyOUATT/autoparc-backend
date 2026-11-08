@@ -42,8 +42,12 @@ final class NotificationText
             $body = $translateReference($m[1]).' added: '.$m[2];
         } elseif ($type === 'accessory_match' && preg_match("/^Un accessoire (.*?) vient d'être ajouté : (.*)$/su", $body, $m)) {
             $body = 'New '.$translateReference($m[1]).' accessory: '.$m[2];
-        } elseif ($type === 'partner_account_approved' && $body === 'Votre compte est approuvé. Publiez votre première annonce.') {
-            $body = 'Your account is approved. Publish your first listing.';
+        } elseif ($type === 'partner_account_approved') {
+            $body = match ($body) {
+                'Votre compte est approuvé. Publiez votre première annonce.' => 'Your account is approved. Publish your first listing.',
+                'Votre compte est de nouveau actif.' => 'Your account is active again.',
+                default => $body,
+            };
         } elseif ($type === 'partner_account_rejected' && preg_match('/^Votre demande a été refusée : (.*)$/su', $body, $m)) {
             // Le motif est du texte humain, tape par le personnel : il voyage tel quel.
             $body = 'Your application was declined: '.$m[1];

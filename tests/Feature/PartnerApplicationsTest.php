@@ -165,4 +165,52 @@ class PartnerApplicationsTest extends TestCase
             );
         }
     }
+
+    /**
+     * La meme decision envoyee deux fois — instance lente, client qui
+     * reessaie, double appui — n'est pas deux decisions : une seule ligne
+     * dans la boite, et la pastille dit « 1 ».
+     */
+    public function test_la_meme_decision_envoyee_deux_fois_ne_notifie_qu_une_fois(): void
+    {
+        $account = $this->account();
+        $token = User::factory()->create(['role' => 'admin'])->createToken('direction')->plainTextToken;
+
+        $this->bearer($token)->postJson('/api/partner-applications/'.$account->id.'/approve')->assertOk();
+        $this->bearer($token)->postJson('/api/partner-applications/'.$account->id.'/approve')
+            ->assertOk()->assertJsonPath('data.status', 'approved');
+
+        $this->assertSame(1, AppNotification::forPartner($account->user_id)->count());
+
+        // Un motif qui change sur une suspension, lui, est une autre decision :
+        // le partenaire doit lire le motif corrige. Deux suspensions, deux motifs,
+        // deux lignes ; la meme suspension redite, aucune de plus.
+        foreach (['Pièces manquantes.', 'Pièces manquantes.', 'Pièces manquantes et plainte client.'] as $motif) {
+            $this->bearer($token)->postJson('/api/partner-applications/'.$account->id.'/suspend', ['review_reason' => $motif])->assertOk();
+        }
+        $this->assertSame(2, AppNotification::forPartner($account->user_id)->where('type', 'partner_account_suspended')->count());
+    }
+
+    /**
+     * Un compte reapprouve a deja ses annonces : « publiez votre premiere
+     * annonce » serait faux, et il le saurait.
+     */
+    public function test_un_compte_reapprouve_lit_qu_il_est_de_nouveau_actif(): void
+    {
+        $account = $this->account();
+        $account->update(['status' => 'approved']);
+        $token = User::factory()->create(['role' => 'admin'])->createToken('direction')->plainTextToken;
+
+        $this->bearer($token)->postJson('/api/partner-applications/'.$account->id.'/suspend', ['review_reason' => 'Vérification en cours.'])->assertOk();
+        $this->bearer($token)->postJson('/api/partner-applications/'.$account->id.'/approve')->assertOk();
+
+        $approbation = fn (string $langue): array => collect(
+            $this->bearer($account->user->createToken('partenaire')->plainTextToken)
+                ->withHeader('Accept-Language', $langue)->getJson('/api/partner/notifications')
+                ->assertOk()->assertJsonCount(2, 'data')->json('data'),
+        )->firstWhere('type', 'partner_account_approved');
+
+        $this->assertSame('Votre compte est de nouveau actif.', $approbation('fr')['body']);
+        $this->assertSame('Your account is active again.', $approbation('en')['body']);
+    }
 }

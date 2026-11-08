@@ -64,9 +64,27 @@ class PartnerApplicationController extends Controller
             // Meme ordre de verrous que la connexion : utilisateur, puis compte.
             $user = $partnerAccount->user()->lockForUpdate()->firstOrFail();
             $account = PartnerAccount::query()->lockForUpdate()->findOrFail($partnerAccount->id);
+            $reason = $data['review_reason'] ?? null;
+
+            // ── LA MEME DECISION DEUX FOIS N'EST PAS DEUX DECISIONS ──────────
+            //
+            // Une instance lente, un client qui reessaie, un double appui : le
+            // meme « approuver » arrive deux fois. Sans cette garde, chaque
+            // passage ecrivait une ligne « Compte approuve » de plus et la
+            // pastille du partenaire disait « 2 » pour une seule nouvelle. On
+            // compare sur la ligne VERROUILLEE, pas sur celle que la route a
+            // liee : c'est elle qui dit ce que le second appel trouve.
+            //
+            // Un motif qui change est une autre decision : le partenaire
+            // suspendu doit lire le motif corrige.
+            if ($account->status === $status && $account->review_reason === $reason) {
+                return $account->setRelation('user', $user);
+            }
+
+            $previous = $account->status;
             $account->update([
                 'status' => $status,
-                'review_reason' => $data['review_reason'] ?? null,
+                'review_reason' => $reason,
                 'reviewed_by' => $request->user()->id,
                 'reviewed_at' => now(),
             ]);
@@ -75,7 +93,11 @@ class PartnerApplicationController extends Controller
                 $user->tokens()->delete();
             }
 
-            $this->notifier($user, $account, $status);
+            // Une note changee sur un compte DEJA approuve ne change rien a ce
+            // qu'il peut faire : pas de nouvelle « Compte approuve » pour cela.
+            if ($previous !== $status || $status !== 'approved') {
+                $this->notifier($user, $account, $status, $previous);
+            }
 
             return $account->setRelation('user', $user);
         });
@@ -111,10 +133,17 @@ class PartnerApplicationController extends Controller
      * dans celle du personnel qui a cliqué. Le motif, lui, est du texte
      * humain : il voyage tel quel.
      */
-    private function notifier(User $user, PartnerAccount $account, string $status): void
+    private function notifier(User $user, PartnerAccount $account, string $status, string $previous): void
     {
+        // Un compte reapprouve apres un refus ou une suspension a deja ses
+        // annonces : lui dire de publier la premiere serait faux, et il le
+        // saurait. Meme type — c'est la meme porte qui se rouvre —, autre corps.
+        $approved = in_array($previous, ['rejected', 'suspended'], true)
+            ? 'Votre compte est de nouveau actif.'
+            : 'Votre compte est approuvé. Publiez votre première annonce.';
+
         [$type, $title, $body] = match ($status) {
-            'approved' => ['partner_account_approved', 'Compte approuvé', 'Votre compte est approuvé. Publiez votre première annonce.'],
+            'approved' => ['partner_account_approved', 'Compte approuvé', $approved],
             'rejected' => ['partner_account_rejected', 'Demande refusée', 'Votre demande a été refusée : '.$account->review_reason],
             'suspended' => ['partner_account_suspended', 'Compte suspendu', 'Votre compte est suspendu : '.$account->review_reason],
         };

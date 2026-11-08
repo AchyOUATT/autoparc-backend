@@ -53,6 +53,8 @@ class NotificationTextTest extends TestCase
             'partner account approved' => ['partner_account_approved', 'Compte approuvé',
                 'Votre compte est approuvé. Publiez votre première annonce.', 'Account approved',
                 'Your account is approved. Publish your first listing.'],
+            'partner account reinstated' => ['partner_account_approved', 'Compte approuvé',
+                'Votre compte est de nouveau actif.', 'Account approved', 'Your account is active again.'],
             'partner account rejected keeps the reason' => ['partner_account_rejected', 'Demande refusée',
                 'Votre demande a été refusée : Document de vérification manquant.', 'Application declined',
                 'Your application was declined: Document de vérification manquant.'],
