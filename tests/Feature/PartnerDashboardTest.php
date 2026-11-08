@@ -188,13 +188,19 @@ class PartnerDashboardTest extends TestCase
         $mine = $this->account;
 
         $this->listing('parts', $mine, published: true, photo: true, extra: ['stock_quantity' => 10, 'stock_alert_threshold' => 2]); // saine
-        $this->listing('parts', $mine, published: true, extra: ['stock_quantity' => 0]);                                            // épuisée, et sans photo
+        $this->listing('parts', $mine, published: true, extra: ['stock_quantity' => 10]);                                           // en stock, mais sans photo
         $this->listing('parts', $mine, published: true, photo: true, extra: ['stock_quantity' => 5, 'is_available' => false]);      // retirée de la vente : épuisée aussi
         $this->listing('parts', $mine, published: true, photo: true, extra: ['stock_quantity' => 2, 'stock_alert_threshold' => 2]); // AU seuil : sous le seuil
         $this->listing('parts', $mine, published: true, photo: true, extra: ['stock_quantity' => 1, 'stock_alert_threshold' => 5]);
         $this->listing('parts', $mine, photo: true, extra: ['stock_quantity' => 0]);                                                // brouillon épuisé : rien (photo : voir le banc des véhicules)
         $this->listing('parts', $mine, published: true, photo: true, extra: ['stock_quantity' => 3] + $this->promotion('parts', 2));
+        // Ruptures et stocks faibles en nombres DIFFÉRENTS d'un type à l'autre
+        // (pièces 1/2, accessoires 2/1) : échanger les deux conditions doit se
+        // voir, ce que 2/2 et 1/1 ne montraient pas. `is_available = false`
+        // n'existe que côté pièces, pour que la clause `NOT is_available`
+        // porte seule une rupture.
         $this->listing('accessories', $mine, published: true, extra: ['stock_quantity' => 0]);
+        $this->listing('accessories', $mine, published: true, photo: true, extra: ['stock_quantity' => 0]);
         $this->listing('accessories', $mine, published: true, photo: true, extra: ['stock_quantity' => 3, 'stock_alert_threshold' => 3]);
         $this->listing('accessories', $mine, photo: true);
         $this->listingsOfOthers();
@@ -203,8 +209,8 @@ class PartnerDashboardTest extends TestCase
 
         $this->getJson('/api/partner/dashboard')->assertOk()->assertJson(['listings' => [
             'vehicles' => self::zeros(self::VEHICLE_KEYS),
-            'parts' => ['total' => 7, 'published' => 6, 'drafts' => 1, 'without_photo' => 1, 'on_promotion' => 1, 'promotion_ending_soon' => 1, 'out_of_stock' => 2, 'low_stock' => 2],
-            'accessories' => ['total' => 3, 'published' => 2, 'drafts' => 1, 'without_photo' => 1, 'on_promotion' => 0, 'promotion_ending_soon' => 0, 'out_of_stock' => 1, 'low_stock' => 1],
+            'parts' => ['total' => 7, 'published' => 6, 'drafts' => 1, 'without_photo' => 1, 'on_promotion' => 1, 'promotion_ending_soon' => 1, 'out_of_stock' => 1, 'low_stock' => 2],
+            'accessories' => ['total' => 4, 'published' => 3, 'drafts' => 1, 'without_photo' => 1, 'on_promotion' => 0, 'promotion_ending_soon' => 0, 'out_of_stock' => 2, 'low_stock' => 1],
         ]]);
     }
 
