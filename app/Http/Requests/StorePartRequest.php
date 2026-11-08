@@ -29,6 +29,11 @@ class StorePartRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->ignorerLesNulls(self::COLONNES_A_VALEUR_PAR_DEFAUT);
+        // An older editor may echo the API's compatibility sentinel.
+        // Store absence, not an enum invented from a presentation value.
+        if ($this->input('type') === 'unknown') {
+            $this->merge(['type' => null]);
+        }
     }
 
     public function authorize(): bool
@@ -47,7 +52,7 @@ class StorePartRequest extends FormRequest
             'part_category_id'       => ['required', 'exists:part_categories,id'],
             'manufacturer_id'        => ['nullable', 'exists:manufacturers,id'],
             'manufacturer_reference' => ['nullable', 'string', 'max:80'],
-            'type'                   => ['required', Rule::in(PartType::values())],
+            'type'                   => ['sometimes', 'nullable', Rule::in(PartType::values())],
             'condition'              => ['required', Rule::in(PartCondition::values())],
             'donor_vehicle_id'       => ['nullable', 'exists:vehicles,id', 'required_if:condition,used'],
             'weight_kg'              => ['nullable', 'numeric', 'min:0'],

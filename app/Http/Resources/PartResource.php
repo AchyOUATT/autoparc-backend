@@ -35,7 +35,9 @@ class PartResource extends JsonResource
                 $this->resource->getAttribute('compatibility_assessment') !== null,
                 fn () => $this->resource->getAttribute('compatibility_assessment'),
             ),
-            'type'        => $this->type->value,
+            // Older apps cast this field to String (and read its initial).
+            // The sentinel describes missing information, never an origin.
+            'type'        => $this->type?->value ?? ($request->attributes->get('nullable_part_type', false) ? null : 'unknown'),
             'condition'   => $this->condition->value,
             'category'        => $this->whenLoaded('category', fn () => [
                 'id'   => $this->category->id,
