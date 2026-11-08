@@ -21,10 +21,10 @@ class HondaVariantesEuropeennesTest extends TestCase
 
     private const ATTENDUES = [
         // slug => [name, generation, body_type, segment, debut, fin]
-        'civic-e-hev-fl4' => ['Civic e:HEV', 'FL4', 'compacte', 'C', 2022, null],
+        'civic-ehev-fl4' => ['Civic e:HEV', 'FL4', 'compacte', 'C', 2022, null],
         'civic-fn' => ['Civic', 'FN', 'compacte', 'C', 2007, 2011],
         'civic-hybrid-fd3' => ['Civic Hybrid', 'FD3', 'berline', 'C', 2006, 2011],
-        'zr-v-e-hev-rz4' => ['ZR-V e:HEV', 'RZ4', 'suv', 'C', 2023, null],
+        'zr-v-ehev-rz4' => ['ZR-V e:HEV', 'RZ4', 'suv', 'C', 2023, null],
     ];
 
     private function semer(): void
@@ -67,6 +67,7 @@ class HondaVariantesEuropeennesTest extends TestCase
             ->toArray();
         $this->assertNotEmpty($avant);
 
+        $this->seed([\Database\Seeders\PartCategoriesSeeder::class, \Database\Seeders\ManufacturersSeeder::class]);
         $civicFc = VehicleModel::where('brand_id', $honda->id)->where('slug', 'civic-fc')->firstOrFail();
         $piece = Part::factory()->create();
         $fitment = $piece->fitments()->create(['vehicle_model_id' => $civicFc->id, 'year_from' => 2016, 'year_to' => 2020]);
