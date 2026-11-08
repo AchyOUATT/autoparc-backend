@@ -19,12 +19,27 @@ enum VehicleDealType: string
     case FlashSale  = 'flash_sale';
     case Clearance  = 'clearance';
 
+    /**
+     * Le libelle de la pastille, DANS LA LANGUE DE LA REQUETE.
+     *
+     * Ce libelle n'est pas un detail d'administration : `VehicleResource` le
+     * sert en `deal_label` et l'application l'affiche tel quel sur l'accueil
+     * et dans la liste — elle ne le traduit pas, a dessein, pour ne pas
+     * dupliquer la traduction des trois types. Le serveur est donc la SEULE
+     * source de ce texte, et tant qu'il le rendait en dur, un accueil anglais
+     * affichait une section « Good deals » remplie de pastilles
+     * « Bonne affaire ».
+     *
+     * Les cles sont les chaines francaises, comme partout dans lang/*.json :
+     * un client qui n'annonce aucune langue — le binaire deja installe — recoit
+     * exactement le texte d'avant.
+     */
     public function label(): string
     {
         return match ($this) {
-            self::GoodDeal  => 'Bonne affaire',
-            self::FlashSale => 'Vente flash',
-            self::Clearance => 'Déstockage',
+            self::GoodDeal  => __('Bonne affaire'),
+            self::FlashSale => __('Vente flash'),
+            self::Clearance => __('Déstockage'),
         };
     }
 

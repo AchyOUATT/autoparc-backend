@@ -73,6 +73,20 @@ class AppNotification extends Model
         return $query->whereNull('read_at');
     }
 
+    /**
+     * Le nombre de non lues d'un partenaire, tel que sa pastille le lit.
+     *
+     * Une seule definition, partagee par la route des notifications et par le
+     * tableau de bord. Deux requetes ecrites a deux endroits finiraient par
+     * diverger, et le partenaire lirait un chiffre sur sa tuile et un autre en
+     * ouvrant sa boite — le genre d'ecart qu'on ne remarque qu'en comptant
+     * a la main.
+     */
+    public static function unreadCountForPartner(int $userId): int
+    {
+        return self::forPartner($userId)->unread()->count();
+    }
+
     // ── Factory methods ──────────────────────────────────────────────
 
     /**
@@ -150,6 +164,31 @@ class AppNotification extends Model
         ])->all());
 
         return $ids->count();
+    }
+
+    /**
+     * Une notification pour UN partenaire — l'issue de l'examen de son compte.
+     *
+     * Adressee comme la diffusion ci-dessus : `recipient_type` `partner` et
+     * `recipient_id` l'identifiant de l'UTILISATEUR, puisque c'est lui qui
+     * lit. Un compte en attente peut la lire — sa boite est hors de
+     * `partner.approved`, et c'est precisement pour cette notification-la.
+     */
+    public static function notifyPartner(
+        int    $userId,
+        string $type,
+        string $title,
+        string $body,
+        array  $data = [],
+    ): void {
+        self::create([
+            'recipient_type' => 'partner',
+            'recipient_id'   => (string) $userId,
+            'type'           => $type,
+            'title'          => $title,
+            'body'           => $body,
+            'data'           => $data,
+        ]);
     }
 
     /**

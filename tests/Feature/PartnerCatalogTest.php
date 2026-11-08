@@ -259,6 +259,7 @@ class PartnerCatalogTest extends TestCase
 
     public function test_a_part_can_be_created_without_an_origin_type_and_none_is_invented(): void
     {
+        $this->withHeader('X-AutoParc-Capabilities', 'nullable-part-type');
         $payload = $this->payload('parts');
         unset($payload['type']);
 
@@ -285,5 +286,45 @@ class PartnerCatalogTest extends TestCase
     {
         $this->postJson('/api/partner/parts', ['type' => 'fake'] + $this->payload('parts'))
             ->assertUnprocessable()->assertJsonValidationErrors('type');
+    }
+
+    public function test_unknown_origins_remain_readable_by_legacy_clients_on_all_catalog_paths(): void
+    {
+        $payload = $this->payload('parts');
+        unset($payload['type']);
+        $id = $this->postJson('/api/partner/parts', $payload)->assertCreated()
+            ->assertJsonPath('data.type', 'unknown')->json('data.id');
+        $this->postJson('/api/partner/parts/'.$id.'/publish')->assertOk();
+        foreach (['/api/partner/parts', '/api/catalog/parts'] as $path) {
+            $response = $this->getJson($path)->assertOk()->assertJsonPath('data.0.type', 'unknown');
+            $this->assertContains('X-AutoParc-Capabilities', $response->baseResponse->getVary());
+        }
+        foreach (['/api/partner/parts/'.$id, '/api/catalog/parts/'.$id] as $path) {
+            $this->getJson($path)->assertOk()->assertJsonPath('data.type', 'unknown');
+        }
+        // Unknown tokens never opt an old decoder into a nullable response.
+        $this->withHeader('X-AutoParc-Capabilities', 'not-nullable-part-type');
+        $this->getJson('/api/catalog/parts/'.$id)->assertOk()->assertJsonPath('data.type', 'unknown');
+        $this->withHeader('X-AutoParc-Capabilities', 'future-feature, nullable-part-type');
+        foreach (['/api/partner/parts', '/api/catalog/parts'] as $path) {
+            $this->getJson($path)->assertOk()->assertJsonPath('data.0.type', null);
+        }
+        foreach (['/api/partner/parts/'.$id, '/api/catalog/parts/'.$id] as $path) {
+            $this->getJson($path)->assertOk()->assertJsonPath('data.type', null);
+        }
+        $this->assertNull(Part::findOrFail($id)->type);
+    }
+
+    public function test_echoing_the_legacy_sentinel_stores_null_and_keeps_known_origins_unchanged(): void
+    {
+        $part = $this->product('parts', $this->account, ['type' => null]);
+        $this->patchJson('/api/partner/parts/'.$part->id, array_replace($this->payload('parts'), ['type' => 'unknown']))
+            ->assertOk()->assertJsonPath('data.type', 'unknown');
+        $this->assertNull($part->fresh()->type);
+        $known = $this->product('parts', $this->account, ['type' => 'oem']);
+        foreach (['', 'nullable-part-type'] as $capabilities) {
+            $this->withHeader('X-AutoParc-Capabilities', $capabilities)
+                ->getJson('/api/partner/parts/'.$known->id)->assertOk()->assertJsonPath('data.type', 'oem');
+        }
     }
 }

@@ -29,6 +29,11 @@ class StorePartRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->ignorerLesNulls(self::COLONNES_A_VALEUR_PAR_DEFAUT);
+        // An older editor may echo the API's compatibility sentinel.
+        // Store absence, not an enum invented from a presentation value.
+        if ($this->input('type') === 'unknown') {
+            $this->merge(['type' => null]);
+        }
     }
 
     public function authorize(): bool

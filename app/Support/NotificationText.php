@@ -21,6 +21,9 @@ final class NotificationText
             'part_match' => ['Pièce disponible !', 'Part available!'],
             'accessory_match' => ['Accessoire disponible !', 'Accessory available!'],
             'fuel_anomaly' => ['Consommation en hausse', 'Fuel consumption has increased'],
+            'partner_account_approved' => ['Compte approuvé', 'Account approved'],
+            'partner_account_rejected' => ['Demande refusée', 'Application declined'],
+            'partner_account_suspended' => ['Compte suspendu', 'Account suspended'],
         ];
         if (isset($titles[$type]) && $title === $titles[$type][0]) {
             $title = $titles[$type][1];
@@ -39,6 +42,17 @@ final class NotificationText
             $body = $translateReference($m[1]).' added: '.$m[2];
         } elseif ($type === 'accessory_match' && preg_match("/^Un accessoire (.*?) vient d'être ajouté : (.*)$/su", $body, $m)) {
             $body = 'New '.$translateReference($m[1]).' accessory: '.$m[2];
+        } elseif ($type === 'partner_account_approved') {
+            $body = match ($body) {
+                'Votre compte est approuvé. Publiez votre première annonce.' => 'Your account is approved. Publish your first listing.',
+                'Votre compte est de nouveau actif.' => 'Your account is active again.',
+                default => $body,
+            };
+        } elseif ($type === 'partner_account_rejected' && preg_match('/^Votre demande a été refusée : (.*)$/su', $body, $m)) {
+            // Le motif est du texte humain, tape par le personnel : il voyage tel quel.
+            $body = 'Your application was declined: '.$m[1];
+        } elseif ($type === 'partner_account_suspended' && preg_match('/^Votre compte est suspendu : (.*)$/su', $body, $m)) {
+            $body = 'Your account is suspended: '.$m[1];
         } elseif ($type === 'new_order') {
             $title = match ($title) {
                 'Nouvelle commande de pièces' => 'New parts order',

@@ -70,13 +70,28 @@ final class PrixEffectif
         // cette affinite a l'autre operande. Sous MySQL les colonnes sont deja
         // DECIMAL et le `CASE` garde leur type : le cast n'y change rien, et
         // c'est bien ainsi — la justesse ne doit pas dependre du moteur.
-        return '(CAST(CASE WHEN deal_price IS NOT NULL'
-            .' AND (deal_starts_at IS NULL OR deal_starts_at <= ?)'
-            .' AND (deal_ends_at IS NULL OR deal_ends_at >= ?)'
-            ." THEN deal_price ELSE $colonne END AS DECIMAL(14,2)))";
+        return '(CAST(CASE WHEN '.self::conditionSql()." THEN deal_price ELSE $colonne END AS DECIMAL(14,2)))";
     }
 
-    /** Les deux bornes de l'expression ci-dessus, dans l'ordre. */
+    /**
+     * La condition « une promotion est en cours », en SQL, avec ses deux
+     * marques de liaison — a servir avec `liaisons()`.
+     *
+     * UNE definition, et trois lecteurs : le prix effectif ci-dessus, le
+     * filtre `?deal=1` (`fenetreOuverte`) et les compteurs du tableau de bord
+     * partenaire. Ils doivent tomber d'accord a la seconde pres : une
+     * promotion que la vitrine affiche encore et que le tableau de bord ne
+     * compte deja plus — ou l'inverse — ferait douter le vendeur des deux.
+     * `enCours()` est la meme regle en PHP, pour un modele deja charge.
+     */
+    public static function conditionSql(): string
+    {
+        return 'deal_price IS NOT NULL'
+            .' AND (deal_starts_at IS NULL OR deal_starts_at <= ?)'
+            .' AND (deal_ends_at IS NULL OR deal_ends_at >= ?)';
+    }
+
+    /** Les deux bornes de `conditionSql()`, dans l'ordre. */
     public static function liaisons(): array
     {
         $maintenant = now();
@@ -121,9 +136,7 @@ final class PrixEffectif
      */
     public static function fenetreOuverte(Builder $query): Builder
     {
-        return $query->whereNotNull('deal_price')
-            ->where(fn ($q) => $q->whereNull('deal_starts_at')->orWhere('deal_starts_at', '<=', now()))
-            ->where(fn ($q) => $q->whereNull('deal_ends_at')->orWhere('deal_ends_at', '>=', now()));
+        return $query->whereRaw(self::conditionSql(), self::liaisons());
     }
 
     /**
