@@ -3,14 +3,15 @@
 namespace App\Http\Resources;
 
 use App\Services\ConsumptionReferenceRecommendation;
+use App\Services\FaultDeclarations;
+use App\Services\StaffVehicleInspections;
 use App\Support\CotesOfficielles;
+use App\Support\EquipmentDetails;
 use App\Support\HeavyVehicleConfiguration;
 use App\Support\PartnerListingPresentation;
 use App\Support\PartnerMedia;
 use App\Support\PhotoPartage;
 use App\Support\VersionPartage;
-use App\Services\StaffVehicleInspections;
-use App\Services\FaultDeclarations;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,6 +24,8 @@ class VehicleResource extends JsonResource
         $fullFaultManagement = $faultManagement && $request->user()?->isStaff();
         $faultDeclaration = FaultDeclarations::present($this->resource, $request, $faultManagement);
         $heavyConfiguration = HeavyVehicleConfiguration::normalize($this->heavy_configuration);
+        $isEquipment = ($this->asset_kind ?? 'road_vehicle') === 'equipment';
+        $equipment = $isEquipment ? EquipmentDetails::normalize($this->equipment_details) : null;
 
         $data = [
             'id'           => $this->id,
@@ -37,7 +40,11 @@ class VehicleResource extends JsonResource
             'reference'    => $this->reference,
             'vin'          => $this->vin,
             'designation'  => $this->designation,
-            'vehicle_type' => $this->vehicle_type ?? 'passenger',
+            'asset_kind' => $isEquipment ? 'equipment' : 'road_vehicle',
+            'equipment_type' => $isEquipment ? $this->equipment_type : null,
+            'equipment_details' => $equipment,
+            'equipment_details_status' => $equipment === null ? null : 'declared',
+            'vehicle_type' => $isEquipment ? null : ($this->vehicle_type ?? 'passenger'),
             'body_style'   => $this->body_style,
 
             'registration_status' => [
@@ -46,17 +53,19 @@ class VehicleResource extends JsonResource
             ],
 
             'identity' => [
-                'brand'       => $this->whenLoaded('brand', fn () => $this->brand->name),
+                'brand' => $this->when($this->relationLoaded('brand') || $isEquipment,
+                    fn () => ($this->relationLoaded('brand') ? $this->brand?->name : null) ?? ($equipment['brand_label'] ?? '')),
                 // Le slug identifie le fichier de logo cote application
                 // (assets/brands/<slug>.svg). Le nom seul ne suffit pas :
                 // « Mercedes-Benz » ou « Citroen » ne donnent pas un nom de
                 // fichier fiable une fois accentues ou espaces.
-                'brand_slug'      => $this->whenLoaded('brand', fn () => $this->brand->slug),
-                'brand_logo_path' => $this->whenLoaded('brand', fn () => $this->brand->logo_path),
-                'model'       => $this->whenLoaded('vehicleModel', fn () => $this->vehicleModel->name),
-                'generation'  => $this->whenLoaded('vehicleModel', fn () => $this->vehicleModel->generation),
+                'brand_slug' => $this->whenLoaded('brand', fn () => $this->brand?->slug),
+                'brand_logo_path' => $this->whenLoaded('brand', fn () => $this->brand?->logo_path),
+                'model' => $this->when($this->relationLoaded('vehicleModel') || $isEquipment,
+                    fn () => ($this->relationLoaded('vehicleModel') ? $this->vehicleModel?->name : null) ?? ($equipment['model_label'] ?? '')),
+                'generation' => $this->whenLoaded('vehicleModel', fn () => $this->vehicleModel?->generation),
                 'trim'        => $this->whenLoaded('trim', fn () => $this->trim?->name),
-                'engine_type' => $this->whenLoaded('engineType', fn () => $this->engineType->label),
+                'engine_type' => $this->whenLoaded('engineType', fn () => $this->engineType?->label),
                 'engine_type_code' => $this->whenLoaded('engineType', fn () => $this->engineType?->code),
                 'drivetrain'  => $this->whenLoaded('drivetrain', fn () => $this->drivetrain?->code),
                 'drivetrain_code' => $this->whenLoaded('drivetrain', fn () => $this->drivetrain?->code),
@@ -274,7 +283,7 @@ class VehicleResource extends JsonResource
 
     private function consumptionReferences(Request $request): array
     {
-        if ($this->resource->cotesOfficielles === null) {
+        if (($this->asset_kind ?? 'road_vehicle') === 'equipment' || $this->resource->cotesOfficielles === null) {
             return [];
         }
 

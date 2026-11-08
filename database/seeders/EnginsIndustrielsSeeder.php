@@ -246,6 +246,11 @@ class EnginsIndustrielsSeeder extends Seeder
             $modele->name             = $machine['nom'];
             $modele->generation       = $machine['generation'];
             $modele->body_type        = $machine['type'];
+            $modele->equipment_category = match ($machine['type']) {
+                'Tracteur agricole' => 'agricultural_tractor',
+                'Tractopelle' => 'backhoe_loader',
+                'Groupe électrogène' => 'generator',
+            };
             $modele->production_start = $machine['debut'];
             $modele->production_end   = $machine['fin'];
             $modele->save();

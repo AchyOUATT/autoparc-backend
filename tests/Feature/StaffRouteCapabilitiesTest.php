@@ -60,6 +60,9 @@ class StaffRouteCapabilitiesTest extends TestCase
             'api/partner-applications/{partnerAccount}' => 'manage-partners',
             // Unpublished private listings carry phone contacts and review reasons.
             'api/private-listing-reviews' => 'manage-catalog',
+            // Private ownership, insurance and registration evidence is limited to catalog managers.
+            'api/vehicles/{vehicle}/equipment-documents' => 'manage-catalog',
+            'api/vehicles/{vehicle}/equipment-documents/{document}/download' => 'manage-catalog',
             'api/settings/contact' => 'manage-settings',
         ];
 

@@ -83,6 +83,12 @@ final class PublicVehicleCatalog
             return null;
         }
 
+        // Private car ads do not describe construction or agricultural assets.
+        if (($request->filled('asset_kind') && $request->input('asset_kind') !== 'road_vehicle')
+            || $request->filled('equipment_type')) {
+            return null;
+        }
+
         // These facts are absent from a private snapshot. Unknown never satisfies a strict filter.
         foreach ([
             'registration_status', 'status', 'condition', 'consumption_max', 'origin_country_id',

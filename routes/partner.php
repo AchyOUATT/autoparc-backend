@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\PartnerApplicationController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\EquipmentDocumentController;
 use App\Http\Controllers\Api\Partner\AccessoryController;
 use App\Http\Controllers\Api\Partner\AuthController as PartnerAuthController;
 use App\Http\Controllers\Api\NotificationController;
@@ -43,6 +44,13 @@ Route::prefix('partner')->name('partner.')->middleware('partner.space')->group(f
             Route::apiResource('vehicles', VehicleController::class);
             Route::apiResource('parts', PartController::class);
             Route::apiResource('accessories', AccessoryController::class);
+
+            Route::prefix('vehicles/{vehicle}/equipment-documents')->group(function () {
+                Route::get('/', [EquipmentDocumentController::class, 'index']);
+                Route::post('/', [EquipmentDocumentController::class, 'store']);
+                Route::get('{document}/download', [EquipmentDocumentController::class, 'download'])->whereNumber('document');
+                Route::delete('{document}', [EquipmentDocumentController::class, 'destroy'])->whereNumber('document');
+            });
 
             Route::post('vehicles/{vehicle}/publish', [VehicleController::class, 'publish'])->name('vehicles.publish');
             Route::post('vehicles/{vehicle}/unpublish', [VehicleController::class, 'unpublish'])->name('vehicles.unpublish');

@@ -14,6 +14,7 @@ class VehicleModelResource extends JsonResource
             'name'       => $this->name,
             'slug'       => $this->slug,
             'generation' => $this->generation,
+            'equipment_category' => $this->equipment_category,
             'body_type'  => $this->body_type,
             'segment'    => $this->segment,
             // Rendu explicitement : la route des modeles filtre desormais les

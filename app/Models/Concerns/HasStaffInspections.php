@@ -5,6 +5,7 @@ namespace App\Models\Concerns;
 use App\Models\StaffVehicleInspection;
 use App\Models\Vehicle;
 use App\Services\StaffVehicleInspections;
+use App\Support\EquipmentDetails;
 use App\Support\HeavyVehicleConfiguration;
 
 trait HasStaffInspections
@@ -41,6 +42,11 @@ trait HasStaffInspections
                 && HeavyVehicleConfiguration::normalize($model->heavy_configuration)
                     === HeavyVehicleConfiguration::normalize($model->getOriginal('heavy_configuration'))) {
                 $technicalChanges = array_diff($technicalChanges, ['heavy_configuration']);
+            }
+            if ($model instanceof Vehicle && in_array('equipment_details', $technicalChanges, true)
+                && EquipmentDetails::normalize($model->equipment_details)
+                    === EquipmentDetails::normalize($model->getOriginal('equipment_details'))) {
+                $technicalChanges = array_diff($technicalChanges, ['equipment_details']);
             }
             if ($technicalChanges !== []) {
                 app(StaffVehicleInspections::class)->invalidate($model, 'Vehicle technical information changed after inspection.');

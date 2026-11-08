@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AppVersionController;
 use App\Http\Controllers\Api\AccessoryController;
 use App\Http\Controllers\Api\MediaController;
+use App\Http\Controllers\Api\EquipmentDocumentController;
 use App\Http\Controllers\Api\MotorisationController;
 use App\Http\Controllers\Api\AccessoryOrderController;
 use App\Http\Controllers\Api\AuthController;
@@ -270,6 +271,14 @@ Route::middleware(['auth:sanctum', 'staff'])->group(function () {
         ->middleware('capability:manage-catalog');
     Route::get('vehicles/{vehicle}/compatible-parts', [CompatibilityController::class, 'partsForVehicle']);
     Route::get('vehicles/{vehicle}/rental-availability', [RentalController::class, 'availability']);
+
+    Route::prefix('vehicles/{vehicle}/equipment-documents')
+        ->middleware('capability:manage-catalog')->group(function () {
+            Route::get('/', [EquipmentDocumentController::class, 'index']);
+            Route::post('/', [EquipmentDocumentController::class, 'store']);
+            Route::get('{document}/download', [EquipmentDocumentController::class, 'download'])->whereNumber('document');
+            Route::delete('{document}', [EquipmentDocumentController::class, 'destroy'])->whereNumber('document');
+        });
 
     // --- Pannes declarees (le mecanicien y a acces, pas le commercial)
     Route::get('vehicles/{vehicle}/faults', [VehicleFaultController::class, 'index']);

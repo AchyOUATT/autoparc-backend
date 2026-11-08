@@ -3,12 +3,14 @@
 namespace App\Http\Requests;
 
 use App\Enums\RegistrationStatus;
+use App\Enums\EquipmentType;
 use App\Enums\Transmission;
 use App\Enums\VehicleAvailability;
 use App\Enums\VehicleCondition;
 use App\Enums\VehicleDealType;
 use App\Enums\VehicleStatus;
 use App\Support\EngineCode;
+use App\Support\EquipmentDetails;
 use App\Support\HeavyVehicleConfiguration;
 use App\Support\VehicleClassification;
 use App\Support\FaultDeclarationInput;
@@ -54,11 +56,46 @@ class StoreVehicleRequest extends FormRequest
         if ($this->has('engine_code') && (is_string($this->input('engine_code')) || $this->input('engine_code') === null)) {
             $this->merge(['engine_code' => EngineCode::normalize($this->input('engine_code'))]);
         }
+
+        if ($this->isEquipment()) {
+            $this->merge(['vehicle_type' => null, 'body_style' => null, 'trim_id' => null]);
+        }
+    }
+
+    protected function isEquipment(): bool
+    {
+        return $this->input('asset_kind', $this->route('vehicle')?->asset_kind) === 'equipment';
     }
 
     public function rules(): array
     {
+        $identityPresence = $this->isEquipment() ? 'nullable' : 'required';
+
         return array_merge([
+            'asset_kind' => ['sometimes', 'required', Rule::in(['road_vehicle', 'equipment'])],
+            'equipment_type' => ['nullable', Rule::in(EquipmentType::values())],
+            'equipment_details' => ['nullable', 'array:'.implode(',', EquipmentDetails::KEYS)],
+            'equipment_details.brand_label' => ['nullable', 'string', 'max:100'],
+            'equipment_details.model_label' => ['nullable', 'string', 'max:200'],
+            'equipment_details.serial_number' => ['nullable', 'string', 'max:100'],
+            'equipment_details.engine_serial_number' => ['nullable', 'string', 'max:100'],
+            'equipment_details.registration_number' => ['nullable', 'string', 'max:50'],
+            'equipment_details.park_number' => ['nullable', 'string', 'max:50'],
+            'equipment_details.operating_hours' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.hour_reading_date' => ['nullable', 'date', 'before_or_equal:today'],
+            'equipment_details.odometer_km' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.power_kw' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.transmission' => ['nullable', Rule::in(['mechanical', 'hydrostatic', 'powershift', 'electric', 'other'])],
+            'equipment_details.rated_load_kg' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.working_height_m' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.outreach_m' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.lift_height_m' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.operating_weight_kg' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.bucket_capacity_m3' => ['nullable', 'numeric', 'min:0'],
+            'equipment_details.pto_rpm' => ['nullable', 'integer', 'min:0'],
+            'equipment_details.cabin' => ['nullable', Rule::in(['open', 'closed', 'air_conditioned'])],
+            'equipment_details.quick_coupler' => ['nullable', 'boolean'],
+            'equipment_details.attachments' => ['nullable', 'string', 'max:2000'],
             'reference'           => ['nullable', 'string', 'max:50', Rule::unique('vehicles', 'reference')],
             'vin'                 => ['nullable', 'string', 'size:17', Rule::unique('vehicles', 'vin')],
             // Envoye, il prime. Absent, il est DEDUIT de `plate_number` :
@@ -74,14 +111,14 @@ class StoreVehicleRequest extends FormRequest
                 'pickup', 'van', 'minibus', 'bus', 'truck', 'other',
             ])],
 
-            'brand_id'           => ['required', 'integer', 'exists:brands,id'],
-            'vehicle_model_id'   => ['required', 'integer', 'exists:vehicle_models,id'],
+            'brand_id'           => [$identityPresence, 'integer', 'exists:brands,id'],
+            'vehicle_model_id'   => [$identityPresence, 'integer', 'exists:vehicle_models,id'],
             'trim_id'            => ['nullable', 'integer', 'exists:trims,id'],
-            'engine_type_id'     => ['required', 'exists:engine_types,id'],
+            'engine_type_id'     => [$identityPresence, 'exists:engine_types,id'],
             'drivetrain_id'      => ['nullable', 'exists:drivetrains,id'],
             'color_id'           => ['nullable', 'exists:colors,id'],
 
-            'manufacturing_year' => ['required', 'integer', 'min:1950', 'max:'.now()->year],
+            'manufacturing_year' => [$identityPresence, 'integer', 'min:1950', 'max:'.now()->year],
             'transmission'       => ['nullable', Rule::in(Transmission::values())],
             'gear_count'         => ['nullable', 'integer', 'min:1', 'max:12'],
             'engine_displacement_cc' => ['nullable', 'integer', 'min:0', 'max:20000'],
@@ -194,6 +231,16 @@ class StoreVehicleRequest extends FormRequest
                 $this->only(['brand_id', 'vehicle_model_id', 'trim_id']),
                 $vehicle,
             );
+
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            foreach (EquipmentDetails::validationErrors($this->only([
+                'asset_kind', 'equipment_type', 'equipment_details', 'brand_id', 'vehicle_model_id',
+            ]), $vehicle) as $field => $message) {
+                $validator->errors()->add($field, $message);
+            }
 
             if ($validator->errors()->isNotEmpty()) {
                 return;

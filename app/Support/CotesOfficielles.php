@@ -20,7 +20,7 @@ class CotesOfficielles
      */
     public static function pourVehicule(Vehicle $vehicule): array
     {
-        if ($vehicule->vehicle_model_id === null) {
+        if (($vehicule->asset_kind ?? 'road_vehicle') === 'equipment' || $vehicule->vehicle_model_id === null) {
             return [];
         }
 

@@ -6,6 +6,7 @@ use App\Models\PrivateVehicleListing;
 use App\Models\StaffVehicleInspection;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Support\EquipmentDetails;
 use App\Support\HeavyVehicleConfiguration;
 use BackedEnum;
 use Illuminate\Support\Facades\DB;
@@ -21,20 +22,45 @@ final class StaffVehicleInspections
             'gear_count', 'engine_displacement_cc', 'power_hp', 'power_kw', 'torque_nm',
             'cylinders', 'seats', 'doors', 'engine_code', 'condition',
             'battery_capacity_kwh', 'fuel_tank_liters', 'heavy_configuration',
+            'asset_kind', 'equipment_type', 'equipment_details',
         ] : ['model_libre', 'year', 'mileage_km', 'fuel_type']);
     }
 
     public static function fingerprint(Vehicle|PrivateVehicleListing $target): string
     {
         $data = [];
+        $isEquipment = $target instanceof Vehicle && ($target->asset_kind ?? 'road_vehicle') === 'equipment';
         foreach (self::technicalFields($target) as $field) {
             $value = $target->getAttribute($field);
+            if ($field === 'asset_kind') {
+                // A new default must not change historical road report hashes.
+                if ($isEquipment) {
+                    $data[$field] = 'equipment';
+                }
+
+                continue;
+            }
+            if ($field === 'equipment_type' && (! $isEquipment || $value === null || $value === '')) {
+                continue;
+            }
+            if ($field === 'equipment_details') {
+                if (! $isEquipment) {
+                    continue;
+                }
+                $details = EquipmentDetails::normalize($value);
+                if ($details !== null) {
+                    $data[$field] = $details;
+                }
+
+                continue;
+            }
             if ($field === 'heavy_configuration') {
                 $configuration = HeavyVehicleConfiguration::normalize($value);
                 // Keep historical reports current when no configuration exists.
                 if ($configuration !== null) {
                     $data[$field] = $configuration;
                 }
+
                 continue;
             }
             if ($value instanceof BackedEnum) {
@@ -65,6 +91,7 @@ final class StaffVehicleInspections
             $data['fault_declaration_state'] = $target->fault_declaration_state ?? 'unknown';
             $data['declared_faults'] = $declaredFaults;
         }
+
         return hash('sha256', json_encode($data, JSON_THROW_ON_ERROR));
     }
 

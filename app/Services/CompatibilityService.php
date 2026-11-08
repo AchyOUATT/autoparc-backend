@@ -25,6 +25,10 @@ class CompatibilityService
     /** Pieces compatibles avec un vehicule precis du parc. */
     public function partsForVehicle(Vehicle $vehicle, array $filters = []): Builder
     {
+        if ($vehicle->vehicle_model_id === null) {
+            return Part::query()->whereRaw('1 = 0');
+        }
+
         $query = Part::query()
             ->with(['category', 'manufacturer', 'oemNumbers'])
             ->where(function (Builder $q) use ($vehicle) {
@@ -282,8 +286,12 @@ class CompatibilityService
         $fitment->where('vehicle_model_id', $vehicle->vehicle_model_id);
 
         $year = $vehicle->manufacturing_year;
-        $fitment->where(fn ($q) => $q->whereNull('year_from')->orWhere('year_from', '<=', $year))
+        // Unknown years may yield candidates; the assessment alone confirms
+        // fitments whose required criteria are all known.
+        if ($year !== null) {
+            $fitment->where(fn ($q) => $q->whereNull('year_from')->orWhere('year_from', '<=', $year))
                 ->where(fn ($q) => $q->whereNull('year_to')->orWhere('year_to', '>=', $year));
+        }
 
         if ($vehicle->trim_id) {
             $fitment->where(fn ($q) => $q->whereNull('trim_id')->orWhere('trim_id', $vehicle->trim_id));

@@ -15,6 +15,7 @@ use App\Services\FcmService;
 use App\Services\ReferenceGenerator;
 use App\Services\FaultDeclarations;
 use App\Support\PartnerOwnership;
+use App\Support\EquipmentDetails;
 use App\Support\HeavyVehicleConfiguration;
 use App\Support\MargePartenaire;
 use App\Support\TriPublic;
@@ -60,6 +61,12 @@ class VehicleController extends Controller
         $data = $request->validated();
         if (array_key_exists('heavy_configuration', $data)) {
             $data['heavy_configuration'] = HeavyVehicleConfiguration::normalize($data['heavy_configuration']);
+        }
+        if (array_key_exists('equipment_details', $data)) {
+            $data['equipment_details'] = EquipmentDetails::normalize($data['equipment_details']);
+        }
+        if (($data['asset_kind'] ?? 'road_vehicle') === 'equipment') {
+            $data['vehicle_type'] = $data['body_style'] = $data['trim_id'] = null;
         }
         if ($request->user()?->isPartner()) {
             $data['owner_partner_account_id'] = PartnerOwnership::accountId($request->user());
@@ -180,18 +187,20 @@ class VehicleController extends Controller
             // F. Année minimale
             ->where(fn ($q) => $q
                 ->whereNull('year_min')
-                ->orWhere('year_min', '<=', $vehicle->manufacturing_year)
+                ->when($vehicle->manufacturing_year !== null, fn ($q) => $q
+                    ->orWhere('year_min', '<=', $vehicle->manufacturing_year))
             )
             // F. Année maximale
             ->where(fn ($q) => $q
                 ->whereNull('year_max')
-                ->orWhere('year_max', '>=', $vehicle->manufacturing_year)
+                ->when($vehicle->manufacturing_year !== null, fn ($q) => $q
+                    ->orWhere('year_max', '>=', $vehicle->manufacturing_year))
             )
             ->get();
 
         foreach ($pendingNeeds as $need) {
             $title   = 'Un véhicule correspond à votre recherche';
-            $body    = "{$vehicle->brand->name} {$vehicle->vehicleModel->name} {$vehicle->manufacturing_year} vient d'être ajouté au catalogue.";
+            $body    = "{$vehicle->designation} vient d'être ajouté au catalogue.";
             $payload = [
                 'type'       => 'vehicle_match',
                 'vehicle_id' => (string) $vehicle->id,
@@ -232,6 +241,17 @@ class VehicleController extends Controller
                 // so each supplied price is marked up once and omitted prices
                 // keep both their public value and their original calculation.
                 $data = MargePartenaire::appliquer($request->safe()->all(), MargePartenaire::CHAMPS_VEHICULE, $vehicle->partner_pricing);
+            }
+            // Validate retained identity and merge owner-declared details
+            // against the row locked for this write.
+            if ($errors = EquipmentDetails::validationErrors($data, $vehicle)) {
+                throw ValidationException::withMessages($errors);
+            }
+            if (array_key_exists('equipment_details', $data)) {
+                $data['equipment_details'] = EquipmentDetails::merge($vehicle->equipment_details, $data['equipment_details']);
+            }
+            if ($vehicle->isEquipment()) {
+                $data['vehicle_type'] = $data['body_style'] = $data['trim_id'] = null;
             }
             // Another partial update may have removed a different rental
             // rate since request validation. Validate the final locked row.
