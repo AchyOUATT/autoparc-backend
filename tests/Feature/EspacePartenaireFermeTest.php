@@ -78,16 +78,19 @@ class EspacePartenaireFermeTest extends TestCase
         // un serveur ou la fonctionnalite n'a jamais ete deployee — l'etat
         // d'hier, et ce que l'application publiee rend deja.
         //
-        // Et il parle a celui qui le lit : un vendeur qui vient d'installer la
-        // derniere version. Lui dire de « mettre a jour l'application »
-        // l'enverrait chercher une mise a jour qui n'existe pas.
+        // Et il parle a celui qui le lit, qui peut etre deux personnes : un
+        // vendeur qui vient d'installer la derniere version — lui dire de
+        // « mettre a jour l'application » l'enverrait chercher une mise a jour
+        // qui n'existe pas — ou un partenaire deja inscrit dont l'espace est
+        // referme pour maintenance, a qui parler d'« inscription » ne dirait
+        // rien. Le texte ne presume donc ni de l'un ni de l'autre.
         $this->assertSame(
-            "L'inscription des vendeurs n'est pas encore ouverte. Revenez bientôt.",
+            "L'espace vendeur est fermé pour le moment. Revenez bientôt.",
             $reponse->json('message'),
             "Le refus doit dire POURQUOI, sinon il est indiscernable d'un serveur non deploye.",
         );
         $this->assertSame(
-            'Seller registration is not open yet. Please check back soon.',
+            'The seller area is closed for now. Please check back soon.',
             $this->withHeader('Accept-Language', 'en')->{$verbe.'Json'}($route, $corps)->json('message'),
         );
     }
