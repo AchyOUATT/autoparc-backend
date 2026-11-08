@@ -472,9 +472,12 @@ class FiltresHuileBoutiqueSeeder extends Seeder
         [
             "sku"           => "90915-10001",
             "nom"           => "Filtre a huile visse 90915-10001",
-            "description"   => "Visse, ancienne reference remplacee par le 90915-YZZN1 sur les catalogues nord-americains. Applications anterieures a 2008, anterieures au referentiel.",
+            "description"   => "Visse, ancienne reference. Remplacee par le 90915-YZZN1 sur les catalogues nord-americains. Applications 4 cylindres pre-2008 a verifier selon le marche.",
             "remplace"      => [],
+            "compatibilites_a_verifier" => true,
             "compatibilites" => [
+                // Propositions non publiees. Voir database/catalogue/fitment-candidates/90915-10001.json
+                // et la commande catalog:audit-fitment-candidates.
             ],
         ],
 
@@ -670,9 +673,10 @@ class FiltresHuileBoutiqueSeeder extends Seeder
         $lignes = 0;
         $absents = [];
         $retirees = [];
+        $enAttente = [];
 
         foreach (self::FILTRES as $filtre) {
-            DB::transaction(function () use ($filtre, $categorie, $origine, $prixCourant, $stockCourant, $motricites, &$ecrits, &$lignes, &$absents, &$retirees) {
+            DB::transaction(function () use ($filtre, $categorie, $origine, $prixCourant, $stockCourant, $motricites, &$ecrits, &$lignes, &$absents, &$retirees, &$enAttente) {
                 // Ce que le depot decrit, et qu'il a donc le droit de
                 // reecrire a chaque publication.
                 $description = [
@@ -739,6 +743,16 @@ class FiltresHuileBoutiqueSeeder extends Seeder
                 }
 
                 $this->rattacherNumeros($piece, $filtre);
+
+                // Une reference en attente de verification conserve ses
+                // compatibilites existantes. Les propositions ne sont pas
+                // publiees depuis le lot documentaire.
+                if ($filtre['compatibilites_a_verifier'] ?? false) {
+                    $enAttente[] = $filtre['sku'];
+                    $ecrits++;
+
+                    return;
+                }
 
                 // Remplacement plutot qu'empilement : le seeder se rejoue.
                 $piece->fitments()->delete();
@@ -828,6 +842,10 @@ class FiltresHuileBoutiqueSeeder extends Seeder
         // commercant l'a retiree, le depot le constate et passe.
         foreach (array_unique($retirees) as $retiree) {
             $this->command?->warn("  reference a la corbeille, laissee telle quelle : {$retiree}");
+        }
+
+        foreach (array_unique($enAttente) as $sku) {
+            $this->command?->warn("  {$sku} : applications en attente de verification ; compatibilites existantes conservees, aucune proposition publiee.");
         }
     }
 

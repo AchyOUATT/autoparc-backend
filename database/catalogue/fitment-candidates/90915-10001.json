@@ -1,0 +1,89 @@
+{
+  "sku": "90915-10001",
+  "brand": "toyota",
+  "status": "a_verifier",
+  "notes": "Applications 4 cylindres pre-2008. Les V6 (1MZ-FE, 3VZ-FE) et le 3S-GTE turbo prennent souvent la famille plus grande (10003) hors US. Bornes a confirmer selon le marche.",
+  "sources": [
+    "ToyotaPartsNow (catalogue US)",
+    "Catalogues JP"
+  ],
+  "candidates": [
+    {
+      "slug": "corolla-e140",
+      "year_from": 2006,
+      "year_to": 2008,
+      "engine_code": "1ZZ-FE",
+      "provenance": "Catalogue US ToyotaPartsNow : Corolla 1.8 1ZZ-FE 1998-2008. Borne basse a 2006, debut E140."
+    },
+    {
+      "slug": "corolla-e130",
+      "year_from": 2002,
+      "year_to": 2006,
+      "engine_code": "1ZZ-FE",
+      "provenance": "Catalogue US : Corolla 1ZZ-FE 1998-2008. Generation E130."
+    },
+    {
+      "slug": "corolla-e120",
+      "year_from": 2000,
+      "year_to": 2002,
+      "engine_code": "1ZZ-FE",
+      "provenance": "Catalogue US : Corolla 1ZZ-FE 1998-2008. Generation E120."
+    },
+    {
+      "slug": "corolla-e110",
+      "year_from": 1995,
+      "year_to": 2000,
+      "engine_code": "4A-FE",
+      "provenance": "Catalogue US : Corolla 4A-FE / 7A-FE 1992-2000. Generation E110."
+    },
+    {
+      "slug": "corolla-e110",
+      "year_from": 1995,
+      "year_to": 2000,
+      "engine_code": "7A-FE",
+      "provenance": "Catalogue US : Corolla 4A-FE / 7A-FE 1992-2000. Generation E110."
+    },
+    {
+      "slug": "corolla-e100",
+      "year_from": 1991,
+      "year_to": 1995,
+      "engine_code": "4A-FE",
+      "provenance": "Catalogue US : Corolla 4A-FE 1992-1995. Generation E100."
+    },
+    {
+      "slug": "corolla-e100",
+      "year_from": 1991,
+      "year_to": 1995,
+      "engine_code": "7A-FE",
+      "provenance": "Catalogue US : Corolla 7A-FE 1992-1995. Generation E100."
+    },
+    {
+      "slug": "yaris-xp90",
+      "year_from": 2005,
+      "year_to": 2011,
+      "engine_code": "1NZ-FE",
+      "provenance": "Catalogue US : Yaris / Echo 1NZ-FE. Generation XP90."
+    },
+    {
+      "slug": "camry-xv20",
+      "year_from": 1996,
+      "year_to": 2001,
+      "engine_code": "5S-FE",
+      "provenance": "Catalogue US : Camry 2.2 5S-FE 1992-2001. Generation XV20."
+    },
+    {
+      "slug": "camry-xv10",
+      "year_from": 1991,
+      "year_to": 1996,
+      "engine_code": "5S-FE",
+      "provenance": "Catalogue US : Camry 2.2 5S-FE 1992-1996. Generation XV10."
+    },
+    {
+      "slug": "rav4-xa10",
+      "year_from": 1994,
+      "year_to": 2000,
+      "engine_code": "3S-FE",
+      "provenance": "Catalogue US : RAV4 2.0 3S-FE 1996-2000. Generation XA10."
+    }
+  ]
+}
