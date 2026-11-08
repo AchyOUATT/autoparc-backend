@@ -1205,25 +1205,30 @@ class ImportConsommations extends Command
         // modele unique etait accepte sans regarder ses annees. Neuf cotes
         // europeennes de 2023 se sont ainsi posees sur un « ML / GLE » arrete
         // en 2018, pendant que le « GLE » de 2018 a aujourd'hui restait vide.
-        $sansBornes = null;
+        $sansBornes = [];
+        $compatibles = [];
 
         foreach ($candidats as $modele) {
             $debut = $modele->production_start;
             $fin = $modele->production_end;
 
             if ($debut === null && $fin === null) {
-                $sansBornes ??= $modele;
+                $sansBornes[] = $modele;
 
                 continue;
             }
             if (($debut === null || $annee >= $debut) && ($fin === null || $annee <= $fin)) {
-                return $modele->id;
+                $compatibles[] = $modele;
             }
         }
 
-        // Un modele dont on ignore les annees reste un repli acceptable : le
-        // catalogue n'en renseigne pas partout. Une generation dont les annees
-        // sont connues et ne conviennent pas, non.
-        return $sansBornes?->id;
+        // Generations can overlap between markets (Cerato TD/YD in 2012–13)
+        // or within a transition year. Query order must not choose a rating's
+        // generation. Preserve ambiguity until a more precise identity exists.
+        if ($compatibles !== []) {
+            return count($compatibles) === 1 ? $compatibles[0]->id : null;
+        }
+
+        return count($sansBornes) === 1 ? $sansBornes[0]->id : null;
     }
 }

@@ -1,0 +1,558 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "brand": "kia",
+      "model_slug": "sportage-ql",
+      "market": "US",
+      "model_year_from": 2020,
+      "model_year_to": 2020,
+      "trims": [
+        {
+          "name": "LX"
+        },
+        {
+          "name": "S"
+        },
+        {
+          "name": "EX"
+        },
+        {
+          "name": "SX Turbo"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kia/us/brochures/brochure_sportage_2020.pdf",
+          "title": "Kia America — Sportage MY2020, brochure constructeur",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "sportage-nq5",
+      "market": "US",
+      "model_year_from": 2023,
+      "model_year_to": 2023,
+      "trims": [
+        {
+          "name": "LX"
+        },
+        {
+          "name": "EX"
+        },
+        {
+          "name": "SX"
+        },
+        {
+          "name": "SX Prestige"
+        },
+        {
+          "name": "X-Line"
+        },
+        {
+          "name": "X-Pro"
+        },
+        {
+          "name": "X-Pro Prestige"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kia/us/brochures/brochure_sportage_2023.pdf",
+          "title": "Kia America — Sportage MY2023, brochure constructeur",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.prnewswire.com/news-releases/kia-america-announces-2023-sportage-pricing-301490345.html",
+          "title": "Kia America — annonce des sept finitions Sportage MY2023, 24 février 2022",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "sorento-um",
+      "market": "US",
+      "model_year_from": 2018,
+      "model_year_to": 2018,
+      "trims": [
+        {
+          "name": "L"
+        },
+        {
+          "name": "LX"
+        },
+        {
+          "name": "EX"
+        },
+        {
+          "name": "SX"
+        },
+        {
+          "name": "SX Limited"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://cdn.dealereprocess.org/cdn/brochures/kia/2018-sorento.pdf",
+          "title": "Kia America — Sorento MY2018, brochure constructeur archivée",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "sorento-mq4",
+      "market": "US",
+      "model_year_from": 2021,
+      "model_year_to": 2021,
+      "trims": [
+        {
+          "name": "LX"
+        },
+        {
+          "name": "S"
+        },
+        {
+          "name": "EX"
+        },
+        {
+          "name": "SX"
+        },
+        {
+          "name": "SX-Prestige"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kia/us/brochures/brochure_sorento_2021.pdf",
+          "title": "Kia America — Sorento MY2021, brochure constructeur",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "cerato-yd",
+      "market": "US",
+      "model_year_from": 2018,
+      "model_year_to": 2018,
+      "trims": [
+        {
+          "name": "LX"
+        },
+        {
+          "name": "S"
+        },
+        {
+          "name": "EX"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://cdn.dealereprocess.org/cdn/brochures/kia/2018-forte.pdf",
+          "title": "Kia America — Forte MY2018, brochure constructeur archivée",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "cerato-bd",
+      "market": "US",
+      "model_year_from": 2019,
+      "model_year_to": 2019,
+      "trims": [
+        {
+          "name": "FE"
+        },
+        {
+          "name": "LXS"
+        },
+        {
+          "name": "S"
+        },
+        {
+          "name": "EX"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://static.nhtsa.gov/odi/tsbs/2018/MC-10145155-9999.pdf",
+          "title": "Kia America — Tech Times 21/4, MY2019 BDm Forte, p.7, dépôt NHTSA",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "rio-ub",
+      "market": "US",
+      "model_year_from": 2016,
+      "model_year_to": 2016,
+      "trims": [
+        {
+          "name": "LX"
+        },
+        {
+          "name": "EX"
+        },
+        {
+          "name": "SX"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://cdn.dealereprocess.org/cdn/brochures/kia/2016-rio.pdf",
+          "title": "Kia America — Rio MY2016, brochure constructeur archivée",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "rio-yb",
+      "market": "US",
+      "model_year_from": 2019,
+      "model_year_to": 2019,
+      "trims": [
+        {
+          "name": "LX"
+        },
+        {
+          "name": "S"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kia/us/brochures/brochure_rio_2019.pdf",
+          "title": "Kia America — Rio MY2019, brochure constructeur",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "seltos-sp2",
+      "market": "US",
+      "model_year_from": 2021,
+      "model_year_to": 2021,
+      "trims": [
+        {
+          "name": "LX"
+        },
+        {
+          "name": "S"
+        },
+        {
+          "name": "EX"
+        },
+        {
+          "name": "SX"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kia/us/brochures/brochure_seltos_2021.pdf",
+          "title": "Kia America — Seltos MY2021, brochure constructeur",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "picanto-ja",
+      "market": "ES",
+      "model_year_from": 2020,
+      "model_year_to": 2020,
+      "trims": [
+        {
+          "name": "Concept"
+        },
+        {
+          "name": "GT Line"
+        },
+        {
+          "name": "X-Line"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://press.kia.com/content/dam/kiapress/ES/Precios%20toda%20la%20gama%20%28d.%20m%C3%A1x%29%201%20Julio%202020.pdf",
+          "title": "Kia España — tarifs juillet 2020, Picanto MY20 p.1",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "stonic-yb-cuv",
+      "market": "SK",
+      "model_year_from": 2021,
+      "model_year_to": 2021,
+      "trims": [
+        {
+          "name": "SILVER"
+        },
+        {
+          "name": "GOLD"
+        },
+        {
+          "name": "GT-LINE"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/sk/sk/assets/contents/utility/cennik_2021/q1/KIA_Cennik_Stonic_MY21_1Q20210_1.1_RE2021.pdf",
+          "title": "Kia Slovensko — Stonic MY2021, tarifs et finitions p.3",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "sportage-sl",
+      "market": "US",
+      "model_year_from": 2015,
+      "model_year_to": 2015,
+      "trims": [
+        {
+          "name": "LX"
+        },
+        {
+          "name": "EX"
+        },
+        {
+          "name": "SX"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://cdn.dealereprocess.org/cdn/brochures/kia/2015-sportage.pdf",
+          "title": "Kia America — Sportage MY2015, brochure constructeur archivée",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "sorento-xm",
+      "market": "US",
+      "model_year_from": 2014,
+      "model_year_to": 2014,
+      "trims": [
+        {
+          "name": "LX"
+        },
+        {
+          "name": "EX"
+        },
+        {
+          "name": "SX"
+        },
+        {
+          "name": "SX Limited"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://cdn.dealereprocess.org/cdn/brochures/kia/2014-sorento.pdf",
+          "title": "Kia America — Sorento MY2014, brochure constructeur archivée",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "optima-tf",
+      "market": "US",
+      "model_year_from": 2015,
+      "model_year_to": 2015,
+      "trims": [
+        {
+          "name": "LX"
+        },
+        {
+          "name": "EX"
+        },
+        {
+          "name": "SX"
+        },
+        {
+          "name": "SX Turbo"
+        },
+        {
+          "name": "Limited"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://cdn.dealereprocess.org/cdn/brochures/kia/2015-optima.pdf",
+          "title": "Kia America — Optima MY2015, brochure constructeur archivée",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "optima-jf",
+      "market": "US",
+      "model_year_from": 2018,
+      "model_year_to": 2018,
+      "trims": [
+        {
+          "name": "LX"
+        },
+        {
+          "name": "S"
+        },
+        {
+          "name": "EX"
+        },
+        {
+          "name": "SX"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://www.auto-brochures.com/makes/Kia/Optima/Kia_US%20Optima_2018.pdf",
+          "title": "Kia America — Optima MY2018, brochure constructeur archivée",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "k5-dl3",
+      "market": "US",
+      "model_year_from": 2021,
+      "model_year_to": 2021,
+      "trims": [
+        {
+          "name": "LX"
+        },
+        {
+          "name": "LXS"
+        },
+        {
+          "name": "GT-Line"
+        },
+        {
+          "name": "EX"
+        },
+        {
+          "name": "GT"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kia/us/brochures/brochure_k5_2021.pdf",
+          "title": "Kia America — K5 MY2021, brochure constructeur",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "soul-ps",
+      "market": "US",
+      "model_year_from": 2018,
+      "model_year_to": 2018,
+      "trims": [
+        {
+          "name": "Base"
+        },
+        {
+          "name": "Plus"
+        },
+        {
+          "name": "Exclaim"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://cdn.dealereprocess.org/cdn/brochures/kia/2018-soul.pdf",
+          "title": "Kia America — Soul MY2018, brochure constructeur archivée",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "soul-sk3",
+      "market": "US",
+      "model_year_from": 2020,
+      "model_year_to": 2020,
+      "trims": [
+        {
+          "name": "LX"
+        },
+        {
+          "name": "S"
+        },
+        {
+          "name": "X-Line"
+        },
+        {
+          "name": "GT-Line"
+        },
+        {
+          "name": "EX"
+        },
+        {
+          "name": "GT-Line Turbo"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kia/us/brochures/brochure_soul_2020.pdf",
+          "title": "Kia America — Soul MY2020, brochure finale pp.4–5",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    },
+    {
+      "brand": "kia",
+      "model_slug": "sportage-ql",
+      "market": "AU",
+      "model_year_from": 2020,
+      "model_year_to": 2020,
+      "trims": [
+        {
+          "name": "SX"
+        },
+        {
+          "name": "GT Line"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://resource.digitaldealer.com.au/pdf/11417920255e263e371aa70302213761.pdf",
+          "title": "Kia Australia — Sportage MY2020, KMAU4662, pp.1–2, copie CMS concessionnaire",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verified_on": "2026-11-05"
+    }
+  ]
+}

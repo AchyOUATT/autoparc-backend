@@ -1,0 +1,478 @@
+{
+  "schema_version": 1,
+  "status": "research_pending",
+  "importable": false,
+  "purpose": "Backlog Hyundai non verifie. Les noms proposes restent des candidats ; aucun moteur, carburant, boite, puissance ou roues motrices ne doit etre deduit de ce fichier.",
+  "origin": {
+    "kind": "user_proposal",
+    "file_name": "hyundai_trims_complets.php",
+    "sha256": "be6ba9c7d4d2873cb8be05c6f6f2aaacf75ac12da64320f4890fca560587a555",
+    "received_on": "2026-11-03",
+    "manufacturer_evidence": false
+  },
+  "counts": {
+    "catalogue_entries": 12,
+    "proposed_entries": 10,
+    "proposed_trims": 33,
+    "existing_entries_pending_review": 2,
+    "existing_trims_pending_review": 7,
+    "documented_applications": 0
+  },
+  "scope_notice": "Les generations et dates catalogue ci-dessous decrivent VehicleModelsSeeder, pas des marches ni des millesimes de finitions verifies. Ce fichier n'est pas un lot catalog:import-trims et ne doit pas etre passe a TrimsSeeder.",
+  "verification_requirements": [
+    "Lire une brochure ou un catalogue constructeur pour un marche et un millesime precis.",
+    "Relever URL HTTPS, titre, pages utiles et date reelle de consultation.",
+    "Confirmer la correspondance avec la generation du referentiel.",
+    "Creer un lot separe au schema version/entries de catalog:import-trims uniquement pour les lignes effectivement documentees."
+  ],
+  "entries": [
+    {
+      "brand": "hyundai",
+      "model_slug": "tucson-lm",
+      "model_name": "Tucson",
+      "catalogue_generation": "LM",
+      "catalogue_production_start": 2009,
+      "catalogue_production_end": 2015,
+      "status": "proposed_pending_review",
+      "market": null,
+      "model_year_from": null,
+      "model_year_to": null,
+      "proposed_trims": [
+        {
+          "name": "GL",
+          "proposal_line": 7
+        },
+        {
+          "name": "GLS",
+          "proposal_line": 8
+        },
+        {
+          "name": "Limited",
+          "proposal_line": 9
+        }
+      ],
+      "existing_trims": [],
+      "sources": [],
+      "pending_checks": [
+        "manufacturer_trim_names",
+        "market",
+        "model_year_scope",
+        "generation_scope"
+      ],
+      "notes": []
+    },
+    {
+      "brand": "hyundai",
+      "model_slug": "tucson-nx4",
+      "model_name": "Tucson",
+      "catalogue_generation": "NX4",
+      "catalogue_production_start": 2020,
+      "catalogue_production_end": null,
+      "status": "proposed_pending_review",
+      "market": null,
+      "model_year_from": null,
+      "model_year_to": null,
+      "proposed_trims": [
+        {
+          "name": "Preferred",
+          "proposal_line": 12
+        },
+        {
+          "name": "Trend",
+          "proposal_line": 13
+        },
+        {
+          "name": "Ultimate",
+          "proposal_line": 14
+        },
+        {
+          "name": "N Line",
+          "proposal_line": 15
+        }
+      ],
+      "existing_trims": [],
+      "sources": [],
+      "pending_checks": [
+        "manufacturer_trim_names",
+        "market",
+        "model_year_scope",
+        "generation_scope"
+      ],
+      "notes": []
+    },
+    {
+      "brand": "hyundai",
+      "model_slug": "santa-fe-dm",
+      "model_name": "Santa Fe",
+      "catalogue_generation": "DM",
+      "catalogue_production_start": 2012,
+      "catalogue_production_end": 2018,
+      "status": "proposed_pending_review",
+      "market": null,
+      "model_year_from": null,
+      "model_year_to": null,
+      "proposed_trims": [
+        {
+          "name": "GL",
+          "proposal_line": 18
+        },
+        {
+          "name": "GLS",
+          "proposal_line": 19
+        },
+        {
+          "name": "Limited",
+          "proposal_line": 20
+        }
+      ],
+      "existing_trims": [],
+      "sources": [],
+      "pending_checks": [
+        "manufacturer_trim_names",
+        "market",
+        "model_year_scope",
+        "generation_scope"
+      ],
+      "notes": []
+    },
+    {
+      "brand": "hyundai",
+      "model_slug": "i10-ba",
+      "model_name": "i10",
+      "catalogue_generation": "BA",
+      "catalogue_production_start": 2013,
+      "catalogue_production_end": null,
+      "status": "proposed_pending_review",
+      "market": null,
+      "model_year_from": null,
+      "model_year_to": null,
+      "proposed_trims": [
+        {
+          "name": "Base",
+          "proposal_line": 23
+        },
+        {
+          "name": "Active",
+          "proposal_line": 24
+        },
+        {
+          "name": "Style",
+          "proposal_line": 25
+        }
+      ],
+      "existing_trims": [],
+      "sources": [],
+      "pending_checks": [
+        "manufacturer_trim_names",
+        "market",
+        "model_year_scope",
+        "generation_scope"
+      ],
+      "notes": [
+        "La borne de production du catalogue est ouverte. Elle ne documente pas une commercialisation continue de ces finitions."
+      ]
+    },
+    {
+      "brand": "hyundai",
+      "model_slug": "i20-ib",
+      "model_name": "i20",
+      "catalogue_generation": "IB",
+      "catalogue_production_start": 2014,
+      "catalogue_production_end": null,
+      "status": "proposed_pending_review",
+      "market": null,
+      "model_year_from": null,
+      "model_year_to": null,
+      "proposed_trims": [
+        {
+          "name": "Active",
+          "proposal_line": 28
+        },
+        {
+          "name": "Style",
+          "proposal_line": 29
+        },
+        {
+          "name": "Premium",
+          "proposal_line": 30
+        }
+      ],
+      "existing_trims": [],
+      "sources": [],
+      "pending_checks": [
+        "manufacturer_trim_names",
+        "market",
+        "model_year_scope",
+        "generation_scope"
+      ],
+      "notes": [
+        "La borne de production du catalogue est ouverte. Elle ne documente pas une commercialisation continue de ces finitions."
+      ]
+    },
+    {
+      "brand": "hyundai",
+      "model_slug": "accent-rb",
+      "model_name": "Accent",
+      "catalogue_generation": "RB",
+      "catalogue_production_start": 2011,
+      "catalogue_production_end": null,
+      "status": "proposed_pending_review",
+      "market": null,
+      "model_year_from": null,
+      "model_year_to": null,
+      "proposed_trims": [
+        {
+          "name": "GL",
+          "proposal_line": 33
+        },
+        {
+          "name": "GLS",
+          "proposal_line": 34
+        },
+        {
+          "name": "Limited",
+          "proposal_line": 35
+        }
+      ],
+      "existing_trims": [],
+      "sources": [],
+      "pending_checks": [
+        "manufacturer_trim_names",
+        "market",
+        "model_year_scope",
+        "generation_scope"
+      ],
+      "notes": [
+        "La borne de production du catalogue est ouverte. Elle ne documente pas une commercialisation continue de ces finitions."
+      ]
+    },
+    {
+      "brand": "hyundai",
+      "model_slug": "elantra-ad",
+      "model_name": "Elantra",
+      "catalogue_generation": "AD",
+      "catalogue_production_start": 2015,
+      "catalogue_production_end": 2020,
+      "status": "proposed_pending_review",
+      "market": null,
+      "model_year_from": null,
+      "model_year_to": null,
+      "proposed_trims": [
+        {
+          "name": "SE",
+          "proposal_line": 38
+        },
+        {
+          "name": "SEL",
+          "proposal_line": 39
+        },
+        {
+          "name": "Limited",
+          "proposal_line": 40
+        }
+      ],
+      "existing_trims": [],
+      "sources": [],
+      "pending_checks": [
+        "manufacturer_trim_names",
+        "market",
+        "model_year_scope",
+        "generation_scope"
+      ],
+      "notes": []
+    },
+    {
+      "brand": "hyundai",
+      "model_slug": "elantra-cn7",
+      "model_name": "Elantra",
+      "catalogue_generation": "CN7",
+      "catalogue_production_start": 2020,
+      "catalogue_production_end": null,
+      "status": "proposed_pending_review",
+      "market": null,
+      "model_year_from": null,
+      "model_year_to": null,
+      "proposed_trims": [
+        {
+          "name": "SE",
+          "proposal_line": 43
+        },
+        {
+          "name": "SEL",
+          "proposal_line": 44
+        },
+        {
+          "name": "Limited",
+          "proposal_line": 45
+        },
+        {
+          "name": "N Line",
+          "proposal_line": 46
+        }
+      ],
+      "existing_trims": [],
+      "sources": [],
+      "pending_checks": [
+        "manufacturer_trim_names",
+        "market",
+        "model_year_scope",
+        "generation_scope"
+      ],
+      "notes": []
+    },
+    {
+      "brand": "hyundai",
+      "model_slug": "creta",
+      "model_name": "Creta",
+      "catalogue_generation": null,
+      "catalogue_production_start": 2015,
+      "catalogue_production_end": null,
+      "status": "proposed_pending_review",
+      "market": null,
+      "model_year_from": null,
+      "model_year_to": null,
+      "proposed_trims": [
+        {
+          "name": "GL",
+          "proposal_line": 49
+        },
+        {
+          "name": "GLS",
+          "proposal_line": 50
+        },
+        {
+          "name": "Limited",
+          "proposal_line": 51
+        }
+      ],
+      "existing_trims": [],
+      "sources": [],
+      "pending_checks": [
+        "manufacturer_trim_names",
+        "market",
+        "model_year_scope",
+        "generation_scope"
+      ],
+      "notes": [
+        "Le modele courant ne distingue aucune generation. Identifier la generation avant de rattacher une gamme commerciale documentee."
+      ]
+    },
+    {
+      "brand": "hyundai",
+      "model_slug": "sonata-lf",
+      "model_name": "Sonata",
+      "catalogue_generation": "LF",
+      "catalogue_production_start": 2014,
+      "catalogue_production_end": 2019,
+      "status": "proposed_pending_review",
+      "market": null,
+      "model_year_from": null,
+      "model_year_to": null,
+      "proposed_trims": [
+        {
+          "name": "SE",
+          "proposal_line": 54
+        },
+        {
+          "name": "SEL",
+          "proposal_line": 55
+        },
+        {
+          "name": "Limited",
+          "proposal_line": 56
+        },
+        {
+          "name": "Sport",
+          "proposal_line": 57
+        }
+      ],
+      "existing_trims": [],
+      "sources": [],
+      "pending_checks": [
+        "manufacturer_trim_names",
+        "market",
+        "model_year_scope",
+        "generation_scope"
+      ],
+      "notes": []
+    },
+    {
+      "brand": "hyundai",
+      "model_slug": "tucson-tl",
+      "model_name": "Tucson",
+      "catalogue_generation": "TL",
+      "catalogue_production_start": 2015,
+      "catalogue_production_end": 2020,
+      "status": "existing_pending_review",
+      "market": null,
+      "model_year_from": null,
+      "model_year_to": null,
+      "proposed_trims": [],
+      "existing_trims": [
+        {
+          "name": "Active",
+          "seeder_line": 1031
+        },
+        {
+          "name": "Active X",
+          "seeder_line": 1032
+        },
+        {
+          "name": "Elite",
+          "seeder_line": 1033
+        },
+        {
+          "name": "Highlander",
+          "seeder_line": 1034
+        }
+      ],
+      "sources": [],
+      "pending_checks": [
+        "manufacturer_trim_names",
+        "market",
+        "model_year_scope",
+        "generation_scope"
+      ],
+      "notes": [
+        "Finitions presentes dans le seeder historique, sans application documentee dans cette proposition. Auditer les defauts techniques existants sans les considerer verifies."
+      ]
+    },
+    {
+      "brand": "hyundai",
+      "model_slug": "santa-fe-tm",
+      "model_name": "Santa Fe",
+      "catalogue_generation": "TM",
+      "catalogue_production_start": 2018,
+      "catalogue_production_end": null,
+      "status": "existing_pending_review",
+      "market": null,
+      "model_year_from": null,
+      "model_year_to": null,
+      "proposed_trims": [],
+      "existing_trims": [
+        {
+          "name": "Essential",
+          "seeder_line": 1037
+        },
+        {
+          "name": "Comfort",
+          "seeder_line": 1038
+        },
+        {
+          "name": "Premium",
+          "seeder_line": 1039
+        }
+      ],
+      "sources": [],
+      "pending_checks": [
+        "manufacturer_trim_names",
+        "market",
+        "model_year_scope",
+        "generation_scope"
+      ],
+      "notes": [
+        "Finitions presentes dans le seeder historique, sans application documentee dans cette proposition. Auditer les defauts techniques existants sans les considerer verifies."
+      ]
+    }
+  ]
+}

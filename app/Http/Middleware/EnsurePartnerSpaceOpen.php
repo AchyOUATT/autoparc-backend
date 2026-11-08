@@ -34,6 +34,11 @@ class EnsurePartnerSpaceOpen
 {
     public function handle(Request $request, Closure $next): Response
     {
+        // La CLE ci-dessous est figee : c'est la VALEUR de lang/fr.json et de
+        // lang/en.json qui parle a l'utilisateur, et l'application publiee
+        // affiche ce que le serveur envoie. Elle a ete reformulee la-bas, pas
+        // ici — le texte d'origine parlait de « mettre a jour l'application »
+        // a quelqu'un qui vient d'installer la derniere version.
         abort_unless(
             config('partenaires.espace_ouvert'),
             503,

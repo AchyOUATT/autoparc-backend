@@ -16,6 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Vérifier l’assistant local d’autorisation Gmail
+        run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+
       - name: Installer PHP
         uses: shivammathur/setup-php@v2
         with:

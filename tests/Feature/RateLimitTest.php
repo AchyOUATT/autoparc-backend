@@ -130,6 +130,75 @@ class RateLimitTest extends TestCase
         $this->postJson('/api/needs', $besoin)->assertStatus(429);
     }
 
+    /**
+     * Un refus de debit parle la langue de celui qu'il refuse.
+     *
+     * Les dix messages des limiteurs partaient en francais quelle que soit la
+     * langue demandee : aucun n'etait passe par __(). Un client anglais qui se
+     * faisait plafonner lisait « Trop de demandes envoyees. »
+     *
+     * Les trois lectures comptent. L'anglais prouve la traduction ; le francais
+     * et l'en-tete ABSENT prouvent que le texte d'avant n'a pas bouge d'un
+     * caractere — le binaire deja installe n'annonce aucune langue.
+     */
+    public function test_le_refus_parle_la_langue_de_la_requete(): void
+    {
+        $besoin = [
+            'type'           => 'part',
+            'description'    => 'Recherche plaquettes de frein',
+            'contact_name'   => 'Awa',
+            'contact_phone'  => '+22600000000',
+        ];
+
+        for ($i = 1; $i <= 10; $i++) {
+            $this->postJson('/api/needs', $besoin)->assertSuccessful();
+        }
+
+        $this->withHeader('Accept-Language', 'en')->postJson('/api/needs', $besoin)
+            ->assertStatus(429)
+            ->assertJsonPath('message', 'Too many requests sent. Wait a minute before trying again.');
+
+        $this->withHeader('Accept-Language', 'fr')->postJson('/api/needs', $besoin)
+            ->assertStatus(429)
+            ->assertJsonPath('message', 'Trop de demandes envoyees. Patientez une minute avant de reessayer.');
+
+        $this->withHeader('Accept-Language', '')->postJson('/api/needs', $besoin)
+            ->assertStatus(429)
+            ->assertJsonPath('message', 'Trop de demandes envoyees. Patientez une minute avant de reessayer.');
+    }
+
+    /**
+     * Chaque message de refus a sa traduction, y compris ceux a venir.
+     *
+     * POURQUOI LIRE LA SOURCE. La traduction se fait dans `refus()`, par
+     * `__($message)` : c'est ce qui evite a chaque appelant d'y penser. Mais
+     * une chaine passee a `refus()` sans entree dans lang/en.json resterait
+     * francaise SANS UN MOT — `__()` rend sa cle quand il ne trouve rien. C'est
+     * exactement la faute que ce correctif ferme pour dix messages ; ce banc
+     * la ferme pour le onzieme.
+     *
+     * Une « traduction » identique a sa cle est refusee aussi : c'est ce que
+     * produirait un copier-coller de la ligne francaise dans le catalogue
+     * anglais.
+     */
+    public function test_chaque_message_de_refus_a_sa_traduction(): void
+    {
+        $source = file_get_contents(app_path('Providers/AppServiceProvider.php'));
+        preg_match_all("/refus\\(\\s*'((?:[^'\\\\]|\\\\.)*)'\\s*\\)/u", $source, $trouves);
+        $messages = array_values(array_unique(array_map('stripslashes', $trouves[1])));
+
+        $this->assertGreaterThanOrEqual(10, count($messages), 'Le banc ne trouve plus les messages : la forme de refus() a change.');
+
+        $anglais = json_decode(file_get_contents(lang_path('en.json')), true);
+        $francais = json_decode(file_get_contents(lang_path('fr.json')), true);
+
+        foreach ($messages as $message) {
+            $this->assertArrayHasKey($message, $anglais, "Sans traduction anglaise : « $message »");
+            $this->assertNotSame($message, $anglais[$message], "Traduction identique a sa cle : « $message »");
+            $this->assertSame($message, $francais[$message] ?? null, "Absent ou altere dans lang/fr.json : « $message »");
+        }
+    }
+
     // ── Adresse reelle du client ─────────────────────────────────────────────
 
     /**

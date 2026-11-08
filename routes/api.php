@@ -50,6 +50,9 @@ use Illuminate\Support\Facades\Route;
 Route::post('login', [AuthController::class, 'login'])
     ->middleware('throttle:login'); // staff uniquement : les clients passent par Firebase Auth cote Flutter
 
+Route::post('auth/password/forgot', [\App\Http\Controllers\PasswordRecoveryController::class, 'forgot'])
+    ->middleware('throttle:password-recovery');
+
 require __DIR__.'/partner.php';
 require __DIR__.'/private-sales.php';
 

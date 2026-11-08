@@ -1,0 +1,2195 @@
+{
+  "version": 1,
+  "reviewed_on": "2026-11-05",
+  "models": [
+    {
+      "name": "Picanto",
+      "slug": "picanto-ja",
+      "generation": "JA",
+      "body_type": "citadine",
+      "segment": "A",
+      "production_start": 2017,
+      "production_end": null,
+      "aliases": [
+        "Morning"
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "title": "Kia Rettungsdatenblätter 11/2019 — Kia Motors Deutschland",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/all-new-morning-3rd-gen",
+          "title": "Kia Heritage — All-New Morning (3rd Gen.), 2017",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "open_bound_unknown",
+          "aliases": "confirmed_commercial_name",
+          "body_type": "editorial_mapping",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Aucune attestation d'arrêt mondial dans toutes les usines. La borne ne peut être certifiée qu'au périmètre de la référence citée.",
+          "Nom commercial seulement: aucune identité universelle de moteurs, finitions ou équipement n'est déduite."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2017,
+          "to": null,
+          "scope": "EU",
+          "year_basis": "rescue_sheet_reference_years",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "locator": "rescue_sheet_reference_years",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2017,
+          "to": null,
+          "scope": "KR",
+          "year_basis": "heritage_generation_launch",
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/all-new-morning-3rd-gen",
+          "locator": "heritage_generation_launch",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Picanto",
+      "slug": "picanto-ta",
+      "generation": "TA",
+      "body_type": "citadine",
+      "segment": "A",
+      "production_start": 2011,
+      "production_end": 2017,
+      "aliases": [
+        "Morning"
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "title": "Kia Rettungsdatenblätter 11/2019 — Kia Motors Deutschland",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.kia.com/om/en/discover-kia/ask/what-are-good-first-cars.html",
+          "title": "Kia — What Are Good First Cars?",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/all-new-morning-2nd-gen",
+          "title": "Kia Heritage — All-New Morning (2nd Gen.), 2011",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "confirmed_commercial_name",
+          "body_type": "editorial_mapping",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Aucune attestation d'arrêt mondial dans toutes les usines. La borne ne peut être certifiée qu'au périmètre de la référence citée.",
+          "Nom commercial seulement: aucune identité universelle de moteurs, finitions ou équipement n'est déduite."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2011,
+          "to": 2017,
+          "scope": "EU",
+          "year_basis": "rescue_sheet_reference_years",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "locator": "rescue_sheet_reference_years",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2011,
+          "to": null,
+          "scope": "KR",
+          "year_basis": "heritage_generation_launch",
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/all-new-morning-2nd-gen",
+          "locator": "heritage_generation_launch",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Rio",
+      "slug": "rio-yb",
+      "generation": "YB",
+      "body_type": "berline",
+      "segment": "B",
+      "production_start": 2017,
+      "production_end": null,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "title": "Kia Rettungsdatenblätter 11/2019 — Kia Motors Deutschland",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://press.kia.com/at/at/home/press-kits/pressemappe-kia-rio.html",
+          "title": "Kia Austria — Der neue Kia Rio, Pressemappe (2017)",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://press.kia.com/pl/pl/home/press-kits/2016/_wiatowa-premiera-cakowicie-nowej-kia-rio-podczas-salonu-samocho.html",
+          "title": "Kia Poland — World premiere of all-new Rio at Paris Motor Show, 2016",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "open_bound_unknown",
+          "aliases": "not_asserted",
+          "body_type": "editorial_mapping",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Aucune attestation d'arrêt mondial dans toutes les usines. La borne ne peut être certifiée qu'au périmètre de la référence citée.",
+          "La génération couvre plusieurs carrosseries selon le marché; berline n'établit pas quatre portes pour tous les exemplaires.",
+          "Certains textes constructeur ont été lus dans leur index de recherche; les rapports conservent le mode d’accès exact.",
+          "2017 reste le début commercial européen; la fabrication annoncée fin 2016 est consignée séparément, sans constat d’usine."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2017,
+          "to": null,
+          "scope": "EU",
+          "year_basis": "rescue_sheet_reference_years",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "locator": "rescue_sheet_reference_years",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2017,
+          "to": null,
+          "scope": "PL/EU",
+          "year_basis": "market_launch",
+          "url": "https://press.kia.com/at/at/home/press-kits/pressemappe-kia-rio.html",
+          "locator": "market_launch",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2016,
+          "to": null,
+          "scope": "KR",
+          "year_basis": "planned_production_start_not_observed",
+          "url": "https://press.kia.com/pl/pl/home/press-kits/2016/_wiatowa-premiera-cakowicie-nowej-kia-rio-podczas-salonu-samocho.html",
+          "locator": "planned_production_start_not_observed",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Rio",
+      "slug": "rio-ub",
+      "generation": "UB",
+      "body_type": "berline",
+      "segment": "B",
+      "production_start": 2011,
+      "production_end": 2017,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "title": "Kia Rettungsdatenblätter 11/2019 — Kia Motors Deutschland",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://preview.thenewsmarket.com/Previews/kiam/DocumentAssets/200629.pdf",
+          "title": "Kia Motors — February 2011 global sales release",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "not_asserted",
+          "body_type": "editorial_mapping",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Aucune attestation d'arrêt mondial dans toutes les usines. La borne ne peut être certifiée qu'au périmètre de la référence citée.",
+          "La génération couvre plusieurs carrosseries selon le marché; berline n'établit pas quatre portes pour tous les exemplaires."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2011,
+          "to": 2017,
+          "scope": "EU",
+          "year_basis": "rescue_sheet_reference_years",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "locator": "rescue_sheet_reference_years",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Cerato",
+      "slug": "cerato-bd",
+      "generation": "BD",
+      "body_type": "berline",
+      "segment": "C",
+      "production_start": 2018,
+      "production_end": null,
+      "aliases": [
+        "Forte"
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/nmc/en/files/service/Service-Menu-Prices%28GDI%2BMPI%29.pdf",
+          "title": "Kia Saudi Arabia/NMC — Service Menu Prices (GDI+MPI)",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://update.kia.com/CA/KO/updateNoticePopup/612",
+          "title": "Kia Canada — navigation software applicability table (2021 versions)",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.kiamedia.com/us/es/models/forte/2019",
+          "title": "2019 Forte Overview — Kia America, August 2018",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.kia.com/ge/showroom/cerato/specifications.html",
+          "title": "Kia Cerato Forte — Specifications — Kia Georgia",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "open_bound_unknown",
+          "aliases": "confirmed_commercial_name",
+          "body_type": "confirmed",
+          "segment": "editorial_mapping"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Début exact de série non attesté;2018 confirme présentation/commercialisation, pas date d'usine.",
+          "Fin inconnue, pas production2026 certifiée.",
+          "C est une classification interne cohérente avec compact sedan, mais la lettre n'a pas été confirmée sur un documentBD spécifique.",
+          "Certains textes constructeur ont été lus dans leur index de recherche; les rapports conservent le mode d’accès exact.",
+          "Segment C: correspondance éditoriale depuis compact sedan; la lettre C n’a pas été confirmée dans un document BD spécifique."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2018,
+          "to": null,
+          "scope": "US",
+          "year_basis": "calendar_release_of_MY2019",
+          "url": "https://www.kiamedia.com/us/es/models/forte/2019",
+          "locator": "calendar_release_of_MY2019",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2019,
+          "to": 2021,
+          "scope": "CA_model_years_sedan",
+          "year_basis": "navigation_applicability_not_full_lifetime",
+          "url": "https://update.kia.com/CA/KO/updateNoticePopup/612",
+          "locator": "navigation_applicability_not_full_lifetime",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2019,
+          "to": 2022,
+          "scope": "SA_model_years",
+          "year_basis": "service_menu_coverage_not_full_lifetime",
+          "url": "https://www.kia.com/content/dam/kwcms/nmc/en/files/service/Service-Menu-Prices%28GDI%2BMPI%29.pdf",
+          "locator": "service_menu_coverage_not_full_lifetime",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Sportage",
+      "slug": "sportage-ql",
+      "generation": "QL",
+      "body_type": "suv",
+      "segment": "C",
+      "production_start": 2015,
+      "production_end": 2021,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblaetter",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://press.kia.com/fr/fr/home/press-releases/2023/kia-sportage-celebre-son-30e-anniversaire-avec-une-edition-speciale.html",
+          "title": "Kia Sportage 30 Years (2023)",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.kia.com/fi/palvelut/huolto/ohjekirjat/",
+          "title": "Kia Finland - Owner manuals",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://press.kia.com/content/kiapress/eu/en/home/corporate/factoryslovakia.html",
+          "title": "Kia European production plant Zilina",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "not_asserted",
+          "body_type": "confirmed",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Kia Slovakia page dated 23/02/2022 still describes fourth-generation production, alongside fifth-generation launch November 2021; stale composite text prevents using it as a precise cessation date."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2015,
+          "to": 2020,
+          "scope": "Kia global brand generation illustration",
+          "year_basis": "generation_chronology",
+          "url": "https://worldwide.kia.com/en/vehicle/vehicle-stories/shaping-the-sportage",
+          "locator": "fourth-generation heading",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2016,
+          "to": 2021,
+          "scope": "Europe; equipped navigation vehicles",
+          "year_basis": "supported_model_years",
+          "url": "https://update.kia.com/EU/EN/updateNoticeView/software-version",
+          "locator": "Sportage table 2016-2021",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Sportage",
+      "slug": "sportage-nq5",
+      "generation": "NQ5",
+      "body_type": "suv",
+      "segment": "C",
+      "production_start": 2021,
+      "production_end": null,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/global/en/assets/contents/service/rescue-sheets/rescue-sheet-pdfs/RS_Kia_Sportage_HEV_SUV_2020_5d_Hybrid%20%28Electric%29.pdf",
+          "title": "Kia Sportage HEV rescue sheet",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://press.kia.com/fr/fr/home/press-releases/2023/kia-sportage-celebre-son-30e-anniversaire-avec-une-edition-speciale.html",
+          "title": "Kia Sportage 30 Years (2023)",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "open_bound_unknown",
+          "aliases": "not_asserted",
+          "body_type": "confirmed",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2021,
+          "to": null,
+          "scope": "Europe; HEV rescue sheet",
+          "year_basis": "rescue_sheet_applicability",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/global/en/assets/contents/service/rescue-sheets/rescue-sheet-pdfs/RS_Kia_Sportage_HEV_SUV_2020_5d_Hybrid%20%28Electric%29.pdf",
+          "locator": "PDF page 1",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2022,
+          "to": 2025,
+          "scope": "Europe; navigation-supported model years",
+          "year_basis": "supported_model_years",
+          "url": "https://update.kia.com/EU/EN/updateNoticeView/software-version",
+          "locator": "Sportage table NQ5e 2022-2025",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Sorento",
+      "slug": "sorento-um",
+      "generation": "UM",
+      "body_type": "suv",
+      "segment": "D",
+      "production_start": 2014,
+      "production_end": 2020,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblaetter",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/all-new-sorento",
+          "title": "Kia Heritage - All-New Sorento (2014)",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/sorento-1st-gen",
+          "title": "Kia Heritage - Sorento first generation",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.kia.com/fi/palvelut/huolto/ohjekirjat/",
+          "title": "Kia Finland - Owner manuals",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "not_asserted",
+          "body_type": "confirmed",
+          "segment": "family_level_evidence"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "2020 is an evidenced model/manual applicability boundary, not a global manufacturing cessation certificate.",
+          "Segment D has family-level evidence only in retained documents."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2014,
+          "to": null,
+          "scope": "Europe; rescue sheet",
+          "year_basis": "rescue_sheet_applicability",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "locator": "PDF page 45",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2015,
+          "to": 2020,
+          "scope": "Finland; UM 2015-2018 plus UM FL 2019-2020 manuals",
+          "year_basis": "manual_applicability",
+          "url": "https://www.kia.com/fi/palvelut/huolto/ohjekirjat/",
+          "locator": "Sorento section",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Stonic",
+      "slug": "stonic-yb-cuv",
+      "generation": "YB CUV",
+      "body_type": "suv",
+      "segment": "B",
+      "production_start": 2017,
+      "production_end": null,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblaetter",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.kia.com/fi/palvelut/huolto/ohjekirjat/",
+          "title": "Kia Finland - Owner manuals",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://press.kia.com/at/at/home/press-kits/pressemappe-kia-stonic.html",
+          "title": "Kia Austria - Stonic press kit",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "open_bound_unknown",
+          "aliases": "not_asserted",
+          "body_type": "confirmed",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2017,
+          "to": null,
+          "scope": "Europe; rescue sheet",
+          "year_basis": "rescue_sheet_applicability",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "locator": "PDF page 57",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2020,
+          "to": 2026,
+          "scope": "Europe; navigation-supported examples, including YB_PE2",
+          "year_basis": "supported_model_years",
+          "url": "https://update.kia.com/EU/EN/updateNoticeView/software-version",
+          "locator": "Stonic table",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Seltos",
+      "slug": "seltos-sp2",
+      "generation": "SP2",
+      "body_type": "suv",
+      "segment": "B",
+      "production_start": 2019,
+      "production_end": null,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://update.kia.com/US/EN/updateNoticeView/software-version",
+          "title": "Kia Navigation US - Latest Updates",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/seltos",
+          "title": "Kia Heritage - Seltos (2019)",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://press.kia.com/es/es/home/notas-de-prensa/press-releases/2020/una-gama-global--kia-motors-en-el-mundo.html",
+          "title": "Kia - Una gama global (2020)",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "open_bound_unknown",
+          "aliases": "not_asserted",
+          "body_type": "confirmed",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "SP2 and India-specific SP2i are not interchangeable technical configurations; keep regional differences outside a generic trim default.",
+          "New Seltos launch in 2026 does not itself establish the worldwide final production year of SP2."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2019,
+          "to": null,
+          "scope": "Global introduction; no cessation provided",
+          "year_basis": "generation_introduction",
+          "url": "https://press.kia.com/es/es/home/notas-de-prensa/press-releases/2020/una-gama-global--kia-motors-en-el-mundo.html",
+          "locator": "Seltos paragraph",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2021,
+          "to": 2026,
+          "scope": "US; SP2 and SP2_PE navigation-supported variants",
+          "year_basis": "supported_model_years",
+          "url": "https://update.kia.com/US/EN/updateNoticeView/software-version",
+          "locator": "Seltos table 2021 / 2022 / 2023 / 2024-26",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Picanto",
+      "slug": "picanto-sa",
+      "generation": "SA",
+      "body_type": "citadine",
+      "segment": "A",
+      "production_start": 2004,
+      "production_end": 2011,
+      "aliases": [
+        "Morning"
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "title": "Kia Rettungsdatenblätter 11/2019 — Kia Motors Deutschland",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/morning-1st-gen",
+          "title": "Kia Heritage — Morning (1st Gen.), 2004",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "confirmed_commercial_name",
+          "body_type": "editorial_mapping",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Aucune attestation d'arrêt mondial dans toutes les usines. La borne ne peut être certifiée qu'au périmètre de la référence citée.",
+          "Nom commercial seulement: aucune identité universelle de moteurs, finitions ou équipement n'est déduite."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2004,
+          "to": 2011,
+          "scope": "EU",
+          "year_basis": "rescue_sheet_reference_years",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "locator": "rescue_sheet_reference_years",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2004,
+          "to": null,
+          "scope": "KR",
+          "year_basis": "heritage_generation_launch",
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/morning-1st-gen",
+          "locator": "heritage_generation_launch",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Rio",
+      "slug": "rio-jb",
+      "generation": "JB",
+      "body_type": "berline",
+      "segment": "B",
+      "production_start": 2005,
+      "production_end": 2011,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "title": "Kia Rettungsdatenblätter 11/2019 — Kia Motors Deutschland",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.kiamedia.com/us/en/media/pressreleases/4019/all-new-2006-kia-rio-makes-world-debut-at-north-american-international-auto-show-in-detroit",
+          "title": "Kia America — All-new 2006 Rio world debut, January11,2005",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://preview.thenewsmarket.com/Previews/kiam/DocumentAssets/200629.pdf",
+          "title": "Kia Motors — February 2011 global sales release",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "not_asserted",
+          "body_type": "confirmed_body_variant",
+          "segment": "family_level_evidence"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Aucune attestation d'arrêt mondial dans toutes les usines. La borne ne peut être certifiée qu'au périmètre de la référence citée.",
+          "La génération couvre plusieurs carrosseries selon le marché; berline n'établit pas quatre portes pour tous les exemplaires.",
+          "Certains textes constructeur ont été lus dans leur index de recherche; les rapports conservent le mode d’accès exact."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2005,
+          "to": 2011,
+          "scope": "EU",
+          "year_basis": "rescue_sheet_reference_years",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "locator": "rescue_sheet_reference_years",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2005,
+          "to": null,
+          "scope": "KR",
+          "year_basis": "corporate_history_launch_April2005",
+          "url": "https://www.kia.com/ie/about-kia/kia-company/history-1/",
+          "locator": "corporate_history_launch_April2005",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Cerato",
+      "slug": "cerato-ld",
+      "generation": "LD",
+      "body_type": "berline",
+      "segment": "C",
+      "production_start": 2004,
+      "production_end": 2008,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "title": "Kia Rettungsdatenblätter 11/2019 — Kia Motors Deutschland",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.kia.com/ie/about-kia/kia-company/history-1/",
+          "title": "History of Kia, 2001–2010 — Kia Ireland",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/cerato",
+          "title": "Kia Heritage — Cerato, 2003",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "not_asserted",
+          "body_type": "confirmed_body_variant",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Aucune attestation d'arrêt mondial dans toutes les usines. La borne ne peut être certifiée qu'au périmètre de la référence citée.",
+          "2004 reste le début de référence européen; le lancement coréen de novembre 2003 est consigné séparément."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2004,
+          "to": 2008,
+          "scope": "EU_sedan",
+          "year_basis": "rescue_sheet_reference_years",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "locator": "rescue_sheet_reference_years",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2004,
+          "to": 2007,
+          "scope": "EU_hatch",
+          "year_basis": "rescue_sheet_reference_years",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/at/de/assets/contents/rettungsdienste/rettungsdienste-pdf/Kia_Rettungsdatenblaetter_11_2019.pdf",
+          "locator": "rescue_sheet_reference_years",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2003,
+          "to": null,
+          "scope": "KR",
+          "year_basis": "corporate_launch_November2003",
+          "url": "https://www.kia.com/ie/about-kia/kia-company/history-1/",
+          "locator": "corporate_launch_November2003",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Cerato",
+      "slug": "cerato-td",
+      "generation": "TD",
+      "body_type": "berline",
+      "segment": "C",
+      "production_start": 2008,
+      "production_end": 2013,
+      "aliases": [
+        "Forte"
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/fr/services/apres-vente/service-offers/kia-service-5-plus/",
+          "title": "Kia Service 5+ — List of models",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.kia.com/ie/about-kia/kia-company/history-1/",
+          "title": "History of Kia, 2001–2010 — Kia Ireland",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://preview.thenewsmarket.com/Previews/kiam/DocumentAssets/200629.pdf",
+          "title": "Kia Motors — February 2011 global sales release",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/forte",
+          "title": "Kia Heritage — Forte, 2008",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "confirmed_commercial_name",
+          "body_type": "confirmed",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Aucune attestation d'arrêt mondial dans toutes les usines. La borne ne peut être certifiée qu'au périmètre de la référence citée."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2008,
+          "to": null,
+          "scope": "KR",
+          "year_basis": "corporate_launch_August2008",
+          "url": "https://www.kia.com/ie/about-kia/kia-company/history-1/",
+          "locator": "corporate_launch_August2008",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2009,
+          "to": 2013,
+          "scope": "EU_service_eligibility",
+          "year_basis": "service_program_coverage_not_production",
+          "url": "https://www.kia.com/fr/services/apres-vente/service-offers/kia-service-5-plus/",
+          "locator": "service_program_coverage_not_production",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Cerato",
+      "slug": "cerato-yd",
+      "generation": "YD",
+      "body_type": "berline",
+      "segment": "C",
+      "production_start": 2012,
+      "production_end": 2019,
+      "aliases": [
+        "Forte"
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/fr/services/apres-vente/service-offers/kia-service-5-plus/",
+          "title": "Kia Service 5+ — List of models",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://update.kia.com/CA/KO/updateNoticePopup/612",
+          "title": "Kia Canada — navigation software applicability table (2021 versions)",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://preview.thenewsmarket.com/Previews/kiam/DocumentAssets/265575_v2.pdf",
+          "title": "Kia Motors — November 2012 global sales release, December 2012",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/nmc/en/files/service/Service-Menu-Prices%28GDI%2BMPI%29.pdf",
+          "title": "Kia Saudi Arabia/NMC — Service Menu Prices (GDI+MPI)",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://preprod2-press.kia.com/ie/en/home/media-resouces/press-releases/2015/15_06_10_30---kia-motors-holds-official-brand-launch-ceremony-in-mexico.html",
+          "title": "Kia Motors holds official brand launch ceremony in Mexico — 10 June 2015",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "confirmed_commercial_name",
+          "body_type": "confirmed",
+          "segment": "family_level_evidence"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Aucune attestation d'arrêt mondial dans toutes les usines. La borne ne peut être certifiée qu'au périmètre de la référence citée.",
+          "Une année de millésime2019 ne prouve pas fabrication2019; elle suffit néanmoins à interdire l'affirmation que tous lesYD ont cessé d'être disponibles en2018.",
+          "Certains textes constructeur ont été lus dans leur index de recherche; les rapports conservent le mode d’accès exact.",
+          "Borne élargie à 2019 pour inclure la couverture locale Kia Saudi Arabia YD 2013–2019; millésime et fabrication restent distincts."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2012,
+          "to": null,
+          "scope": "KR",
+          "year_basis": "launch_confirmed_in_contemporary_release",
+          "url": "https://preview.thenewsmarket.com/Previews/kiam/DocumentAssets/265575_v2.pdf",
+          "locator": "launch_confirmed_in_contemporary_release",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2017,
+          "to": 2018,
+          "scope": "CA_model_years",
+          "year_basis": "navigation_applicability; non-exhaustive_start",
+          "url": "https://update.kia.com/CA/KO/updateNoticePopup/612",
+          "locator": "navigation_applicability; non-exhaustive_start",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2013,
+          "to": 2019,
+          "scope": "SA_model_years",
+          "year_basis": "service_menu_coverage",
+          "url": "https://www.kia.com/content/dam/kwcms/nmc/en/files/service/Service-Menu-Prices%28GDI%2BMPI%29.pdf",
+          "locator": "service_menu_coverage",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Sportage",
+      "slug": "sportage-km",
+      "generation": "KM",
+      "body_type": "suv",
+      "segment": "C",
+      "production_start": 2004,
+      "production_end": 2010,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblaetter",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/new-sportage",
+          "title": "Kia Heritage - New Sportage (2004)",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://press.kia.com/content/dam/kiapress/EU/download-files/16-02/RD-StoryAllnew-Sportage-2016.pdf",
+          "title": "Hyundai Motor Group R&D - The SUV Sportage (Dec.2015)",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "not_asserted",
+          "body_type": "confirmed",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2004,
+          "to": 2010,
+          "scope": "Korean generation chronology",
+          "year_basis": "generation_chronology",
+          "url": "https://press.kia.com/content/dam/kiapress/EU/download-files/16-02/RD-StoryAllnew-Sportage-2016.pdf",
+          "locator": "PDF page 7; KM date box",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2004,
+          "to": 2010,
+          "scope": "Europe",
+          "year_basis": "rescue_sheet_applicability",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "locator": "PDF page 52",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Sportage",
+      "slug": "sportage-sl",
+      "generation": "SL",
+      "body_type": "suv",
+      "segment": "C",
+      "production_start": 2010,
+      "production_end": 2016,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblaetter",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://press.kia.com/content/dam/kiapress/EU/download-files/16-02/RD-StoryAllnew-Sportage-2016.pdf",
+          "title": "Hyundai Motor Group R&D - The SUV Sportage (Dec.2015)",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://press.kia.com/fr/fr/home/press-releases/2023/kia-sportage-celebre-son-30e-anniversaire-avec-une-edition-speciale.html",
+          "title": "Kia Sportage 30 Years (2023)",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "not_asserted",
+          "body_type": "confirmed",
+          "segment": "family_level_evidence"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Segment C directly labelled for Sportage family, not explicitly for SL in the retained sources.",
+          "Chronologie coréenne 2010–2015 et référence européenne 2010–2016 distinctes; enveloppe élargie à 2016."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2010,
+          "to": 2015,
+          "scope": "Korean generation chronology",
+          "year_basis": "generation_chronology",
+          "url": "https://press.kia.com/content/dam/kiapress/EU/download-files/16-02/RD-StoryAllnew-Sportage-2016.pdf",
+          "locator": "PDF page 7; SL date box",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2010,
+          "to": 2016,
+          "scope": "Europe",
+          "year_basis": "rescue_sheet_applicability",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "locator": "PDF page 53",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Sorento",
+      "slug": "sorento-bl",
+      "generation": "BL",
+      "body_type": "suv",
+      "segment": "D",
+      "production_start": 2002,
+      "production_end": 2009,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblaetter",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/sorento-1st-gen",
+          "title": "Kia Heritage - Sorento first generation",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "not_asserted",
+          "body_type": "confirmed",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2002,
+          "to": 2009,
+          "scope": "Europe; union of BL phases 2002-2006 and 2006-2009",
+          "year_basis": "rescue_sheet_applicability",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "locator": "PDF pages 42-43",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Sorento",
+      "slug": "sorento-xm",
+      "generation": "XM",
+      "body_type": "suv",
+      "segment": "D",
+      "production_start": 2009,
+      "production_end": 2014,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblaetter",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.kiamedia.com/us/en/models/sorento/2014/specifications",
+          "title": "Kia Sorento MY2014 specifications",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/sorento-1st-gen",
+          "title": "Kia Heritage - Sorento first generation",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "not_asserted",
+          "body_type": "confirmed",
+          "segment": "family_level_evidence"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Segment D has family-level evidence; retained XM source does not label the letter D itself.",
+          "Certains textes constructeur ont été lus dans leur index de recherche; les rapports conservent le mode d’accès exact."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2009,
+          "to": 2014,
+          "scope": "Europe",
+          "year_basis": "rescue_sheet_applicability",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "locator": "PDF page 44",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Sorento",
+      "slug": "sorento-mq4",
+      "generation": "MQ4",
+      "body_type": "suv",
+      "segment": "D",
+      "production_start": 2020,
+      "production_end": null,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblaetter",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://press.kia.com/pl/pl/home/press-kits/2020/rozpocz_a-si_-produkcja-nowego-sorento-w-wersji-hybrydowej.html",
+          "title": "Kia - Sorento Hybrid production starts (2020-07-10)",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://press.kia.com/es/es/home/notas-de-prensa/press-releases/2020/la-demanda-de-coches-electricos-impulsa-a-kia-para-alcanzar-una-.html",
+          "title": "Kia - Record European market share (2020)",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "open_bound_unknown",
+          "aliases": "not_asserted",
+          "body_type": "confirmed",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2020,
+          "to": null,
+          "scope": "Europe; rescue sheet and actual production report",
+          "year_basis": "rescue_sheet_applicability",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "locator": "PDF pages 46-47",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Optima",
+      "slug": "optima-tf",
+      "generation": "TF",
+      "body_type": "berline",
+      "segment": "D",
+      "production_start": 2010,
+      "production_end": 2016,
+      "aliases": [
+        "K5"
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblätter",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/k5-1st-gen",
+          "title": "Kia Heritage: K5 (1st Gen.)",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.kia.com/in/discover-kia/innovation/mobility-ace/eco.html",
+          "title": "Kia India: Eco/Electric",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "confirmed_commercial_name",
+          "body_type": "confirmed",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Le millésime 2016 TF HEV coexiste avec JF: aucune sélection automatique de génération par année seule.",
+          "Une borne mondiale exacte de production toutes usines et variantes n’est pas établie.",
+          "Borne élargie à 2016 pour inclure les TF européennes, dont hybride; chevauchement documenté avec JF."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2010,
+          "to": null,
+          "scope": "Chronologie constructeur mondiale",
+          "year_basis": "manufacturer_historical_introduction",
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/k5-1st-gen",
+          "locator": "Heading year; introductory paragraph",
+          "not_global_production_interval": true
+        },
+        {
+          "from": null,
+          "to": 2016,
+          "scope": "Europe; borne documentaire, pas arrêt mondial exact",
+          "year_basis": "scoped_documentary_year",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "locator": "PDF p.26-27",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2012,
+          "to": 2016,
+          "scope": "Europe; TF sedan and hybrid",
+          "year_basis": "rescue_sheet_applicability",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "locator": "PDF p.26-27 (0-based 25-26)",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Optima",
+      "slug": "optima-jf",
+      "generation": "JF",
+      "body_type": "berline",
+      "segment": "D",
+      "production_start": 2015,
+      "production_end": 2020,
+      "aliases": [
+        "K5"
+      ],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblätter",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11025859-0001.pdf",
+          "title": "Kia TSB SC340 revision 1",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/all-new-k5-2nd-gen",
+          "title": "Kia Heritage: All-New K5 (2nd Gen.)",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://press.kia.com/content/dam/kiapress/EU/download-files/16-02/Kia-Optima-Europe-PETD.pdf",
+          "title": "Kia Optima Europe press kit, 30 October 2015",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "confirmed_commercial_name",
+          "body_type": "confirmed_body_variant",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Les dates de rappel ne couvrent pas toutes les usines, motorisations ni tous les marchés.",
+          "JF se décline aussi en Sportswagon et PHEV; une valeur berline ne doit pas imposer la carrosserie du véhicule."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2015,
+          "to": null,
+          "scope": "US, 2.4 GDI, sous-ensemble de véhicules",
+          "year_basis": "scoped_documentary_year",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11025859-0001.pdf",
+          "locator": "PDF p.14, Affected Vehicle Range",
+          "not_global_production_interval": true
+        },
+        {
+          "from": null,
+          "to": 2020,
+          "scope": "US, 2.4 GDI; existence en 2020, pas certificat d’arrêt mondial",
+          "year_basis": "scoped_documentary_year",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11025859-0001.pdf",
+          "locator": "PDF p.14, Affected Vehicle Range",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2015,
+          "to": 2020,
+          "scope": "US; affected JF/JFa 2.4GDI subset",
+          "year_basis": "manufacturer_affected_vehicle_manufacturing_range",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11025859-0001.pdf",
+          "locator": "PDF p.14, Affected Vehicle Range",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "K5",
+      "slug": "k5-dl3",
+      "generation": "DL3",
+      "body_type": "berline",
+      "segment": "D",
+      "production_start": 2019,
+      "production_end": null,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://update.kia.com/US/EN/updateNoticeView/software-version",
+          "title": "Kia Vehicle Software Update, US",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/all-new-k5-3rd-gen",
+          "title": "Kia Heritage: All-New K5 (3rd Gen.)",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.kia.com/us/en/k5/specs-compare",
+          "title": "Kia US K5 specifications comparison",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "open_bound_unknown",
+          "aliases": "not_asserted",
+          "body_type": "confirmed",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "La liste aliases vide signifie aucun nom supplémentaire enregistré; elle ne prouve pas l’absence d’autres noms locaux.",
+          "La date d’introduction 2019 et le millésime américain 2021 sont distincts.",
+          "Certains textes constructeur ont été lus dans leur index de recherche; les rapports conservent le mode d’accès exact."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2019,
+          "to": null,
+          "scope": "Introduction historique; pas millésime US 2021",
+          "year_basis": "manufacturer_historical_introduction",
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/all-new-k5-3rd-gen",
+          "locator": "Heading year and introductory paragraph",
+          "not_global_production_interval": true
+        },
+        {
+          "from": null,
+          "to": null,
+          "scope": "US; offre actuelle, pas preuve universelle de production",
+          "year_basis": "scoped_documentary_year",
+          "url": "https://www.kia.com/us/en/k5/specs-compare",
+          "locator": "Document title: 2027 K5; copyright 2026",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Soul",
+      "slug": "soul-am",
+      "generation": "AM",
+      "body_type": "suv",
+      "segment": "B",
+      "production_start": 2008,
+      "production_end": 2014,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblätter",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/soul",
+          "title": "Kia Heritage: Soul",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10172065-0002.pdf",
+          "title": "Kia TSB PI2002A",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://prod2-press.kia.com/eu/en/home/models/soul/soul-2009.html",
+          "title": "Kia Europe: Soul 2009",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "not_asserted",
+          "body_type": "editorial_mapping",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "2013 est attesté en fabrication US; 2014 est attesté en référence secours Europe. Les deux périodes ne sont pas identiques.",
+          "Aucun appariement automatique à la génération à partir de l’année seule pendant 2013-2014.",
+          "Borne de référence élargie à 2014 selon la fiche européenne; fabrication de certains exemplaires américains attestée en 2013."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2008,
+          "to": null,
+          "scope": "Introduction historique mondiale",
+          "year_basis": "manufacturer_historical_introduction",
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/soul",
+          "locator": "Heading year 2008",
+          "not_global_production_interval": true
+        },
+        {
+          "from": null,
+          "to": 2014,
+          "scope": "Europe; années documentaires distinctes de fabrication",
+          "year_basis": "scoped_documentary_year",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "locator": "PDF p.48",
+          "not_global_production_interval": true
+        },
+        {
+          "from": null,
+          "to": 2013,
+          "scope": "US, Gamma 1.6 GDI seulement; la source ne réfute pas un MY/usage européen 2014",
+          "year_basis": "scoped_documentary_year",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10172065-0002.pdf",
+          "locator": "PDF p.1, affected vehicle table",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2009,
+          "to": 2014,
+          "scope": "Europe; AM rescue applicability",
+          "year_basis": "rescue_sheet_applicability",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "locator": "PDF p.48 (0-based 47)",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Soul",
+      "slug": "soul-ps",
+      "generation": "PS",
+      "body_type": "suv",
+      "segment": "B",
+      "production_start": 2013,
+      "production_end": 2019,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblätter",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10172065-0002.pdf",
+          "title": "Kia TSB PI2002A",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://prod2-press.kia.com/eu/en/home/models/soul/soul-2013.html",
+          "title": "Kia Europe: Soul 2013",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "confirmed_reference_scope",
+          "aliases": "not_asserted",
+          "body_type": "confirmed",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "Le millésime 2014 n’est pas le début de fabrication 2013.",
+          "La borne 2019 est celle du document européen; pas de preuve exhaustive de fin mondiale toutes variantes.",
+          "Une référence PS ne suffit pas à déduire un moteur thermique ou électrique."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2013,
+          "to": null,
+          "scope": "US, 1.6 GDI; ne pas confondre MY2014",
+          "year_basis": "scoped_documentary_year",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10172065-0002.pdf",
+          "locator": "PDF p.1, affected vehicle table",
+          "not_global_production_interval": true
+        },
+        {
+          "from": null,
+          "to": 2019,
+          "scope": "Europe; borne documentaire, pas fin mondiale exacte",
+          "year_basis": "scoped_documentary_year",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "locator": "PDF p.49-50",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2014,
+          "to": 2019,
+          "scope": "Europe; PS and PS EV, variants distinct",
+          "year_basis": "rescue_sheet_applicability",
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "locator": "PDF p.49-50",
+          "not_global_production_interval": true
+        }
+      ]
+    },
+    {
+      "name": "Soul",
+      "slug": "soul-sk3",
+      "generation": "SK3",
+      "body_type": "suv",
+      "segment": "B",
+      "production_start": 2019,
+      "production_end": 2025,
+      "aliases": [],
+      "sources": [
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblätter",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://www.prnewswire.com/news-releases/a-new-way-to-roll-kicking-off-a-celebration-of-the-kia-soul-302575156.html",
+          "title": "Kia America release distributed by PRNewswire, 2025-10-06",
+          "consulted_on": "2026-11-05"
+        },
+        {
+          "url": "https://press.kia.com/content/dam/kiapress/DE/Germany/pressemappen/e-soul/23_01/Kia_e-Soul_MJ23_Pressemappe_01-23.pdf",
+          "title": "Kia e-Soul press kit MY2023, January 2023",
+          "consulted_on": "2026-11-05"
+        }
+      ],
+      "verification": {
+        "reviewed_on": "2026-11-05",
+        "identity_status": "confirmed",
+        "year_basis": "manufacturer_documented_reference_envelope",
+        "global_production_dates_verified": false,
+        "field_statuses": {
+          "generation": "confirmed",
+          "production_start": "confirmed_reference_scope",
+          "production_end": "manufacturer_announced_end",
+          "aliases": "not_asserted",
+          "body_type": "editorial_mapping",
+          "segment": "confirmed"
+        },
+        "notes": [
+          "Les bornes sont une enveloppe de références constructeur documentées, pas des dates mondiales de fabrication.",
+          "Une fin nulle signifie borne inconnue; elle ne prouve pas une production encore active.",
+          "L’annonce est formulée comme une échéance de production attendue; elle n’atteste pas le jour effectif de sortie de la dernière unité.",
+          "L’Europe et l’Amérique ne partagent pas les mêmes variantes ni les mêmes dates de vente.",
+          "2025 est la fin annoncée par Kia America; le jour effectif de fabrication de la dernière unité n’est pas attesté."
+        ]
+      },
+      "documented_year_scopes": [
+        {
+          "from": 2019,
+          "to": null,
+          "scope": "US; lancement calendaire 2019 / MY2020",
+          "year_basis": "manufacturer_historical_introduction",
+          "url": "https://www.prnewswire.com/news-releases/a-new-way-to-roll-kicking-off-a-celebration-of-the-kia-soul-302575156.html",
+          "locator": "AN INCREDIBLE SUCCESS STORY, lines 492-493",
+          "not_global_production_interval": true
+        },
+        {
+          "from": null,
+          "to": 2025,
+          "scope": "Annonce US du 6 octobre 2025; date annoncée, non relevé de dernière unité",
+          "year_basis": "manufacturer_announced_end",
+          "url": "https://www.prnewswire.com/news-releases/a-new-way-to-roll-kicking-off-a-celebration-of-the-kia-soul-302575156.html",
+          "locator": "A CHAPTER CLOSES, lines 495-497; intro MY2025",
+          "not_global_production_interval": true
+        },
+        {
+          "from": 2019,
+          "to": 2025,
+          "scope": "US; calendar introduction and announced end",
+          "year_basis": "introduction_and_announced_end_not_observed_last_unit",
+          "url": "https://www.prnewswire.com/news-releases/a-new-way-to-roll-kicking-off-a-celebration-of-the-kia-soul-302575156.html",
+          "locator": "A CHAPTER CLOSES, lines 495-497; intro MY2025",
+          "not_global_production_interval": true
+        }
+      ]
+    }
+  ],
+  "documented_overlaps": [
+    {
+      "model_slugs": [
+        "cerato-td",
+        "cerato-yd"
+      ],
+      "from": 2012,
+      "to": 2013,
+      "year_basis": "documented_reference_envelope_overlap",
+      "not_global_production_interval": true,
+      "note": "Références de plusieurs marchés; aucune sélection technique par année seule.",
+      "sources": [
+        {
+          "url": "https://www.kia.com/ie/about-kia/kia-company/history-1/",
+          "title": "History of Kia, 2001–2010 — Kia Ireland",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "cerato-td",
+              "field": "production_start",
+              "value": 2008,
+              "locator": "2008,8:The Forte... is launched",
+              "scope": "corporate_launch_chronology"
+            }
+          ]
+        },
+        {
+          "url": "https://www.kia.com/fr/services/apres-vente/service-offers/kia-service-5-plus/",
+          "title": "Kia Service 5+ — List of models",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "cerato-td",
+              "field": "production_end",
+              "value": 2013,
+              "locator": "List of models:ForteTD(TD),2009…2013",
+              "scope": "EU_service_eligibility_years_not_production"
+            }
+          ]
+        },
+        {
+          "url": "https://preview.thenewsmarket.com/Previews/kiam/DocumentAssets/265575_v2.pdf",
+          "title": "Kia Motors — November 2012 global sales release, December 2012",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "cerato-yd",
+              "field": "production_start",
+              "value": 2012,
+              "locator": "page1,ThomasOh:successful launch... local Korean market...2012",
+              "scope": "KR_launch_2012"
+            }
+          ]
+        },
+        {
+          "url": "https://update.kia.com/CA/KO/updateNoticePopup/612",
+          "title": "Kia Canada — navigation software applicability table (2021 versions)",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "cerato-yd",
+              "field": "production_end",
+              "value": 2018,
+              "locator": "Forte4Door/5Door2017–18; ForteBD4Door2019–21",
+              "scope": "CA_model_years_and_software_identifiers"
+            }
+          ]
+        },
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/nmc/en/files/service/Service-Menu-Prices%28GDI%2BMPI%29.pdf",
+          "title": "Kia Saudi Arabia/NMC — Service Menu Prices (GDI+MPI)",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "cerato-yd",
+              "field": "production_end",
+              "value": 2019,
+              "locator": "CERATO1.6/2.0L MPI-YD:2013–2019",
+              "scope": "SA_local_service_model_year_ranges"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "model_slugs": [
+        "cerato-yd",
+        "cerato-bd"
+      ],
+      "from": 2018,
+      "to": 2019,
+      "year_basis": "documented_reference_envelope_overlap",
+      "not_global_production_interval": true,
+      "note": "Présentation BD en 2018 et couverture saoudienne YD incluant 2019; un millésime ne date pas une usine.",
+      "sources": [
+        {
+          "url": "https://preview.thenewsmarket.com/Previews/kiam/DocumentAssets/265575_v2.pdf",
+          "title": "Kia Motors — November 2012 global sales release, December 2012",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "cerato-yd",
+              "field": "production_start",
+              "value": 2012,
+              "locator": "page1,ThomasOh:successful launch... local Korean market...2012",
+              "scope": "KR_launch_2012"
+            }
+          ]
+        },
+        {
+          "url": "https://update.kia.com/CA/KO/updateNoticePopup/612",
+          "title": "Kia Canada — navigation software applicability table (2021 versions)",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "cerato-yd",
+              "field": "production_end",
+              "value": 2018,
+              "locator": "Forte4Door/5Door2017–18; ForteBD4Door2019–21",
+              "scope": "CA_model_years_and_software_identifiers"
+            }
+          ]
+        },
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/nmc/en/files/service/Service-Menu-Prices%28GDI%2BMPI%29.pdf",
+          "title": "Kia Saudi Arabia/NMC — Service Menu Prices (GDI+MPI)",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "cerato-yd",
+              "field": "production_end",
+              "value": 2019,
+              "locator": "CERATO1.6/2.0L MPI-YD:2013–2019",
+              "scope": "SA_local_service_model_year_ranges"
+            }
+          ]
+        },
+        {
+          "url": "https://www.kiamedia.com/us/es/models/forte/2019",
+          "title": "2019 Forte Overview — Kia America, August 2018",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "cerato-bd",
+              "field": "production_start",
+              "value": 2018,
+              "locator": "2019ForteOverview,August2018,introduction",
+              "scope": "US_MY2019_release_in_calendar_2018"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "model_slugs": [
+        "sportage-sl",
+        "sportage-ql"
+      ],
+      "from": 2015,
+      "to": 2016,
+      "year_basis": "documented_reference_envelope_overlap",
+      "not_global_production_interval": true,
+      "note": "Enveloppe européenne SL jusqu’en 2016, quatrième génération QL introduite en 2015.",
+      "sources": [
+        {
+          "url": "https://press.kia.com/content/dam/kiapress/EU/download-files/16-02/RD-StoryAllnew-Sportage-2016.pdf",
+          "title": "Hyundai Motor Group R&D - The SUV Sportage (Dec.2015)",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "sportage-sl",
+              "field": "production_start",
+              "value": 2010,
+              "locator": "PDF page 7 / printed pages 12-13, SL date box",
+              "scope": "Korean-market generation history"
+            },
+            {
+              "model_slug": "sportage-sl",
+              "field": "production_end",
+              "value": 2015,
+              "locator": "PDF page 7 / printed pages 12-13, SL date box",
+              "scope": "Korean-market generation history"
+            }
+          ]
+        },
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblaetter",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "sportage-sl",
+              "field": "alternative_market_end",
+              "value": 2016,
+              "locator": "PDF page 53 (1-based); scope Europe page 1",
+              "scope": "Europe; rescue-sheet vehicle applicability"
+            }
+          ]
+        },
+        {
+          "url": "https://press.kia.com/fr/fr/home/press-releases/2023/kia-sportage-celebre-son-30e-anniversaire-avec-une-edition-speciale.html",
+          "title": "Kia Sportage 30 Years (2023)",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "sportage-ql",
+              "field": "production_start",
+              "value": 2015,
+              "locator": "fourth-generation paragraph",
+              "scope": "Global generation introduction"
+            }
+          ]
+        },
+        {
+          "url": "https://www.kia.com/fi/palvelut/huolto/ohjekirjat/",
+          "title": "Kia Finland - Owner manuals",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "sportage-ql",
+              "field": "production_end",
+              "value": 2021,
+              "locator": "Sportage (QL FL), 2019-2021; lines991-995 in retrieved HTML",
+              "scope": "Finland; owner-manual applicability"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "model_slugs": [
+        "optima-tf",
+        "optima-jf"
+      ],
+      "from": 2015,
+      "to": 2016,
+      "year_basis": "documented_reference_envelope_overlap",
+      "not_global_production_interval": true,
+      "note": "TF européenne incluant 2016; certains exemplaires JF/JFa américains fabriqués dès 2015.",
+      "sources": [
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/k5-1st-gen",
+          "title": "Kia Heritage: K5 (1st Gen.)",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "optima-tf",
+              "field": "production_start",
+              "value": 2010,
+              "locator": "Heading year; introductory paragraph",
+              "scope": "Chronologie constructeur mondiale"
+            }
+          ]
+        },
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblätter",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "optima-tf",
+              "field": "production_end",
+              "value": 2016,
+              "locator": "PDF p.26-27",
+              "scope": "Europe; borne documentaire, pas arrêt mondial exact"
+            }
+          ]
+        },
+        {
+          "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11025859-0001.pdf",
+          "title": "Kia TSB SC340 revision 1",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "optima-jf",
+              "field": "production_start",
+              "value": 2015,
+              "locator": "PDF p.14, Affected Vehicle Range",
+              "scope": "US, 2.4 GDI, sous-ensemble de véhicules"
+            },
+            {
+              "model_slug": "optima-jf",
+              "field": "production_end",
+              "value": 2020,
+              "locator": "PDF p.14, Affected Vehicle Range",
+              "scope": "US, 2.4 GDI; existence en 2020, pas certificat d’arrêt mondial"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "model_slugs": [
+        "soul-am",
+        "soul-ps"
+      ],
+      "from": 2013,
+      "to": 2014,
+      "year_basis": "documented_reference_envelope_overlap",
+      "not_global_production_interval": true,
+      "note": "Certains exemplaires AM et PS américains sont fabriqués en 2013; leurs références européennes se recouvrent en 2014.",
+      "sources": [
+        {
+          "url": "https://worldwide.kia.com/en/brand/our-brand/heritage/vehicles/soul",
+          "title": "Kia Heritage: Soul",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "soul-am",
+              "field": "production_start",
+              "value": 2008,
+              "locator": "Heading year 2008",
+              "scope": "Introduction historique mondiale"
+            }
+          ]
+        },
+        {
+          "url": "https://www.kia.com/content/dam/kwcms/kme/de/de/assets/contents/service/rettungsdienste/downloads/Kia_Rettungsdatenblaetter_08_2020%2BSorento_GER.pdf",
+          "title": "Kia Rettungsdatenblätter",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "soul-am",
+              "field": "production_end",
+              "value": 2014,
+              "locator": "PDF p.48",
+              "scope": "Europe; années documentaires distinctes de fabrication"
+            },
+            {
+              "model_slug": "soul-ps",
+              "field": "production_end",
+              "value": 2019,
+              "locator": "PDF p.49-50",
+              "scope": "Europe; borne documentaire, pas fin mondiale exacte"
+            }
+          ]
+        },
+        {
+          "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10172065-0002.pdf",
+          "title": "Kia TSB PI2002A",
+          "consulted_on": "2026-11-05",
+          "locators": [
+            {
+              "model_slug": "soul-am",
+              "field": "production_end",
+              "value": 2013,
+              "locator": "PDF p.1, affected vehicle table",
+              "scope": "US, Gamma 1.6 GDI seulement; la source ne réfute pas un MY/usage européen 2014"
+            },
+            {
+              "model_slug": "soul-ps",
+              "field": "production_start",
+              "value": 2013,
+              "locator": "PDF p.1, affected vehicle table",
+              "scope": "US, 1.6 GDI; ne pas confondre MY2014"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

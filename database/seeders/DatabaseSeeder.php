@@ -42,7 +42,9 @@ class DatabaseSeeder extends Seeder
             PartCategoriesSeeder::class,
             FeaturesSeeder::class,
             VehicleModelsSeeder::class,
+            SinotrukCatalogSeeder::class,
             TrimsSeeder::class,
+            KiaCatalogueSeeder::class,
             // Les points du controle avant voyage : du referentiel, pas des
             // donnees metier. Ils doivent etre remis a jour a chaque
             // deploiement, meme sur une base deja peuplee — sans quoi un point

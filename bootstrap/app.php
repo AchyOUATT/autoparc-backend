@@ -102,6 +102,7 @@ return Application::configure(basePath: dirname(__DIR__))
     // avant d'atteindre un controleur.
     $middleware->prependToGroup('api', \App\Http\Middleware\AssignRequestId::class);
     $middleware->prependToGroup('api', \App\Http\Middleware\ResolveApiLocale::class);
+    $middleware->prependToGroup('api', \App\Http\Middleware\ResolveApiCapabilities::class);
 
     // Plafond general. Laravel 11 a retire le throttle pose d'office sur le
     // groupe api : sans cette ligne, l'API n'a aucune limite de debit.
@@ -119,6 +120,25 @@ return Application::configure(basePath: dirname(__DIR__))
         'actif' => \App\Http\Middleware\EnsureActiveUser::class,
         'firebase'   => \App\Http\Middleware\VerifyFirebaseToken::class,
     ]);
+
+    // ── LE DRAPEAU DE L'ESPACE PARTENAIRE PARLE AVANT L'AUTHENTIFICATION ──
+    //
+    // Laravel fait passer `Authenticate`, `ThrottleRequests` et
+    // `SubstituteBindings` — sa liste de priorite — AVANT tout middleware qui
+    // n'y figure pas, quel que soit l'ordre des groupes dans routes/partner.php.
+    // Sans cette ligne, espace ferme, un appel anonyme a une route authentifiee
+    // recevait 401, et `/api/partner/vehicles/1` un 404 de la liaison de
+    // modele : precisement les reponses que `EnsurePartnerSpaceOpen` promet
+    // d'eviter, parce qu'elles se confondent avec un serveur ou l'espace n'a
+    // jamais ete deploye. Mesure faite par EspacePartenaireFermeTest, qui
+    // parcourt toutes les routes de l'espace sans jeton.
+    //
+    // Seules les routes qui portent le drapeau sont concernees : la liste de
+    // priorite ne fait que trier ce qu'une route porte deja.
+    $middleware->prependToPriorityList(
+        \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+        \App\Http\Middleware\EnsurePartnerSpaceOpen::class,
+    );
 })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

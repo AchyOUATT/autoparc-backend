@@ -554,15 +554,14 @@ class FinitionsToyotaSecondeMoitieTest extends TestCase
         }
     }
 
-    public function test_aucune_autre_marque_n_a_recu_de_finition(): void
+    public function test_les_comptes_par_marque_conservent_les_lots_autorises(): void
     {
         $this->finitions();
 
-        // La consigne borne le lot a Toyota. Les comptes des quatorze autres
-        // marques sont ceux mesures avant le lot, sur base jetable : si l'un
-        // bouge, c'est que ce lot a deborde.
+        // Référence après les lots Toyota puis Hyundai provisoire. Les autres
+        // marques conservent leurs comptes précédents.
         $attendus = [
-            'bmw' => 67, 'ford' => 4, 'hyundai' => 7, 'isuzu' => 4, 'jeep' => 3,
+            'bmw' => 67, 'ford' => 4, 'hyundai' => 40, 'isuzu' => 4, 'jeep' => 3,
             'kia' => 4, 'land-rover' => 3, 'lexus' => 68, 'mercedes-benz' => 4,
             'mitsubishi' => 7, 'nissan' => 10, 'peugeot' => 4, 'renault' => 4,
             'volkswagen' => 4, 'toyota' => 88,
@@ -579,8 +578,8 @@ class FinitionsToyotaSecondeMoitieTest extends TestCase
             ->all();
 
         ksort($attendus);
-        $this->assertSame($attendus, $mesures, 'Seule Toyota doit avoir change, de 65 a 88 finitions.');
-        $this->assertSame(281, DB::table('trims')->count(), '258 finitions avant ce lot, 23 posees, 281 apres.');
+        $this->assertSame($attendus, $mesures, 'Les autres marques gardent leurs références après les ajouts Toyota et Hyundai.');
+        $this->assertSame(314, DB::table('trims')->count(), '281 finitions historiques et Toyota, puis 33 appellations Hyundai provisoires.');
     }
 
     public function test_les_generations_toyota_encore_vides_sont_exactement_dix_sept(): void

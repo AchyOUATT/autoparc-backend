@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'password' => [
+        'letters' => 'Le mot de passe doit contenir au moins une lettre.',
+        'numbers' => 'Le mot de passe doit contenir au moins un chiffre.',
+    ],
     'required' => 'Le champ :attribute est obligatoire.',
     'required_without' => 'Le champ :attribute est obligatoire lorsque :values est absent.',
     'required_with' => 'Le champ :attribute est obligatoire lorsque :values est présent.',

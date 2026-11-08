@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\PartnerAccount;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -76,10 +77,21 @@ class EspacePartenaireFermeTest extends TestCase
         // Le motif compte autant que le code. Un 404 muet se confondrait avec
         // un serveur ou la fonctionnalite n'a jamais ete deployee — l'etat
         // d'hier, et ce que l'application publiee rend deja.
-        $this->assertStringContainsString(
-            'pas encore ouvert',
-            (string) $reponse->json('message'),
+        //
+        // Et il parle a celui qui le lit, qui peut etre deux personnes : un
+        // vendeur qui vient d'installer la derniere version — lui dire de
+        // « mettre a jour l'application » l'enverrait chercher une mise a jour
+        // qui n'existe pas — ou un partenaire deja inscrit dont l'espace est
+        // referme pour maintenance, a qui parler d'« inscription » ne dirait
+        // rien. Le texte ne presume donc ni de l'un ni de l'autre.
+        $this->assertSame(
+            "L'espace vendeur est fermé pour le moment. Revenez bientôt.",
+            $reponse->json('message'),
             "Le refus doit dire POURQUOI, sinon il est indiscernable d'un serveur non deploye.",
+        );
+        $this->assertSame(
+            'The seller area is closed for now. Please check back soon.',
+            $this->withHeader('Accept-Language', 'en')->{$verbe.'Json'}($route, $corps)->json('message'),
         );
     }
 
@@ -183,6 +195,48 @@ class EspacePartenaireFermeTest extends TestCase
                 filter_var($valeur, FILTER_VALIDATE_BOOLEAN),
                 "« {$valeur} » doit ouvrir l'espace partenaire.",
             );
+        }
+    }
+
+    /**
+     * TOUTES les routes de l'espace, y compris celles qui n'existent pas encore.
+     *
+     * Les tests ci-dessus nomment trois routes a la main. Celui-ci parcourt la
+     * table des routes : une route ajoutee demain sous `api/partner/` est
+     * couverte sans qu'on y pense, et une route posee par erreur HORS du groupe
+     * `partner.space` tombe ici au lieu d'etre decouverte en production.
+     *
+     * Sans jeton et avec des identifiants qui n'existent pas, a dessein. Le
+     * drapeau doit parler AVANT l'authentification et AVANT la liaison des
+     * modeles : un 401 dirait a un binaire ancien que l'espace existe et qu'il
+     * ne lui manque qu'une connexion, et un 404 sur `/vehicles/1` serait
+     * indiscernable d'un serveur ou l'espace n'a jamais ete deploye — la
+     * confusion que `EnsurePartnerSpaceOpen` existe pour eviter.
+     *
+     * Or Laravel fait passer `Authenticate`, `ThrottleRequests` et
+     * `SubstituteBindings` avant tout middleware hors de sa liste de priorite,
+     * quel que soit l'ordre des groupes dans routes/partner.php. C'est
+     * `bootstrap/app.php` qui place le drapeau devant eux, et ce banc est ce
+     * qui empeche de retirer cette ligne sans s'en apercevoir : a la premiere
+     * execution, sans elle, chaque route authentifiee rendait 401.
+     */
+    public function test_toutes_les_routes_de_l_espace_partenaire_sont_fermees(): void
+    {
+        $routes = collect(Route::getRoutes()->getRoutes())
+            ->filter(fn ($route) => str_starts_with($route->uri(), 'api/partner/'))
+            ->values();
+
+        // Deux garde-fous contre un banc qui passerait a vide : le prefixe
+        // retient bien l'espace entier, et la route la plus recente en est.
+        $this->assertGreaterThanOrEqual(40, $routes->count(), 'Le banc ne voit plus les routes de l\'espace partenaire.');
+        $this->assertContains('partner.dashboard', $routes->map(fn ($route) => $route->getName())->all());
+
+        foreach ($routes as $route) {
+            $methode = collect($route->methods())->first(fn ($m) => $m !== 'HEAD');
+            $uri = '/'.preg_replace('/\{[^}]+\}/', '1', $route->uri());
+
+            $this->assertSame(503, $this->json($methode, $uri)->getStatusCode(),
+                "$methode $uri (".($route->getName() ?? 'sans nom').") n'est pas fermee avec l'espace : elle echappe a `partner.space`.");
         }
     }
 

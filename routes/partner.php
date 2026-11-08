@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EquipmentDocumentController;
 use App\Http\Controllers\Api\Partner\AccessoryController;
 use App\Http\Controllers\Api\Partner\AuthController as PartnerAuthController;
+use App\Http\Controllers\Api\Partner\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Partner\MediaController;
 use App\Http\Controllers\Api\Partner\PartController;
@@ -41,6 +42,12 @@ Route::prefix('partner')->name('partner.')->middleware('partner.space')->group(f
         Route::post('notifications/{notification}/read', [NotificationController::class, 'markReadPartner'])->name('notifications.read');
 
         Route::middleware('partner.approved')->group(function () {
+            // Le tableau de bord est ICI, derriere `partner.approved`, et non
+            // a cote de la boite aux lettres : un compte en attente n'a rien a
+            // compter, et lui rendre des zeros masquerait le 403 qui lui dit
+            // pourquoi — le meme que celui des routes d'inventaire.
+            Route::get('dashboard', DashboardController::class)->name('dashboard');
+
             Route::apiResource('vehicles', VehicleController::class);
             Route::apiResource('parts', PartController::class);
             Route::apiResource('accessories', AccessoryController::class);

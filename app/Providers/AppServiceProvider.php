@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Mail\Transport\GmailApiTransport;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -98,6 +100,13 @@ class AppServiceProvider extends ServiceProvider
         $this->exigerUneAdressePubliqueAbsolue();
         $this->registerRateLimiters();
         $this->enregistrerRechercheInsensibleALaCasse();
+        Mail::extend('gmail_api', fn (array $config) => new GmailApiTransport(
+            (string) config('services.gmail.client_id'),
+            (string) config('services.gmail.client_secret'),
+            (string) config('services.gmail.refresh_token'),
+            (string) config('mail.from.address'),
+            (int) ($config['timeout'] ?? 10),
+        ));
     }
 
     /**
@@ -218,6 +227,18 @@ class AppServiceProvider extends ServiceProvider
      */
     private function registerRateLimiters(): void
     {
+        // Recovery stays bounded even when the caller forges proxy headers.
+        RateLimiter::for('password-recovery', fn (Request $request) => [
+            Limit::perMinute(5)->by('password-recovery:ip:'.$request->ip()),
+            Limit::perMinute(5)->by('password-recovery:email:'.hash('sha256', Str::lower(trim(is_string($request->input('email')) ? $request->input('email') : '')))),
+            Limit::perMinute(60)->by('password-recovery:global'),
+        ]);
+        RateLimiter::for('password-reset', fn (Request $request) => [
+            Limit::perMinute(20)->by('password-reset:ip:'.$request->ip()),
+            Limit::perMinute(10)->by('password-reset:token:'.hash('sha256', (string) $request->route('token'))),
+            Limit::perMinute(120)->by('password-reset:global'),
+        ]);
+
         // ── Connexion ────────────────────────────────────────────────────────
         //
         // Deux limites superposees. La premiere vise l'attaque classique :
@@ -511,10 +532,31 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /** Reponse 429 lisible, en conservant les en-tetes calcules par Laravel. */
+    /**
+     * Le refus d'un limiteur, DANS LA LANGUE DE LA REQUETE.
+     *
+     * LA TRADUCTION SE FAIT ICI, ET AU MOMENT DE REPONDRE — pas chez l'appelant.
+     *
+     * Les dix messages de ce fichier partaient en francais quelle que soit la
+     * langue demandee : aucun n'etait passe par __(). Les envelopper un par un
+     * aurait repare aujourd'hui et laisse la meme faute ouverte au onzieme
+     * limiteur. Ici, un appelant ne peut pas l'oublier.
+     *
+     * Et « au moment de repondre » compte : la fermeture rendue s'execute quand
+     * le 429 se construit, donc APRES `ResolveApiLocale`, pose en tete du groupe
+     * `api` (bootstrap/app.php). Traduire plus tot, a l'enregistrement des
+     * limiteurs, figerait la langue du demarrage pour toutes les requetes.
+     *
+     * Les cles de lang/*.json sont les chaines francaises telles qu'ecrites
+     * ci-dessus, sans accents : un client qui n'annonce aucune langue — le
+     * binaire deja installe — recoit exactement le texte d'avant.
+     * RateLimitTest verifie que chaque message passe a cette methode a bien sa
+     * traduction, pour qu'un ajout ne puisse pas rester francais en silence.
+     */
     private function refus(string $message): \Closure
     {
         return fn (Request $request, array $headers) => response()->json(
-            ['message' => $message],
+            ['message' => __($message)],
             429,
             $headers,
         );

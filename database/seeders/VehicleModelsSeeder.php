@@ -438,11 +438,25 @@ class VehicleModelsSeeder extends Seeder
             ['honda', 'Jazz',          'GE',    'citadine',  'B', 2008, 2013],
             ['honda', 'Civic',         'FC',    'berline',   'C', 2015, null],
             ['honda', 'Civic',         'FB',    'berline',   'C', 2011, 2015],
+            // Variantes EUROPEENNES, ajoutees a cote des lignes existantes sans
+            // en remplacer aucune (voir docs/honda-variantes-europeennes.md).
+            // Annees de PRODUCTION d'apres les fiches de secours Honda, pas
+            // des millesimes ; fin null = production en cours.
+            //  - FL4 : Civic e:HEV 5 portes a hayon (compacte), des 2022.
+            //  - FN  : Civic 3 portes, regroupement officiel FN1-FN4 de la
+            //    fiche Honda 2007-2011 ; aucun moteur ni sous-code invente.
+            //  - FD3 : Civic Hybrid berline 4 portes, 2006-2011.
+            ['honda', 'Civic e:HEV',   'FL4',   'compacte',  'C', 2022, null],
+            ['honda', 'Civic',         'FN',    'compacte',  'C', 2007, 2011],
+            ['honda', 'Civic Hybrid',  'FD3',   'berline',   'C', 2006, 2011],
             ['honda', 'Accord',        'CR',    'berline',   'D', 2012, 2017],
             ['honda', 'Accord',        'CV',    'berline',   'D', 2017, null],
             ['honda', 'CR-V',          'RW',    'suv',       'D', 2016, null],
             ['honda', 'CR-V',          'RM',    'suv',       'D', 2011, 2016],
             ['honda', 'HR-V',          'RU',    'suv',       'B', 2014, null],
+            // ZR-V e:HEV, SUV 5 portes, marche europeen, des 2023 (fiche de
+            // secours Honda Europe). Voir docs/honda-variantes-europeennes.md.
+            ['honda', 'ZR-V e:HEV',    'RZ4',   'suv',       'C', 2023, null],
             ['honda', 'Pilot',         'YF',    'suv',       'E', 2015, null],
             ['honda', 'City',          'GM6',   'berline',   'B', 2014, null],
 
@@ -486,30 +500,7 @@ class VehicleModelsSeeder extends Seeder
             ['hyundai', 'Creta',        null,  'suv',       'B', 2015, null],
             ['hyundai', 'Sonata',       'LF',  'berline',   'D', 2014, 2019],
 
-            // ─── KIA ───────────────────────────────────────────────────
-            ['kia', 'Picanto',       'JA',  'citadine',  'A', 2017, null],
-            ['kia', 'Picanto',       'TA',  'citadine',  'A', 2011, 2017],
-            ['kia', 'Rio',           'YB',  'berline',   'B', 2017, null],
-            ['kia', 'Rio',           'UB',  'berline',   'B', 2011, 2017],
-            ['kia', 'Cerato',        'BD',  'berline',   'C', 2018, null],
-            // Ajouts Kia YD/SL/XM/MQ4 fournis par patch, à vérifier par marché.
-            // Voir docs/kia-generations-validation.md pour leur statut documentaire.
-            // YD : génération précédente, absente. Un Cerato 2015 n'avait
-            // aucune génération. Bornes de production 2012-2018.
-            ['kia', 'Cerato',        'YD',  'berline',   'C', 2013, 2018],
-            ['kia', 'Sportage',      'QL',  'suv',       'C', 2015, 2021],
-            ['kia', 'Sportage',      'NQ5', 'suv',       'C', 2021, null],
-            // SL : troisième génération, absente. Un Sportage 2012 n'avait
-            // aucune génération. Production 2010-2015, millésimes US 2011-2016.
-            ['kia', 'Sportage',      'SL',  'suv',       'C', 2010, 2015],
-            ['kia', 'Sorento',       'UM',  'suv',       'D', 2014, 2020],
-            // XM : génération précédente, absente. Un Sorento 2012 n'avait
-            // aucune génération. Production 2009-2014.
-            ['kia', 'Sorento',       'XM',  'suv',       'D', 2009, 2014],
-            // MQ4 : génération actuelle, absente. Production 2020-.
-            ['kia', 'Sorento',       'MQ4', 'suv',       'D', 2020, null],
-            ['kia', 'Stonic',        'YB CUV',  'suv',       'B', 2017, null],
-            ['kia', 'Seltos',        'SP2',  'suv',       'B', 2019, null],
+            // KIA definitions are versioned in database/catalogue/kia-models.json.
 
             // ─── PEUGEOT ───────────────────────────────────────────────
             ['peugeot', '207',       null,  'citadine',  'B', 2006, 2012],
@@ -877,6 +868,14 @@ class VehicleModelsSeeder extends Seeder
             $models[] = ['toyota', $nom, $gen, $carrosserie, $segment, $de, $a];
         }
 
+        $kiaModels = json_decode(file_get_contents(database_path('catalogue/kia-models.json')), true, flags: JSON_THROW_ON_ERROR)['models'];
+        $kiaAliases = [];
+        foreach ($kiaModels as $model) {
+            $models[] = ['kia', $model['name'], $model['generation'], $model['body_type'],
+                $model['segment'], $model['production_start'], $model['production_end']];
+            $kiaAliases[$model['slug']] = $model['aliases'];
+        }
+
         foreach ($models as [$brandSlug, $name, $generation, $bodyType, $segment, $yearStart, $yearEnd]) {
             $brandId = $brandMap[$brandSlug] ?? null;
             if (! $brandId) {
@@ -904,10 +903,7 @@ class VehicleModelsSeeder extends Seeder
             // reproposait six entrees pour deux vehicules.
             $actif = ! in_array($slug, self::SLUGS_NUS_DESACTIVES, true);
 
-            ReferenceCatalogWriter::upsert('vehicle_models', [
-                'brand_id'         => $brandId,
-                'slug'             => $slug,
-            ], [
+            $attributes = [
                 'name'             => $name,
                 'generation'       => $generation,
                 'body_type'        => $bodyType,
@@ -916,7 +912,15 @@ class VehicleModelsSeeder extends Seeder
                 'production_end'   => $yearEnd,
                 'is_active'        => $actif,
                 ...($bodyType === 'truck' ? ['default_vehicle_type' => 'heavy'] : []),
-            ]);
+            ];
+            if ($brandSlug === 'kia') {
+                $attributes['aliases'] = json_encode($kiaAliases[$slug], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            }
+
+            ReferenceCatalogWriter::upsert('vehicle_models', [
+                'brand_id'         => $brandId,
+                'slug'             => $slug,
+            ], $attributes);
         }
     }
 }

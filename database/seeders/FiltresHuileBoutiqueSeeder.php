@@ -483,6 +483,8 @@ class FiltresHuileBoutiqueSeeder extends Seeder
             // que la boutique a pu renseigner entre-temps.
             "compatibilites_a_verifier" => true,
             "compatibilites" => [
+                // Propositions non publiees. Voir database/catalogue/fitment-candidates/90915-10001.json
+                // et la commande catalog:audit-fitment-candidates.
             ],
         ],
 
@@ -749,6 +751,9 @@ class FiltresHuileBoutiqueSeeder extends Seeder
 
                 $this->rattacherNumeros($piece, $filtre);
 
+                // Une reference en attente de verification conserve ses
+                // compatibilites existantes. Les propositions ne sont pas
+                // publiees depuis le lot documentaire.
                 if ($filtre['compatibilites_a_verifier'] ?? false) {
                     $enAttente[] = $filtre['sku'];
                     $ecrits++;

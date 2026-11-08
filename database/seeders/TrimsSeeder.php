@@ -1038,11 +1038,72 @@ class TrimsSeeder extends Seeder
             ['hyundai', 'santa-fe-tm', 'Comfort',   'COM', 2, $diesel, $awd, 202, 2199, 4, 'automatic'],
             ['hyundai', 'santa-fe-tm', 'Premium',   'PRE', 3, $diesel, $awd, 202, 2199, 4, 'automatic'],
 
+            // Les 33 noms Hyundai ci-dessous sont disponibles à la demande du
+            // propriétaire, avant leur vérification documentaire. Aucun défaut
+            // technique ni code constructeur n'est déduit de la proposition.
+            // Les sept lignes historiques TL/TM ci-dessus restent à auditer.
+            // Voir docs/hyundai-finitions.md et le backlog hyundai-candidates.json.
+
+            // HYUNDAI Tucson LM — appellations provisoires.
+            ['hyundai', 'tucson-lm', 'GL', null, 1, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'tucson-lm', 'GLS', null, 2, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'tucson-lm', 'Limited', null, 3, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+
+            // HYUNDAI Tucson NX4 — appellations provisoires.
+            ['hyundai', 'tucson-nx4', 'Preferred', null, 1, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'tucson-nx4', 'Trend', null, 2, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'tucson-nx4', 'Ultimate', null, 3, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'tucson-nx4', 'N Line', null, 4, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+
+            // HYUNDAI Santa Fe DM — appellations provisoires.
+            ['hyundai', 'santa-fe-dm', 'GL', null, 1, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'santa-fe-dm', 'GLS', null, 2, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'santa-fe-dm', 'Limited', null, 3, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+
+            // HYUNDAI i10 BA — appellations provisoires.
+            ['hyundai', 'i10-ba', 'Base', null, 1, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'i10-ba', 'Active', null, 2, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'i10-ba', 'Style', null, 3, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+
+            // HYUNDAI i20 IB — appellations provisoires.
+            ['hyundai', 'i20-ib', 'Active', null, 1, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'i20-ib', 'Style', null, 2, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'i20-ib', 'Premium', null, 3, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+
+            // HYUNDAI Accent RB — appellations provisoires.
+            ['hyundai', 'accent-rb', 'GL', null, 1, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'accent-rb', 'GLS', null, 2, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'accent-rb', 'Limited', null, 3, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+
+            // HYUNDAI Elantra AD — appellations provisoires.
+            ['hyundai', 'elantra-ad', 'SE', null, 1, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'elantra-ad', 'SEL', null, 2, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'elantra-ad', 'Limited', null, 3, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+
+            // HYUNDAI Elantra CN7 — appellations provisoires.
+            ['hyundai', 'elantra-cn7', 'SE', null, 1, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'elantra-cn7', 'SEL', null, 2, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'elantra-cn7', 'Limited', null, 3, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'elantra-cn7', 'N Line', null, 4, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+
+            // HYUNDAI Creta  — appellations provisoires.
+            ['hyundai', 'creta', 'GL', null, 1, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'creta', 'GLS', null, 2, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'creta', 'Limited', null, 3, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+
+            // HYUNDAI Sonata LF — appellations provisoires.
+            ['hyundai', 'sonata-lf', 'SE', null, 1, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'sonata-lf', 'SEL', null, 2, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'sonata-lf', 'Limited', null, 3, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+            ['hyundai', 'sonata-lf', 'Sport', null, 4, null, null, null, null, null, null, 'Appellation provisoire à vérifier ; marché et millésime non documentés.'],
+
             // ── KIA SPORTAGE QL ──────────────────────────────────────────
-            ['kia', 'sportage-ql', 'LX',           'LX',   1, $petrol, $fwd, 132, 1591, 4, 'manual'],
-            ['kia', 'sportage-ql', 'EX',           'EX',   2, $petrol, $fwd, 177, 1999, 4, 'automatic'],
-            ['kia', 'sportage-ql', 'SX',           'SX',   3, $diesel, $awd, 182, 1685, 4, 'automatic'],
-            ['kia', 'sportage-ql', 'GT Line',      'GTL',  4, $diesel, $awd, 182, 1685, 4, 'automatic'],
+            // Names alone do not determine an engine or drivetrain. Keep
+            // legacy names/codes; KiaCatalogueSeeder documents specific scopes.
+            ['kia', 'sportage-ql', 'LX',           'LX',   1, null, null, null, null, null, null],
+            ['kia', 'sportage-ql', 'EX',           'EX',   2, null, null, null, null, null, null],
+            ['kia', 'sportage-ql', 'SX',           'SX',   3, null, null, null, null, null, null],
+            ['kia', 'sportage-ql', 'GT Line',      'GTL',  4, null, null, null, null, null, null],
 
             // ── MITSUBISHI PAJERO V80 ────────────────────────────────────
             ['mitsubishi', 'pajero-v80', 'GLX',    'GLX',  1, $diesel, $dwa, 170, 3200, 4, 'manual'],

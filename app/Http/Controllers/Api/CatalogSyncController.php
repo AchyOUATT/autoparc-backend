@@ -42,7 +42,7 @@ class CatalogSyncController extends Controller
 
             'vehicle_models' => $this->delta(VehicleModel::query(), $since)
                 ->get([
-                    'id', 'brand_id', 'name', 'slug', 'generation', 'body_type', 'segment', 'is_active',
+                    'id', 'brand_id', 'name', 'slug', 'generation', 'body_type', 'segment', 'is_active', 'aliases',
                     // Un « modele » est ici une generation, pas un nom commercial :
                     // trois Corolla coexistent, E210, E180 et E140. Sans ces deux
                     // colonnes, l'application affiche des codes constructeur nus et

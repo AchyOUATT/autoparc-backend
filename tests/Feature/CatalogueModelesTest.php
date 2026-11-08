@@ -47,14 +47,17 @@ class CatalogueModelesTest extends TestCase
         );
     }
 
-    public function test_les_generations_d_un_meme_modele_ne_se_chevauchent_pas(): void
+    public function test_les_generations_d_un_meme_modele_ne_se_chevauchent_pas_sans_documentation(): void
     {
         // Le rattachement des cotes choisit la generation produite l'annee du
         // vehicule. Deux generations qui se recouvrent rendraient ce choix
-        // arbitraire — et la consommation affichee avec.
+        // arbitraire — et la consommation affichee avec. Le rapprochement
+        // refuse désormais toute ambiguïté, y compris aux années de transition.
+        $kiaId = Brand::where('slug', 'kia')->value('id');
+        $documented = collect(json_decode(file_get_contents(database_path('catalogue/kia-models.json')), true, flags: JSON_THROW_ON_ERROR)['documented_overlaps']);
         $parModele = VehicleModel::query()
             ->whereNotNull('production_start')
-            ->get(['brand_id', 'name', 'generation', 'production_start', 'production_end'])
+            ->get(['brand_id', 'name', 'slug', 'generation', 'production_start', 'production_end'])
             ->groupBy(fn (VehicleModel $m) => $m->brand_id.'|'.$m->name);
 
         foreach ($parModele as $cle => $generations) {
@@ -63,6 +66,19 @@ class CatalogueModelesTest extends TestCase
             for ($i = 1; $i < $triees->count(); $i++) {
                 $precedente = $triees[$i - 1];
                 $courante   = $triees[$i];
+
+                // Documented regional ranges can overlap. Every exception
+                // must identify the two generations, exact interval and sources.
+                $overlap = $precedente->brand_id === $kiaId ? $documented->first(
+                    fn ($entry) => $entry['model_slugs'] === [$precedente->slug, $courante->slug]
+                ) : null;
+                if ($overlap !== null) {
+                    $this->assertSame($courante->production_start, $overlap['from']);
+                    $this->assertSame($precedente->production_end, $overlap['to']);
+                    $this->assertNotEmpty($overlap['sources']);
+                    $this->assertTrue($overlap['not_global_production_interval']);
+                    continue;
+                }
 
                 $this->assertNotNull(
                     $precedente->production_end,
