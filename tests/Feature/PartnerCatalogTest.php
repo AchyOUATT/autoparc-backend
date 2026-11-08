@@ -276,7 +276,7 @@ class PartnerCatalogTest extends TestCase
         $payload = $this->payload('parts');
         unset($payload['type']);
 
-        $this->patchJson('/api/partner/parts/'.$part->id, $payload + ['condition' => 'refurbished'])
+        $this->patchJson('/api/partner/parts/'.$part->id, array_replace($payload, ['condition' => 'refurbished']))
             ->assertOk()->assertJsonPath('data.type', 'oem');
         $this->assertDatabaseHas('parts', ['id' => $part->id, 'type' => 'oem', 'condition' => 'refurbished']);
     }
