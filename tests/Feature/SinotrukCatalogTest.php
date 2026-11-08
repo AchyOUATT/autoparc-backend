@@ -20,6 +20,7 @@ class SinotrukCatalogTest extends TestCase
             'driver' => 'sqlite', 'database' => ':memory:', 'foreign_key_constraints' => true,
         ]);
         DB::setDefaultConnection('sinotruk_test');
+        config()->set('catalogue.test_sinotruk_migration', true);
         foreach ([
             '2026_01_01_000100_create_reference_tables.php',
             '2026_09_01_100000_add_defaults_to_vehicle_models_table.php',
@@ -77,7 +78,7 @@ class SinotrukCatalogTest extends TestCase
             'HOWO A7', 'HOWO T7H', 'HOWO T5G', 'HOWO TX', 'HOWO NX', 'HOWO 7',
             'SITRAK C7H', 'SITRAK C9H', 'SITRAK G7', 'SITRAK G7S', 'HOHAN E7', 'HOHAN N7',
         ], $names);
-        $this->assertSame('howo-a7', DB::table('vehicle_models')->value('slug'));
+        $this->assertSame('howo-a7', DB::table('vehicle_models')->where('name', 'HOWO A7')->value('slug'));
     }
 
     public function test_existing_country_and_inactive_brand_are_unchanged(): void
@@ -161,6 +162,29 @@ class SinotrukCatalogTest extends TestCase
         $this->assertSame($before, $this->snapshot('brands'));
         $this->assertSame([], $this->snapshot('countries'));
         $this->assertSame([], $this->snapshot('vehicle_models'));
+    }
+
+    public function test_ordinary_test_migrations_leave_the_catalog_empty(): void
+    {
+        config()->set('catalogue.test_sinotruk_migration', false);
+        (require database_path('migrations/2026_11_07_000001_add_sinotruk_catalog.php'))->up();
+        $this->assertSame([], $this->snapshot('countries'));
+        $this->assertSame([], $this->snapshot('brands'));
+        $this->assertSame([], $this->snapshot('vehicle_models'));
+    }
+
+    public function test_non_test_migration_imports_without_the_test_opt_in(): void
+    {
+        // Same in-memory database, but exercise the actual non-test entry path.
+        $this->app->instance('env', 'production');
+        config()->set('catalogue.test_sinotruk_migration', false);
+        try {
+            (require database_path('migrations/2026_11_07_000001_add_sinotruk_catalog.php'))->up();
+            $this->assertSame(1, DB::table('brands')->count());
+            $this->assertSame(12, DB::table('vehicle_models')->count());
+        } finally {
+            $this->app->instance('env', 'testing');
+        }
     }
 
     public function test_migration_alone_imports_into_empty_catalog(): void

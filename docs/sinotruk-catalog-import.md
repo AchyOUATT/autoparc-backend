@@ -20,6 +20,13 @@ Préparé sur branche uniquement : aucune écriture de production, fusion ou dem
   car ni la provenance ni les références client ne peuvent être déduites du slug.
   Toute suppression éventuelle doit faire l'objet d'une opération revue séparément.
 
+Les migrations exécutées par PHPUnit/RefreshDatabase ne préchargent pas le
+catalogue Sinotruk : les tests métier gardent leurs propres jeux de données.
+`SinotrukCatalogTest` active explicitement `catalogue.test_sinotruk_migration`
+pour tester cette migration et vérifie aussi le chemin hors environnement de
+test, toujours sur SQLite en mémoire. Hors tests, aucun opt-in n'est requis.
+Le seeder reste directement testable et utilisable indépendamment de ce garde.
+
 Tests ciblés (SQLite en mémoire uniquement) :
 `php artisan test --filter=SinotrukCatalogTest`
 
