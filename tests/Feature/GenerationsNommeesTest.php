@@ -175,11 +175,16 @@ class GenerationsNommeesTest extends TestCase
 
         $doublons = DB::table('vehicle_models')
             ->select('brand_id', 'name', 'production_start', DB::raw('COUNT(*) as n'))
+            // NULL is an unknown production date, not one common start year.
+            // Keep the historical year guard, distinguish named generations
+            // only where a global start year cannot be documented.
+            ->selectRaw('CASE WHEN production_start IS NULL THEN generation ELSE NULL END as generation_without_year')
             ->groupBy('brand_id', 'name', 'production_start')
+            ->groupByRaw('CASE WHEN production_start IS NULL THEN generation ELSE NULL END')
             ->having('n', '>', 1)
             ->get();
 
-        $this->assertCount(0, $doublons, 'Deux lignes pour le meme modele a la meme annee de debut.');
+        $this->assertCount(0, $doublons, 'Doublon de modèle pour une année connue, ou de génération lorsque cette année est inconnue.');
     }
 
     public function test_la_migration_et_le_seeder_posent_les_memes_slugs(): void

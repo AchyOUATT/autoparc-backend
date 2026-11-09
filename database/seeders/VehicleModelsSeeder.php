@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Support\ReferenceCatalogWriter;
+use App\Support\Toyota10001VerifiedImport;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -922,5 +923,9 @@ class VehicleModelsSeeder extends Seeder
                 'slug'             => $slug,
             ], $attributes);
         }
+
+        // Source-backed missing generations only, never article fitments.
+        // Insert-only preserves shop corrections and existing reference IDs.
+        Toyota10001VerifiedImport::ensureModels();
     }
 }
