@@ -1,0 +1,296 @@
+{
+  "schema_version": 1,
+  "sku": "90915-10001",
+  "reviewed_on": "2026-11-09",
+  "reference_date_policy": "Les dates globales restent nulles lorsque les périodes documentées diffèrent selon le marché, ou décrivent des millésimes/commercialisations. Les références restent sélectionnables. Les années des applications sont des bornes annuelles ; les mois exacts, châssis et le périmètre japonais sont conservés dans les notes. Contrôler le VIN et la date de fabrication aux bornes.",
+  "models": [
+    {
+      "slug": "corolla-e100",
+      "name": "Corolla",
+      "generation": "E100",
+      "body_type": "berline",
+      "segment": "C",
+      "production_start": null,
+      "production_end": null,
+      "sources": [
+        {
+          "url": "https://media.toyota.co.uk/toyota-corolla-50-years-of-the-worlds-best-selling-car/",
+          "scope": "Japon : génération 1991–1995 ; périodes régionales distinctes."
+        },
+        {
+          "url": "https://pressroom.toyota.com/toyota-marks-50-millionth-corolla-sold/",
+          "scope": "États-Unis : millésimes 1993–1997."
+        },
+        {
+          "url": "https://www.toyota-global.com/company/history_of_toyota/75years/vehicle_lineage/car/id60003908/index.html",
+          "scope": "Corolla japonaise : famille AE100/AE101/AE104."
+        }
+      ]
+    },
+    {
+      "slug": "corolla-e110",
+      "name": "Corolla",
+      "generation": "E110",
+      "body_type": "berline",
+      "segment": "C",
+      "production_start": null,
+      "production_end": null,
+      "sources": [
+        {
+          "url": "https://media.toyota.co.uk/toyota-corolla-50-years-of-the-worlds-best-selling-car/",
+          "scope": "Japon : génération 1995–2000 ; Royaume-Uni : commercialisation 1997–2002."
+        },
+        {
+          "url": "https://pressroom.toyota.com/toyota-marks-50-millionth-corolla-sold/",
+          "scope": "États-Unis : millésimes 1998–2002."
+        },
+        {
+          "url": "https://www.toyota-global.com/company/history_of_toyota/75years/vehicle_lineage/car/id60004075/index.html",
+          "scope": "Corolla japonaise : famille AE110/AE111/AE114."
+        }
+      ]
+    },
+    {
+      "slug": "corolla-e120",
+      "name": "Corolla",
+      "generation": "E120",
+      "body_type": "berline",
+      "segment": "C",
+      "production_start": null,
+      "production_end": null,
+      "sources": [
+        {
+          "url": "https://media.toyota.co.uk/toyota-corolla-50-years-of-the-worlds-best-selling-car/",
+          "scope": "Neuvième génération japonaise : 2000–2006."
+        },
+        {
+          "url": "https://www.toyota-global.com/company/history_of_toyota/75years/vehicle_lineage/car/id60004185A/",
+          "scope": "Famille japonaise ZZE122/NZE121. La période mondiale complète ne peut pas être déduite de la seule période japonaise."
+        }
+      ]
+    },
+    {
+      "slug": "corolla-e130",
+      "name": "Corolla (Amérique du Nord)",
+      "generation": "E130",
+      "body_type": "berline",
+      "segment": "C",
+      "production_start": null,
+      "production_end": null,
+      "sources": [
+        {
+          "url": "https://pressroom.toyota.com/toyota-marks-50-millionth-corolla-sold/",
+          "scope": "Variante nord-américaine de la neuvième génération : millésimes 2003–2008, distincte de E140."
+        },
+        {
+          "url": "https://www.weber.edu/WSUImages/automotive/T-TEN/2008%20VIN%20Toyota.pdf",
+          "scope": "Toyota Technical Training 2008, hébergé par le partenaire T-TEN : Corolla ZZE130. Les millésimes ne sont pas copiés comme dates de production."
+        }
+      ]
+    },
+    {
+      "slug": "yaris-xp90",
+      "name": "Yaris",
+      "generation": "XP90",
+      "body_type": "citadine",
+      "segment": "B",
+      "production_start": null,
+      "production_end": null,
+      "sources": [
+        {
+          "url": "https://www.toyota-global.com/company/history_of_toyota/75years/vehicle_lineage/car/id60007906/",
+          "scope": "Vitz japonaise lancée le 1 février 2005 ; codes SCP90/NCP91/NCP95/KSP90."
+        },
+        {
+          "url": "https://www.toyota-global.com/company/history_of_toyota/75years/vehicle_lineage/car/id60017358/",
+          "scope": "Remplacement de la Vitz japonaise en décembre 2010."
+        },
+        {
+          "url": "https://media.toyota.co.uk/vehicles/yaris-2006-2011/",
+          "scope": "Disponibilité britannique de la Yaris deuxième génération : 2006–2011."
+        }
+      ]
+    },
+    {
+      "slug": "camry-xv10",
+      "name": "Camry",
+      "generation": "XV10",
+      "body_type": "berline",
+      "segment": "D",
+      "production_start": null,
+      "production_end": null,
+      "sources": [
+        {
+          "url": "https://www.toyota-global.com/company/history_of_toyota/75years/vehicle_lineage/car/id60009803/index.html",
+          "scope": "La Camry export est vendue au Japon comme Scepter ; code SXV10, moteur 5S-FE."
+        },
+        {
+          "url": "https://media.toyota.co.uk/vehicles/camry-1991-1996/",
+          "scope": "Archive de commercialisation britannique : 1991–1996. Ne définit pas à elle seule une période mondiale de production."
+        }
+      ]
+    },
+    {
+      "slug": "camry-xv20",
+      "name": "Camry",
+      "generation": "XV20",
+      "body_type": "berline",
+      "segment": "D",
+      "production_start": null,
+      "production_end": null,
+      "sources": [
+        {
+          "url": "https://www.toyota-global.com/company/history_of_toyota/75years/vehicle_lineage/car/id60002190A/",
+          "scope": "Camry Gracia japonaise lancée en 1996, SXV20 et 5S-FE."
+        },
+        {
+          "url": "https://www.toyota-global.com/company/history_of_toyota/75years/vehicle_lineage/car/id60002178/",
+          "scope": "Remplacement par la Camry ACV30 en 2001."
+        },
+        {
+          "url": "https://media.toyota.co.uk/vehicles/camry-1996-2002/",
+          "scope": "Commercialisation britannique 1996–2002 ; ne pas tronquer les variantes régionales sur la borne japonaise 2001."
+        }
+      ]
+    },
+    {
+      "slug": "rav4-xa10",
+      "name": "RAV4",
+      "generation": "XA10",
+      "body_type": "suv",
+      "segment": "C",
+      "production_start": 1994,
+      "production_end": 2000,
+      "sources": [
+        {
+          "url": "https://www.toyota-global.com/company/history_of_toyota/75years/vehicle_lineage/car/id60012604/index.html",
+          "scope": "Lancement en 1994 ; code SXA10G et moteur 3S-FE."
+        },
+        {
+          "url": "https://media.toyota.co.uk/vehicles/rav4-1994-2000/",
+          "scope": "Première génération RAV4 : 1994–2000."
+        }
+      ]
+    }
+  ],
+  "fitments": [
+    {
+      "model_slug": "corolla-e100",
+      "engine_code": "4A-FE",
+      "year_from": 1991,
+      "year_to": 1995,
+      "market": "JP",
+      "source_url": "https://www.cusco.co.jp/products/pdf/oilfilter_toyota.pdf",
+      "source_page": 4,
+      "source_period": "06/1991–05/1995",
+      "chassis_codes": [
+        "AE101",
+        "AE104"
+      ],
+      "source_model_name": "Corolla",
+      "reviewed_on": "2026-11-09"
+    },
+    {
+      "model_slug": "corolla-e110",
+      "engine_code": "4A-FE",
+      "year_from": 1995,
+      "year_to": 2000,
+      "market": "JP",
+      "source_url": "https://www.cusco.co.jp/products/pdf/oilfilter_toyota.pdf",
+      "source_page": 4,
+      "source_period": "05/1995–07/2000",
+      "chassis_codes": [
+        "AE111",
+        "AE114"
+      ],
+      "source_model_name": "Corolla",
+      "reviewed_on": "2026-11-09"
+    },
+    {
+      "model_slug": "camry-xv10",
+      "engine_code": "5S-FE",
+      "year_from": 1992,
+      "year_to": 1996,
+      "market": "JP",
+      "source_url": "https://www.cusco.co.jp/products/pdf/oilfilter_toyota.pdf",
+      "source_page": 7,
+      "source_period": "11/1992–09/1996",
+      "chassis_codes": [
+        "SXV10",
+        "SXV15"
+      ],
+      "source_model_name": "Scepter (Camry export)",
+      "reviewed_on": "2026-11-09"
+    },
+    {
+      "model_slug": "camry-xv20",
+      "engine_code": "5S-FE",
+      "year_from": 1996,
+      "year_to": 2001,
+      "market": "JP",
+      "source_url": "https://www.cusco.co.jp/products/pdf/oilfilter_toyota.pdf",
+      "source_page": 3,
+      "source_period": "12/1996–08/2001",
+      "chassis_codes": [
+        "SXV20",
+        "SXV20W"
+      ],
+      "source_model_name": "Camry Gracia",
+      "reviewed_on": "2026-11-09"
+    },
+    {
+      "model_slug": "rav4-xa10",
+      "engine_code": "3S-FE",
+      "year_from": 1994,
+      "year_to": 2000,
+      "market": "JP",
+      "source_url": "https://www.cusco.co.jp/products/pdf/oilfilter_toyota.pdf",
+      "source_page": 1,
+      "source_period": "04/1994–05/2000",
+      "chassis_codes": [
+        "SXA10",
+        "SXA11"
+      ],
+      "source_model_name": "RAV4",
+      "reviewed_on": "2026-11-09"
+    }
+  ],
+  "pending_candidates": [
+    {
+      "model_slug": "corolla-e100",
+      "engine_code": "7A-FE",
+      "status": "pending_review",
+      "reason": "DENSO indique 1993–1998 pour Corolla 7A-FE, sans ventilation châssis/génération/marché suffisante pour cette ligne."
+    },
+    {
+      "model_slug": "corolla-e110",
+      "engine_code": "7A-FE",
+      "status": "pending_review",
+      "reason": "DENSO indique 1993–1998 pour Corolla 7A-FE, sans ventilation châssis/génération/marché suffisante pour cette ligne."
+    },
+    {
+      "model_slug": "corolla-e120",
+      "engine_code": "1ZZ-FE",
+      "status": "pending_review",
+      "reason": "Le catalogue CUSCO donne ZZE122/ZZE124 1ZZ-FE 2000–2006 sous 90915-10003 ; 10001 non confirmé."
+    },
+    {
+      "model_slug": "corolla-e130",
+      "engine_code": "1ZZ-FE",
+      "status": "pending_review",
+      "reason": "Aucune preuve primaire précise de 10001 pour cette variante nord-américaine et cette période."
+    },
+    {
+      "model_slug": "corolla-e140",
+      "engine_code": "1ZZ-FE",
+      "status": "pending_review",
+      "reason": "Le rapprochement par années ne prouve pas une application du 10001 à cette génération."
+    },
+    {
+      "model_slug": "yaris-xp90",
+      "engine_code": "1NZ-FE",
+      "status": "pending_review",
+      "reason": "CUSCO donne Vitz NCP91 1NZ-FE à partir de 02/2005 sous 90915-10003 ; 10001 non confirmé."
+    }
+  ]
+}

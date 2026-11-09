@@ -94,7 +94,13 @@ class FinitionsToyotaSecondeMoitieTest extends TestCase
      *
      * @var list<string>
      */
-    private const POSEES_APRES_CE_LOT = ['venza-av10', 'venza-xu80'];
+    private const POSEES_APRES_CE_LOT = [
+        'venza-av10', 'venza-xu80',
+        // Références documentées le 09/11/2026 pour le filtre 90915-10001.
+        // Leurs finitions n'ont pas été documentées par ce nouvel import.
+        'corolla-e100', 'corolla-e110', 'corolla-e120', 'corolla-e130',
+        'yaris-xp90', 'camry-xv10', 'camry-xv20', 'rav4-xa10',
+    ];
 
     /**
      * Les six slugs nus, qui ne peuvent rien recevoir.
@@ -319,9 +325,9 @@ class FinitionsToyotaSecondeMoitieTest extends TestCase
         // fait que dater l'etat du referentiel, et il se met a jour avec lui.
         $toyota = Brand::where('slug', 'toyota')->firstOrFail();
         $this->assertSame(
-            35,
+            43,
             VehicleModel::where('brand_id', $toyota->id)->count(),
-            'Toyota porte 35 lignes : 33 au moment de ce lot, plus les deux generations du Venza posees apres.',
+            'Toyota porte 43 lignes : 33 historiques, deux générations Venza et huit références documentées pour le filtre 90915-10001.',
         );
     }
 
@@ -582,7 +588,7 @@ class FinitionsToyotaSecondeMoitieTest extends TestCase
         $this->assertSame(314, DB::table('trims')->count(), '281 finitions historiques et Toyota, puis 33 appellations Hyundai provisoires.');
     }
 
-    public function test_les_generations_toyota_encore_vides_sont_exactement_dix_sept(): void
+    public function test_les_generations_toyota_encore_vides_sont_exactement_vingt_cinq(): void
     {
         $this->finitions();
 
@@ -597,6 +603,8 @@ class FinitionsToyotaSecondeMoitieTest extends TestCase
         // reunion des trois listes qui est comparee, et les deux nouvelles
         // sont isolees dans `POSEES_APRES_CE_LOT` pour qu'on voie d'un coup
         // d'oeil ce qui appartient a ce lot et ce qui lui est arrive apres.
+        // Le 09/11/2026, huit références supplémentaires sont documentées
+        // pour le catalogue du filtre 90915-10001, sans créer de finitions.
         $vides = DB::table('vehicle_models')
             ->join('brands', 'brands.id', '=', 'vehicle_models.brand_id')
             ->where('brands.slug', 'toyota')
@@ -612,9 +620,9 @@ class FinitionsToyotaSecondeMoitieTest extends TestCase
         $this->assertSame(
             $attendues,
             $vides,
-            'Dix-sept lignes Toyota restent sans finition : 9 ecartees + 6 slugs nus + 2 posees apres ce lot.',
+            'Vingt-cinq lignes Toyota restent sans finition : 9 écartées + 6 slugs nus + 2 Venza + 8 références du lot 90915-10001.',
         );
         $this->assertCount(15, array_merge(self::ECARTEES, self::SLUGS_NUS), 'Le compte de CE lot reste quinze.');
-        $this->assertCount(17, $vides);
+        $this->assertCount(25, $vides);
     }
 }
