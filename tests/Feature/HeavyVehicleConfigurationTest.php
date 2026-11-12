@@ -112,6 +112,41 @@ class HeavyVehicleConfigurationTest extends TestCase
         $this->assertDatabaseHas('vehicles', ['id' => $vehicle->id, 'heavy_configuration' => null]);
     }
 
+    public function test_declared_body_measures_round_trip_on_public_detail(): void
+    {
+        $configuration = [
+            'body_type' => 'tanker',
+            'body_use' => 'Citerne carburant',
+            'useful_volume_m3' => '19.32',
+            'tank_capacity_liters' => '45000',
+            'payload_kg' => 60000,
+        ];
+        $expected = [
+            'body_type' => 'tanker',
+            'body_use' => 'Citerne carburant',
+            'useful_volume_m3' => 19.32,
+            'tank_capacity_liters' => 45000,
+            'payload_kg' => 60000,
+        ];
+        $response = $this->postJson('/api/vehicles', $this->identity + ['heavy_configuration' => $configuration])
+            ->assertCreated()->assertJsonPath('data.technical.heavy_configuration', $expected)
+            ->assertJsonPath('data.body_style', 'truck');
+        $vehicle = Vehicle::findOrFail($response->json('data.id'));
+        $this->assertSame($expected, $vehicle->heavy_configuration);
+        $vehicle->update(['published_at' => now()]);
+        $this->getJson('/api/catalog/vehicles/'.$vehicle->id)->assertOk()
+            ->assertJsonPath('data.technical.heavy_configuration', $expected)
+            ->assertJsonPath('data.body_style', 'truck');
+    }
+
+    public function test_body_style_stays_the_historical_truck_value(): void
+    {
+        $this->postJson('/api/vehicles', array_replace($this->identity, [
+            'body_style' => 'tanker',
+            'heavy_configuration' => ['body_type' => 'tanker'],
+        ]))->assertUnprocessable()->assertJsonValidationErrors('body_style');
+    }
+
     public static function invalidConfigurations(): array
     {
         return [
@@ -132,6 +167,16 @@ class HeavyVehicleConfigurationTest extends TestCase
             'fraction PTAC' => [['ptac_kg' => 18000.5], 'heavy_configuration.ptac_kg'],
             'oversized PTRA' => [['ptra_kg' => 1000001], 'heavy_configuration.ptra_kg'],
             'inconsistent masses' => [['ptac_kg' => 26000, 'ptra_kg' => 18000], 'heavy_configuration.ptra_kg'],
+            'unknown body type' => [['body_type' => 'tanker_truck'], 'heavy_configuration.body_type'],
+            'historical body_style as body type' => [['body_type' => 'truck'], 'heavy_configuration.body_type'],
+            'zero volume' => [['useful_volume_m3' => 0], 'heavy_configuration.useful_volume_m3'],
+            'negative volume' => [['useful_volume_m3' => -1], 'heavy_configuration.useful_volume_m3'],
+            'oversized volume' => [['useful_volume_m3' => 500.01], 'heavy_configuration.useful_volume_m3'],
+            'zero tank' => [['tank_capacity_liters' => 0], 'heavy_configuration.tank_capacity_liters'],
+            'fraction tank' => [['tank_capacity_liters' => 25000.5], 'heavy_configuration.tank_capacity_liters'],
+            'oversized tank' => [['tank_capacity_liters' => 200001], 'heavy_configuration.tank_capacity_liters'],
+            'zero payload' => [['payload_kg' => 0], 'heavy_configuration.payload_kg'],
+            'oversized payload' => [['payload_kg' => 1000001], 'heavy_configuration.payload_kg'],
         ];
     }
 

@@ -20,10 +20,22 @@ partenaires, acceptent `heavy_configuration` à la racine de la requête.
 | `cab_label` | Cabine, 100 caractères maximum |
 | `axle_configuration` | Notation exacte des essieux, 40 caractères maximum |
 | `chassis_type` | `tractor`, `rigid` ou `other` |
-| `body_use` | Carrosserie / usage, 100 caractères maximum |
+| `body_type` | Carrosserie poids lourd : `tanker`, `tipper`, `tractor_unit`, `flatbed`, `box`, `mixer` ou `other` |
+| `body_use` | Précision libre de carrosserie / usage, 100 caractères maximum |
 | `emission_standard` | Norme antipollution, 40 caractères maximum |
 | `ptac_kg` | Entier de 1 à 1 000 000 kg |
 | `ptra_kg` | Entier de 1 à 1 000 000 kg |
+| `useful_volume_m3` | Volume utile, de 0,01 à 500 m³, deux décimales |
+| `tank_capacity_liters` | Capacité de cuve (citerne), entier de 1 à 200 000 L |
+| `payload_kg` | Charge utile, entier de 1 à 1 000 000 kg |
+
+Le type de carrosserie poids lourd vit dans `heavy_configuration.body_type`,
+et non dans `vehicles.body_style`. Cette dernière colonne conserve ses valeurs
+historiques (`truck`, `bus`, …) pour que les applications déjà installées ne
+reçoivent pas un code qu’elles afficheraient brut ou classeraient mal.
+
+`tank_capacity_liters` décrit la cuve d’une citerne, pas le réservoir du
+porteur (`fuel_tank_liters`, inchangé).
 
 Lorsque les deux masses sont renseignées, le PTRA doit être supérieur ou égal au
 PTAC. Ce contrôle porte sur les valeurs après fusion, avec une seconde validation
@@ -53,8 +65,10 @@ ne modifie pas leur empreinte.
 
 ## Installation
 
-Appliquer la migration `2026_11_07_000001_add_heavy_configuration_to_vehicles`
-avant de déployer les nouvelles routes :
+Appliquer les migrations `2026_11_07_000001_add_heavy_configuration_to_vehicles`
+(colonne) puis `2026_11_12_120000_extend_heavy_configuration_declared_keys`
+(clés déclarées, sans alter de schéma) avant de déployer un client qui les envoie :
+
 
 ```bash
 php artisan migrate --force
