@@ -173,7 +173,7 @@ class ArticleController extends Controller
             // disparaitrait de l'apercu.
             'media',
             'brand', 'vehicleModel', 'trim', 'engineType', 'color', 'location',
-            'partner', 'sellerAccount',
+            'sellerAccount',
             // Le kilometrage ne vit pas sur le vehicule mais dans l'un de ces
             // deux blocs, selon qu'il est immatricule ou importe (voir
             // Vehicle::getMileageKmAttribute).

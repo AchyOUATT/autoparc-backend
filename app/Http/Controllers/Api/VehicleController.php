@@ -38,7 +38,7 @@ class VehicleController extends Controller
         $vehicles = VehicleCatalogQuery::filtered($request, publicOnly: $request->is('api/catalog/*'))
             ->with([
                 'brand', 'vehicleModel', 'trim', 'engineType', 'drivetrain', 'color',
-                'location', 'partner', 'sellerAccount',
+                'location', 'sellerAccount',
                 'importDetail.originCountry', 'registrationDetail.registrationCountry', 'media',
             ])
             ->withCount('faults')

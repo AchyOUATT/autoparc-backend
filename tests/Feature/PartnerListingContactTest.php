@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Resources\VehicleResource;
 use App\Models\Brand;
 use App\Models\EngineType;
 use App\Models\Partner;
@@ -9,6 +10,7 @@ use App\Models\PartnerAccount;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleModel;
+use App\Support\PartnerListingPresentation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -60,44 +62,29 @@ class PartnerListingContactTest extends TestCase
         ], $attributs));
     }
 
-    public function test_le_catalogue_expose_le_numero_du_partenaire_rattache_par_le_personnel(): void
-    {
-        $partenaire = Partner::create([
-            'company_name' => 'Garage historique',
-            'contact_name' => 'Contact interne',
-            'phone' => '70003344',
-            'is_active' => true,
-        ]);
-        $vehicule = $this->vehicule(['partner_id' => $partenaire->id]);
-
-        $fiche = $this->getJson('/api/catalog/vehicles/'.$vehicule->id)->assertOk()->json('data');
-        $liste = $this->getJson('/api/catalog/vehicles')->assertOk()->json('data.0');
-
-        foreach ([$fiche, $liste] as $data) {
-            $this->assertSame($partenaire->id, $data['seller']['id']);
-            $this->assertSame('Garage historique', $data['seller']['company_name']);
-            $this->assertSame('+22670003344', $data['seller']['phone']);
-            $this->assertNull($data['seller']['whatsapp']);
-        }
-    }
-
-    public function test_la_page_de_partage_d_un_vehicule_partenaire_compose_son_numero(): void
+    public function test_un_vehicule_rattache_par_le_personnel_garde_le_numero_de_la_plateforme(): void
     {
         config(['boutique.telephone' => '+22675570484', 'boutique.whatsapp' => '22675570484']);
-        $partenaire = Partner::create([
+
+        $fournisseur = Partner::create([
             'company_name' => 'Garage historique',
+            'contact_name' => 'Contact interne',
             'phone' => '70003344',
             'whatsapp' => '71003344',
             'is_active' => true,
         ]);
-        $vehicule = $this->vehicule(['partner_id' => $partenaire->id]);
+        $vehicule = $this->vehicule(['partner_id' => $fournisseur->id]);
+
+        $this->getJson('/api/catalog/vehicles/'.$vehicule->id)
+            ->assertOk()
+            ->assertJsonMissingPath('data.seller');
 
         $html = $this->get('/v/'.$vehicule->id)->assertOk()->getContent();
-
-        $this->assertStringContainsString('Garage historique', $html);
-        $this->assertStringContainsString('href="tel:+22670003344"', $html);
-        $this->assertStringContainsString('https://wa.me/22671003344?text=', $html);
-        $this->assertStringNotContainsString('75570484', $html);
+        $this->assertStringContainsString('href="tel:+22675570484"', $html);
+        $this->assertStringContainsString('https://wa.me/22675570484?text=', $html);
+        $this->assertStringNotContainsString('Garage historique', $html);
+        $this->assertStringNotContainsString('70003344', $html);
+        $this->assertStringNotContainsString('71003344', $html);
     }
 
     public function test_un_vehicule_de_la_boutique_garde_le_numero_de_la_plateforme(): void
@@ -112,30 +99,6 @@ class PartnerListingContactTest extends TestCase
         $html = $this->get('/v/'.$vehicule->id)->assertOk()->getContent();
         $this->assertStringContainsString('href="tel:+22675570484"', $html);
         $this->assertStringContainsString('https://wa.me/22675570484?text=', $html);
-    }
-
-    public function test_un_partenaire_inactif_ou_sans_numero_composable_se_rabatte_sur_la_boutique(): void
-    {
-        config(['boutique.telephone' => '+22675570484', 'boutique.whatsapp' => '22675570484']);
-
-        $inactif = Partner::create([
-            'company_name' => 'Garage ferme',
-            'phone' => '70004455',
-            'is_active' => false,
-        ]);
-        $illisible = Partner::create([
-            'company_name' => 'Garage sans ligne',
-            'phone' => 'abc',
-            'is_active' => true,
-        ]);
-
-        foreach ([$this->vehicule(['partner_id' => $inactif->id]), $this->vehicule(['partner_id' => $illisible->id])] as $vehicule) {
-            $this->getJson('/api/catalog/vehicles/'.$vehicule->id)
-                ->assertOk()
-                ->assertJsonMissingPath('data.seller');
-            $this->get('/v/'.$vehicule->id)->assertOk()
-                ->assertSee('href="tel:+22675570484"', false);
-        }
     }
 
     public function test_le_compte_partenaire_approuve_reste_le_contact_public_et_normalise_son_numero(): void
@@ -155,6 +118,23 @@ class PartnerListingContactTest extends TestCase
         $this->assertSame($compte->company_name, $data['seller']['company_name']);
         $this->assertSame('+22670005566', $data['seller']['phone']);
         $this->assertSame('+22671005566', $data['seller']['whatsapp']);
+        $this->assertArrayNotHasKey('partner', $data['commercial'] ?? []);
+    }
+
+    public function test_un_compte_partenaire_sans_numero_composable_se_rabatte_sur_la_boutique(): void
+    {
+        config(['boutique.telephone' => '+22675570484', 'boutique.whatsapp' => '22675570484']);
+        $compte = $this->compte(['phone' => '123', 'whatsapp' => null]);
+        $vehicule = $this->vehicule([
+            'owner_partner_account_id' => $compte->id,
+            'partner_published_at' => now(),
+        ]);
+
+        $data = $this->getJson('/api/catalog/vehicles/'.$vehicule->id)->assertOk()->json('data');
+        $this->assertNull($data['seller']);
+
+        $html = $this->get('/v/'.$vehicule->id)->assertOk()->getContent();
+        $this->assertStringContainsString('href="tel:+22675570484"', $html);
     }
 
     public function test_un_compte_partenaire_non_approuve_n_expose_pas_son_numero(): void
@@ -170,9 +150,9 @@ class PartnerListingContactTest extends TestCase
         // numero de la boutique reste le repli.
         $this->getJson('/api/catalog/vehicles/'.$vehicule->id)->assertNotFound();
 
-        $ressource = (new \App\Http\Resources\VehicleResource($vehicule->load('sellerAccount')))
+        $ressource = (new VehicleResource($vehicule->load('sellerAccount')))
             ->resolve(request());
         $this->assertNull($ressource['seller']);
-        $this->assertNull(\App\Support\PartnerListingPresentation::seller($vehicule));
+        $this->assertNull(PartnerListingPresentation::seller($vehicule));
     }
 }

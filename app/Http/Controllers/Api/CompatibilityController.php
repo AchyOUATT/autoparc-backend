@@ -116,7 +116,7 @@ class CompatibilityController extends Controller
             $vehicles = $vehicles->whereIn('id', $visibleIds);
         }
 
-        return VehicleResource::collection($vehicles->loadMissing(['sellerAccount', 'partner']));
+        return VehicleResource::collection($vehicles->loadMissing('sellerAccount'));
     }
 
     /** GET /api/oem/{number}/models : modeles couverts par une reference OEM. */

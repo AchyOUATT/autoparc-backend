@@ -1947,6 +1947,7 @@ class PagesProduitTest extends TestCase
             // pour la meme raison.
             $this->assertStringNotContainsString(self::STOCKAGE_PIECE, $html, "{$adresse} : emplacement de stockage.");
             $this->assertStringNotContainsString(self::STOCKAGE_ACCESSOIRE, $html, "{$adresse} : emplacement de stockage.");
+            $this->assertStringNotContainsString(self::FOURNISSEUR, $html, "{$adresse} : fournisseur.");
 
             // Les COORDONNEES du fournisseur, et pas seulement sa raison
             // sociale. La garde restait verte sur « Ouedraogo +22670000001 » :
@@ -1954,33 +1955,17 @@ class PagesProduitTest extends TestCase
             // en premier, et un acheteur qui les lit s'approvisionne a la
             // source. Le numero sous ses deux ecritures — la colonne porte le
             // « + », un affichage peut le perdre.
-            //
-            // EXCEPTION : sur un VEHICULE, `partner_id` n'est plus un
-            // fournisseur interne. C'est le partenaire dont l'annonce est
-            // publiee, et son nom comme son numero doivent figurer — c'est
-            // le contact que l'acheteur compose. Le nom de la personne
-            // (`contact_name`) reste hors de la forme publique. Les pieces
-            // et accessoires, eux, gardent le pivot `partnerables` cache.
-            if (! str_starts_with($adresse, '/v/')) {
-                $this->assertStringNotContainsString(self::FOURNISSEUR, $html, "{$adresse} : fournisseur.");
-                $this->assertStringNotContainsString(
-                    self::FOURNISSEUR_CONTACT,
-                    $html,
-                    "{$adresse} : nom du contact fournisseur.",
-                );
+            $this->assertStringNotContainsString(
+                self::FOURNISSEUR_CONTACT,
+                $html,
+                "{$adresse} : nom du contact fournisseur.",
+            );
 
-                foreach ([self::FOURNISSEUR_TELEPHONE, ltrim(self::FOURNISSEUR_TELEPHONE, '+')] as $numero) {
-                    $this->assertStringNotContainsString(
-                        $numero,
-                        $html,
-                        "{$adresse} laisse voir {$numero} — telephone du fournisseur.",
-                    );
-                }
-            } else {
+            foreach ([self::FOURNISSEUR_TELEPHONE, ltrim(self::FOURNISSEUR_TELEPHONE, '+')] as $numero) {
                 $this->assertStringNotContainsString(
-                    self::FOURNISSEUR_CONTACT,
+                    $numero,
                     $html,
-                    "{$adresse} : nom du contact fournisseur.",
+                    "{$adresse} laisse voir {$numero} — telephone du fournisseur.",
                 );
             }
 
