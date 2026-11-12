@@ -29,36 +29,76 @@ final class PartnerListingPresentation
 
     public static function seller(Model $listing): ?array
     {
+        // Uniquement les annonces creees depuis un compte partenaire
+        // auto-gere. Un vehicule rattache par le personnel via `partner_id`
+        // reste une fiche boutique : `partner_id` designe un fournisseur
+        // interne, et le contact public est celui de la plateforme.
         if (! self::isPartnerListing($listing)) {
             return null;
         }
 
-        $seller = $listing->sellerAccount;
+        $compte = $listing->sellerAccount;
 
-        return $seller === null ? null : [
-            'id' => $seller->id,
+        return $compte !== null && $compte->isApproved()
+            ? self::coordonneesPubliques(
+                (int) $compte->id,
+                $compte->company_name ?: $compte->contact_name,
+                $compte->phone,
+                $compte->whatsapp,
+            )
+            : null;
+    }
 
-            // ── LE NOM PUBLIC NE PEUT ETRE NI NUL NI VIDE ──────────────────
-            //
-            // `company_name` est facultatif a l'inscription : un revendeur
-            // particulier n'a pas de raison sociale. Mais l'application
-            // PUBLIEE lit ce champ par un transtypage dur
-            // (`json['company_name'] as String`, dans `ProductSeller` comme
-            // dans `PartnerSeller`) et compose l'initiale du vendeur par
-            // `companyName[0]`. Un null y leve un `TypeError`, une chaine vide
-            // un `RangeError` — et les deux font tomber l'ecran de detail de
-            // l'annonce, celui-la meme qui porte le numero a appeler.
-            //
-            // Le repli est donc tenu ICI, par le serveur, et non par une
-            // future version de l'application : les telephones deja installes
-            // ne se mettent pas a jour parce qu'on l'aurait souhaite.
-            //
-            // `contact_name` reste obligatoire, donc le repli aboutit
-            // toujours. Et c'est le nom sous lequel ce vendeur se presente :
-            // rien n'est invente.
-            'company_name' => $seller->company_name ?: $seller->contact_name,
-            'phone' => $seller->phone,
-            'whatsapp' => $seller->whatsapp,
+    /**
+     * La forme publique du vendeur, lue par l'application deja installee.
+     *
+     * ── LE NOM PUBLIC NE PEUT ETRE NI NUL NI VIDE ────────────────────────
+     *
+     * `company_name` est facultatif a l'inscription : un revendeur
+     * particulier n'a pas de raison sociale. Mais l'application PUBLIEE
+     * lit ce champ par un transtypage dur (`json['company_name'] as String`,
+     * dans `ProductSeller` comme dans `PartnerSeller`) et compose
+     * l'initiale du vendeur par `companyName[0]`. Un null y leve un
+     * `TypeError`, une chaine vide un `RangeError` — et les deux font
+     * tomber l'ecran de detail de l'annonce, celui-la meme qui porte le
+     * numero a appeler.
+     *
+     * Le repli est donc tenu ICI, par le serveur, et non par une future
+     * version de l'application : les telephones deja installes ne se
+     * mettent pas a jour parce qu'on l'aurait souhaite.
+     *
+     * `contact_name` reste obligatoire sur le compte partenaire, donc le
+     * repli aboutit toujours. Un nom ou un numero illisible refuse le
+     * bloc entier : mieux vaut le numero de la boutique qu'un ecran
+     * qui s'effondre.
+     *
+     * ── LE NUMERO EST EN E.164 ───────────────────────────────────────────
+     *
+     * La plupart des fiches partenaires portent un numero local de
+     * 8 chiffres. L'application ouvre WhatsApp avec les seuls chiffres,
+     * et wa.me refuse un numero sans indicatif. On normalise donc ici,
+     * pour que les telephones deja installes composent le bon destinataire.
+     *
+     * @return array{id: int, company_name: string, phone: string, whatsapp: ?string}|null
+     */
+    private static function coordonneesPubliques(
+        int $id,
+        ?string $nom,
+        ?string $telephone,
+        ?string $whatsapp,
+    ): ?array {
+        $nom = is_string($nom) ? trim($nom) : '';
+        $telephone = NumeroDeTelephone::e164($telephone);
+
+        if ($nom === '' || $telephone === null) {
+            return null;
+        }
+
+        return [
+            'id' => $id,
+            'company_name' => $nom,
+            'phone' => $telephone,
+            'whatsapp' => NumeroDeTelephone::e164($whatsapp),
         ];
     }
 
