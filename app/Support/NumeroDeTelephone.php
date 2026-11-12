@@ -67,4 +67,37 @@ final class NumeroDeTelephone
     {
         return str_contains((string) $identifiant, '@');
     }
+
+    /**
+     * Le numero en E.164, ou `null` s'il n'est pas composable.
+     *
+     * `cle()` sert a COMPARER. Celle-ci sert a COMPOSER : un lien `tel:` et
+     * un lien wa.me. Un numero burkinabe de 8 chiffres, saisi tel quel par
+     * la plupart des partenaires, n'ouvre pas WhatsApp sans l'indicatif.
+     * On le complete donc ici, et seulement lui : un numero etranger deja
+     * international est laisse tel quel, un numero illisible est refuse
+     * pour que l'appelant se rabatte sur le numero de la boutique.
+     */
+    public static function e164(?string $numero): ?string
+    {
+        $chiffres = preg_replace('/\D/', '', (string) $numero);
+
+        if ($chiffres === '') {
+            return null;
+        }
+
+        if (str_starts_with($chiffres, '00')) {
+            $chiffres = substr($chiffres, 2);
+        }
+
+        if (strlen($chiffres) === self::LONGUEUR_LOCALE) {
+            $chiffres = self::INDICATIF.$chiffres;
+        }
+
+        if (preg_match('/^[1-9][0-9]{7,14}$/D', $chiffres) !== 1) {
+            return null;
+        }
+
+        return '+'.$chiffres;
+    }
 }

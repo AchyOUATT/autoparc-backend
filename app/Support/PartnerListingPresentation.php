@@ -4,6 +4,7 @@ namespace App\Support;
 
 // `PrixEffectif` et `PromotionPartenaire` vivent dans le meme espace de noms :
 // rien a importer.
+use App\Models\Vehicle;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -29,36 +30,104 @@ final class PartnerListingPresentation
 
     public static function seller(Model $listing): ?array
     {
-        if (! self::isPartnerListing($listing)) {
+        // ── COMPTE PARTENAIRE AUTO-GERE ──────────────────────────────────
+        //
+        // C'est le cas prevu des le debut : l'annonce porte
+        // `owner_partner_account_id`. Le numero public est celui du profil,
+        // a condition que le compte soit approuve et que le numero soit
+        // composable. Sinon on rend null : l'application deja publiee se
+        // rabat alors sur le numero de la boutique, sans mise a jour.
+        if (self::isPartnerListing($listing)) {
+            $compte = $listing->sellerAccount;
+
+            return $compte !== null && $compte->isApproved()
+                ? self::coordonneesPubliques(
+                    (int) $compte->id,
+                    $compte->company_name ?: $compte->contact_name,
+                    $compte->phone,
+                    $compte->whatsapp,
+                )
+                : null;
+        }
+
+        // ── VEHICULE RATTACHE A UN PARTENAIRE PAR LE PERSONNEL ───────────
+        //
+        // `partner_id` n'est pas un fournisseur cache dans un pivot : c'est
+        // le partenaire source du vehicule, pose a la saisie. Sans ce
+        // branchement, l'API omettait `seller`, et l'application publiee
+        // composait le numero de la boutique. Le numero du partenaire doit
+        // sortir ici, dans la meme forme `seller` que l'application lit
+        // deja, pour que les telephones installes l'affichent sans
+        // mise a jour.
+        //
+        // On ne touche pas aux pieces ni aux accessoires : leur pivot
+        // `partnerables` reste un lien fournisseur interne.
+        if (! $listing instanceof Vehicle || $listing->partner_id === null) {
             return null;
         }
 
-        $seller = $listing->sellerAccount;
+        $partenaire = $listing->partner;
 
-        return $seller === null ? null : [
-            'id' => $seller->id,
+        return $partenaire !== null && $partenaire->is_active
+            ? self::coordonneesPubliques(
+                (int) $partenaire->id,
+                $partenaire->company_name ?: $partenaire->contact_name,
+                $partenaire->phone,
+                $partenaire->whatsapp,
+            )
+            : null;
+    }
 
-            // ── LE NOM PUBLIC NE PEUT ETRE NI NUL NI VIDE ──────────────────
-            //
-            // `company_name` est facultatif a l'inscription : un revendeur
-            // particulier n'a pas de raison sociale. Mais l'application
-            // PUBLIEE lit ce champ par un transtypage dur
-            // (`json['company_name'] as String`, dans `ProductSeller` comme
-            // dans `PartnerSeller`) et compose l'initiale du vendeur par
-            // `companyName[0]`. Un null y leve un `TypeError`, une chaine vide
-            // un `RangeError` — et les deux font tomber l'ecran de detail de
-            // l'annonce, celui-la meme qui porte le numero a appeler.
-            //
-            // Le repli est donc tenu ICI, par le serveur, et non par une
-            // future version de l'application : les telephones deja installes
-            // ne se mettent pas a jour parce qu'on l'aurait souhaite.
-            //
-            // `contact_name` reste obligatoire, donc le repli aboutit
-            // toujours. Et c'est le nom sous lequel ce vendeur se presente :
-            // rien n'est invente.
-            'company_name' => $seller->company_name ?: $seller->contact_name,
-            'phone' => $seller->phone,
-            'whatsapp' => $seller->whatsapp,
+    /**
+     * La forme publique du vendeur, identique pour les deux origines.
+     *
+     * ── LE NOM PUBLIC NE PEUT ETRE NI NUL NI VIDE ────────────────────────
+     *
+     * `company_name` est facultatif a l'inscription : un revendeur
+     * particulier n'a pas de raison sociale. Mais l'application PUBLIEE
+     * lit ce champ par un transtypage dur (`json['company_name'] as String`,
+     * dans `ProductSeller` comme dans `PartnerSeller`) et compose
+     * l'initiale du vendeur par `companyName[0]`. Un null y leve un
+     * `TypeError`, une chaine vide un `RangeError` — et les deux font
+     * tomber l'ecran de detail de l'annonce, celui-la meme qui porte le
+     * numero a appeler.
+     *
+     * Le repli est donc tenu ICI, par le serveur, et non par une future
+     * version de l'application : les telephones deja installes ne se
+     * mettent pas a jour parce qu'on l'aurait souhaite.
+     *
+     * `contact_name` reste obligatoire sur le compte partenaire, donc le
+     * repli aboutit toujours dans ce cas. Sur un partenaire historique,
+     * un nom vide refuse le bloc entier : mieux vaut le numero de la
+     * boutique qu'un ecran qui s'effondre.
+     *
+     * ── LE NUMERO EST EN E.164 ───────────────────────────────────────────
+     *
+     * La plupart des fiches partenaires portent un numero local de
+     * 8 chiffres. L'application ouvre WhatsApp avec les seuls chiffres,
+     * et wa.me refuse un numero sans indicatif. On normalise donc ici,
+     * pour que les telephones deja installes composent le bon destinataire.
+     *
+     * @return array{id: int, company_name: string, phone: string, whatsapp: ?string}|null
+     */
+    private static function coordonneesPubliques(
+        int $id,
+        ?string $nom,
+        ?string $telephone,
+        ?string $whatsapp,
+    ): ?array {
+        $nom = is_string($nom) ? trim($nom) : '';
+        $telephone = NumeroDeTelephone::e164($telephone);
+
+        if ($nom === '' || $telephone === null) {
+            return null;
+        }
+
+        return [
+            'id' => $id,
+            'company_name' => $nom,
+            'phone' => $telephone,
+            'whatsapp' => NumeroDeTelephone::e164($whatsapp),
         ];
     }
 
@@ -247,8 +316,18 @@ final class PartnerListingPresentation
 
     public static function present(array $data, Model $listing, Request $request, string $type): array
     {
-        // Historical listings retain their existing response contract.
+        // Historical listings retain their existing response contract,
+        // SAUF le bloc `seller` d'un vehicule rattache a un partenaire
+        // actif : sans lui, l'application publiee compose le numero de
+        // la boutique. On n'applique PAS le filtrage des annonces
+        // auto-gerees (prix, identifiants, documents) : ce contrat-la
+        // n'est pas le leur.
         if (! self::isPartnerListing($listing)) {
+            $vendeur = self::seller($listing);
+            if ($vendeur !== null) {
+                $data['seller'] = $vendeur;
+            }
+
             return $data;
         }
 

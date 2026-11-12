@@ -173,6 +173,7 @@ class ArticleController extends Controller
             // disparaitrait de l'apercu.
             'media',
             'brand', 'vehicleModel', 'trim', 'engineType', 'color', 'location',
+            'partner', 'sellerAccount',
             // Le kilometrage ne vit pas sur le vehicule mais dans l'un de ces
             // deux blocs, selon qu'il est immatricule ou importe (voir
             // Vehicle::getMileageKmAttribute).
@@ -277,7 +278,7 @@ class ArticleController extends Controller
     {
         abort_unless($this->catalogueMontre($part), 404);
 
-        $part->load(['media', 'category', 'manufacturer', 'location']);
+        $part->load(['media', 'category', 'manufacturer', 'location', 'sellerAccount']);
 
         return $this->page(chemin: '/p/'.$part->id, source: $part, article: new ArticlePartage(
             titre:       $part->name,
@@ -318,7 +319,7 @@ class ArticleController extends Controller
         // application ou l'article est introuvable.
         abort_unless($this->catalogueMontre($accessory), 404);
 
-        $accessory->load(['media', 'manufacturer', 'location']);
+        $accessory->load(['media', 'manufacturer', 'location', 'sellerAccount']);
 
         return $this->page(chemin: '/a/'.$accessory->id, source: $accessory, article: new ArticlePartage(
             titre:       $accessory->name,

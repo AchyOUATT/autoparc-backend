@@ -59,7 +59,7 @@ final class PublicVehicleCatalog
             ->whereKey($rows->where('source', 'vehicle')->pluck('source_id')->all())
             ->with([
                 'brand', 'vehicleModel', 'trim', 'engineType', 'drivetrain', 'color',
-                'location', 'sellerAccount',
+                'location', 'partner', 'sellerAccount',
                 'importDetail.originCountry', 'registrationDetail.registrationCountry', 'media',
             ])
             ->withCount('faults')->get()->keyBy('id');
