@@ -135,10 +135,14 @@ class StoreVehicleRequest extends FormRequest
             'heavy_configuration.cab_label' => ['nullable', 'string', 'max:100'],
             'heavy_configuration.axle_configuration' => ['nullable', 'string', 'max:40'],
             'heavy_configuration.chassis_type' => ['nullable', Rule::in(['tractor', 'rigid', 'other'])],
+            'heavy_configuration.body_type' => ['nullable', Rule::in(HeavyVehicleConfiguration::BODY_TYPES)],
             'heavy_configuration.body_use' => ['nullable', 'string', 'max:100'],
             'heavy_configuration.emission_standard' => ['nullable', 'string', 'max:40'],
             'heavy_configuration.ptac_kg' => ['nullable', 'integer', 'min:1', 'max:1000000'],
             'heavy_configuration.ptra_kg' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+            'heavy_configuration.useful_volume_m3' => ['nullable', 'numeric', 'min:'.HeavyVehicleConfiguration::USEFUL_VOLUME_MIN, 'max:'.HeavyVehicleConfiguration::USEFUL_VOLUME_MAX],
+            'heavy_configuration.tank_capacity_liters' => ['nullable', 'integer', 'min:'.HeavyVehicleConfiguration::TANK_CAPACITY_MIN, 'max:'.HeavyVehicleConfiguration::TANK_CAPACITY_MAX],
+            'heavy_configuration.payload_kg' => ['nullable', 'integer', 'min:'.HeavyVehicleConfiguration::PAYLOAD_MIN, 'max:'.HeavyVehicleConfiguration::PAYLOAD_MAX],
             // Derived response metadata must never be supplied by the client.
             'heavy_configuration_status' => ['missing'],
 
