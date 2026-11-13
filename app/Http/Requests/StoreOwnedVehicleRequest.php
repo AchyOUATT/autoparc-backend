@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\VehicleModel;
 use App\Support\EngineCode;
+use App\Support\TwoWheelerConfiguration;
 use App\Support\VehicleClassification;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -93,7 +95,8 @@ class StoreOwnedVehicleRequest extends FormRequest
             // Explicit specification values: never inferred from registration or manufacture.
             'model_year' => ['nullable', 'integer', 'min:1950', 'max:'.(now()->year + 1)],
             'specification_market' => ['nullable', 'string', 'max:20', 'regex:/^[A-Z0-9_-]+$/'],
-            'vin'                => ['nullable', 'string', 'size:17'],
+            'vehicle_type'       => ['nullable', 'string', 'in:passenger,utility,heavy,two_wheeler'],
+            'vin'                => $this->vinRules(),
             // Code moteur fourni par le decodage VIN (NHTSA) ou saisi manuellement.
             // Exemples : "1NZ", "K20", "OM651". Max 20 chars, tout format accepte.
             'engine_code'        => ['nullable', 'string', 'max:20'],
@@ -156,5 +159,23 @@ class StoreOwnedVehicleRequest extends FormRequest
                 }
             }
         });
+    }
+
+    /** @return list<mixed> */
+    protected function vinRules(): array
+    {
+        $type = $this->input('vehicle_type');
+        if (! is_string($type) || $type === '') {
+            $modelId = $this->input('vehicle_model_id');
+            if (is_numeric($modelId)) {
+                $type = VehicleModel::query()->whereKey($modelId)->value('default_vehicle_type');
+            }
+        }
+
+        if (TwoWheelerConfiguration::isTwoWheeler(is_string($type) ? $type : null)) {
+            return ['nullable', 'string', 'min:'.TwoWheelerConfiguration::VIN_MIN, 'max:'.TwoWheelerConfiguration::VIN_MAX];
+        }
+
+        return ['nullable', 'string', 'size:17'];
     }
 }

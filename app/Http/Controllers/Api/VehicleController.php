@@ -17,6 +17,7 @@ use App\Services\FaultDeclarations;
 use App\Support\PartnerOwnership;
 use App\Support\EquipmentDetails;
 use App\Support\HeavyVehicleConfiguration;
+use App\Support\TwoWheelerConfiguration;
 use App\Support\MargePartenaire;
 use App\Support\TriPublic;
 use App\Support\VehicleCatalogQuery;
@@ -61,6 +62,9 @@ class VehicleController extends Controller
         $data = $request->validated();
         if (array_key_exists('heavy_configuration', $data)) {
             $data['heavy_configuration'] = HeavyVehicleConfiguration::normalize($data['heavy_configuration']);
+        }
+        if (array_key_exists('two_wheeler_configuration', $data)) {
+            $data['two_wheeler_configuration'] = TwoWheelerConfiguration::normalize($data['two_wheeler_configuration']);
         }
         if (array_key_exists('equipment_details', $data)) {
             $data['equipment_details'] = EquipmentDetails::normalize($data['equipment_details']);
@@ -284,6 +288,12 @@ class VehicleController extends Controller
                         'heavy_configuration.ptra_kg' => __('Le PTRA doit être supérieur ou égal au PTAC.'),
                     ]);
                 }
+            }
+            if (array_key_exists('two_wheeler_configuration', $data)) {
+                $data['two_wheeler_configuration'] = TwoWheelerConfiguration::merge(
+                    $vehicle->two_wheeler_configuration,
+                    $data['two_wheeler_configuration'],
+                );
             }
             $vehicle->update(collect($data)->except(['import', 'registration', 'faults', 'fault_declaration_state', 'features'])->all());
             app(FaultDeclarations::class)->sync($vehicle, $data, $request->user());

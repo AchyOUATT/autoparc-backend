@@ -13,7 +13,7 @@ class OwnedVehicle extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'user_id', 'brand_id', 'vehicle_model_id', 'model_libre', 'trim_id',
+        'user_id', 'brand_id', 'vehicle_type', 'vehicle_model_id', 'model_libre', 'trim_id',
         'engine_type_id', 'motorisation_id', 'drivetrain_id', 'color_id',
         'engine_displacement_cc', 'engine_displacement_l', 'cylinders', 'engine_layout', 'power_hp',
         'manufacturing_year', 'model_year', 'specification_market', 'vin', 'engine_code', 'plate_number', 'nickname', 'mileage_km',
