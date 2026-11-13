@@ -71,7 +71,7 @@ class TwoWheelerConfigurationTest extends TestCase
             ->assertJsonPath('data.technical.two_wheeler_configuration.body_type', 'motorcycle')
             ->assertJsonPath('data.identity.brand', 'Yamaha')
             ->assertJsonPath('data.identity.model', 'YBR125E')
-            ->assertJsonPath('data.commercial.sale_price', 1200000);
+            ->assertJsonPath('data.commercial.sale_price', '1200000.00');
     }
 
     public function test_body_style_is_not_extended_with_motorcycle(): void
