@@ -22,6 +22,7 @@ class PrivateVehicleListing extends Model
             'revision' => 'integer',
             'fault_declared_at' => 'datetime',
             'vehicle_identity' => 'array',
+            'two_wheeler_configuration' => 'array',
             'brand_id' => 'integer', 'vehicle_model_id' => 'integer', 'trim_id' => 'integer',
             'engine_type_id' => 'integer', 'drivetrain_id' => 'integer', 'color_id' => 'integer',
             'whatsapp_enabled' => 'boolean', 'phone_verified_at' => 'datetime',

@@ -178,4 +178,59 @@ class GarageTest extends TestCase
 
         $this->assertDatabaseHas('owned_vehicles', ['id' => $vehicle->id]);
     }
+
+    public function test_vider_un_surnom_une_plaque_ou_un_kilometrage_efface_la_valeur(): void
+    {
+        $user = User::factory()->create(['role' => 'client', 'firebase_uid' => 'proprio-efface']);
+        $vehicle = $this->vehicleFor($user);
+        $vehicle->update([
+            'plate_number' => 'AB-1234-CD',
+            'mileage_km' => 45000,
+        ]);
+
+        $this->actingAsClient($user)
+            ->putJson("/api/my/vehicles/{$vehicle->id}", [
+                'nickname' => null,
+                'plate_number' => null,
+                'mileage_km' => null,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.nickname', null)
+            ->assertJsonPath('data.plate_number', null)
+            ->assertJsonPath('data.mileage_km', null);
+
+        $vehicle->refresh();
+        $this->assertNull($vehicle->nickname);
+        $this->assertNull($vehicle->plate_number);
+        $this->assertNull($vehicle->mileage_km);
+
+        $this->actingAsClient($user)
+            ->putJson("/api/my/vehicles/{$vehicle->id}", [
+                'nickname' => 'Ma Corolla',
+                'mileage_km' => 0,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.nickname', 'Ma Corolla')
+            ->assertJsonPath('data.mileage_km', 0);
+
+        $this->actingAsClient($user)
+            ->putJson("/api/my/vehicles/{$vehicle->id}", [
+                'plate_number' => 'XY-999-ZZ',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.nickname', 'Ma Corolla')
+            ->assertJsonPath('data.mileage_km', 0)
+            ->assertJsonPath('data.plate_number', 'XY-999-ZZ');
+
+        $this->actingAsClient($user)
+            ->putJson("/api/my/vehicles/{$vehicle->id}", [
+                'nickname' => '',
+                'plate_number' => '   ',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.nickname', null)
+            ->assertJsonPath('data.plate_number', null)
+            ->assertJsonPath('data.mileage_km', 0);
+    }
+
 }
