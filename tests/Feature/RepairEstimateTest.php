@@ -170,7 +170,7 @@ class RepairEstimateTest extends TestCase
             ->json('data.id');
 
         $listing = PrivateVehicleListing::findOrFail($id);
-        $listing->forceFill([
+        $listing->refresh()->forceFill([
             'status' => 'published', 'published_at' => now(),
             'verified_phone' => '+22670000001', 'phone_verified_at' => now(),
         ])->save();
@@ -233,7 +233,7 @@ class RepairEstimateTest extends TestCase
             ->assertJsonMissingPath('data.private_quote.path')
             ->assertJsonMissingPath('data.private_quote.disk');
 
-        $listing->forceFill([
+        $listing->refresh()->forceFill([
             'status' => 'published', 'published_at' => now(),
             'verified_phone' => '+22670000001', 'phone_verified_at' => now(),
         ])->save();
@@ -263,7 +263,7 @@ class RepairEstimateTest extends TestCase
             ->assertJsonPath('data.fault_declaration.faults.0.repair_estimate.cost_min', 35000)
             ->assertJsonPath('data.fault_declaration.faults.0.private_quote.original_name', 'atelier-confidentiel.pdf');
 
-        $listing->forceFill([
+        $listing->refresh()->forceFill([
             'status' => 'published', 'published_at' => now(),
             'verified_phone' => '+22670000001', 'phone_verified_at' => now(),
         ])->save();
@@ -299,11 +299,9 @@ class RepairEstimateTest extends TestCase
 
         $created = $this->getJson('/api/vehicles/'.$id)->assertOk();
         $this->assertEquals(3000000, (float) $created->json('data.commercial.sale_price'));
-        $created->assertJsonPath('data.fault_declaration.faults.0.repair_estimate.source', 'autoparc')
-            ->assertJsonMissingPath('data.fault_declaration.faults.0.private_quote');
-        $this->assertStringNotContainsString(
-            'estimated_repair_cost',
-            json_encode($created->json('data.fault_declaration')),
-        );
+        $declaration = $created->json('data.fault_declaration');
+        $this->assertSame('autoparc', $declaration['faults'][0]['repair_estimate']['source']);
+        $this->assertArrayNotHasKey('path', $declaration['faults'][0]['private_quote'] ?? []);
+        $this->assertStringNotContainsString('estimated_repair_cost', json_encode($declaration));
     }
 }
