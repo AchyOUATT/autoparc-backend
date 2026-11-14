@@ -28,7 +28,7 @@ final class FaultDeclarationInput
             'faults.*.disclosed_to_buyer' => ['sometimes', $staff ? 'boolean' : 'accepted'],
             'fault_declared_at' => ['prohibited'], 'fault_declaration' => ['prohibited'],
             'fault_declaration_editable' => ['prohibited'],
-        ] + RepairEstimates::rules());
+        ] + RepairEstimates::rules();
     }
 
     public static function after(Validator $validator, bool $staff = false): void
