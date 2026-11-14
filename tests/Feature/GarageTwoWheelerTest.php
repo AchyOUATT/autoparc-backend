@@ -189,4 +189,50 @@ class GarageTwoWheelerTest extends TestCase
         ]);
         $this->assertNotNull(PrivateVehicleListing::first()->two_wheeler_configuration);
     }
+
+    public function test_une_moto_particuliere_publiee_ressort_avec_le_filtre_deux_roues(): void
+    {
+        config()->set('private_sales.enabled', true);
+        [$brand, $model] = $this->motoRefs();
+        $seller = User::factory()->create(['role' => 'client']);
+        $moto = PrivateVehicleListing::create([
+            'user_id' => $seller->id,
+            'active_user_id' => $seller->id,
+            'status' => 'published',
+            'published_at' => now(),
+            'title' => 'Yamaha YBR125E',
+            'brand_id' => $brand->id,
+            'vehicle_model_id' => $model->id,
+            'vehicle_type' => 'two_wheeler',
+            'vehicle_identity' => ['brand' => 'Yamaha', 'model' => 'YBR125E'],
+            'year' => 2024,
+            'mileage_km' => 12000,
+            'price' => 850000,
+            'city' => 'Ouagadougou',
+            'description' => 'Yamaha YBR125E entretenue, prête à rouler en ville.',
+            'seller_name' => 'Vendeur particulier',
+            'phone' => '+22670000000',
+            'verified_phone' => '+22670000000',
+            'phone_verified_at' => now(),
+            'whatsapp_enabled' => true,
+        ]);
+
+        $this->getJson('/api/catalog/vehicle-listings?vehicle_type=two_wheeler')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.source', 'private_listing')
+            ->assertJsonPath('data.0.source_id', $moto->id)
+            ->assertJsonPath('meta.total', 1);
+
+        $this->getJson('/api/catalog/vehicle-listings?vehicle_type=passenger')
+            ->assertOk()
+            ->assertJsonCount(0, 'data')
+            ->assertJsonPath('meta.total', 0);
+
+        $this->getJson('/api/catalog/vehicle-listings')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.source_id', $moto->id);
+    }
+
 }

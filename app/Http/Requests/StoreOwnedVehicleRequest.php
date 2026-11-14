@@ -55,8 +55,8 @@ class StoreOwnedVehicleRequest extends FormRequest
             $this->merge(['engine_code' => EngineCode::normalize($this->input('engine_code'))]);
         }
 
-        foreach (['vehicle_model_id', 'model_libre'] as $champ) {
-            if ($this->has($champ) && is_string($this->input($champ)) && trim($this->input($champ)) === '') {
+        foreach (['vehicle_model_id', 'model_libre', 'nickname', 'plate_number', 'vin'] as $champ) {
+            if ($this->exists($champ) && is_string($this->input($champ)) && trim($this->input($champ)) === '') {
                 $this->merge([$champ => null]);
             }
         }

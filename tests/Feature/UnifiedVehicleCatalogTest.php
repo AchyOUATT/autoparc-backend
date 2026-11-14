@@ -195,7 +195,7 @@ class UnifiedVehicleCatalogTest extends TestCase
         foreach ([
             ['registration_status' => 'registered'], ['registration_status' => 'unregistered'],
             ['status' => 'in_stock'], ['condition' => 'used'], ['consumption_max' => 10],
-            ['origin_country_id' => 1], ['fault_category' => 'engine'], ['vehicle_type' => 'passenger'],
+            ['origin_country_id' => 1], ['fault_category' => 'engine'],
             ['body_style' => 'sedan'], ['location_id' => 1], ['deal_type' => 'flash_sale'],
             ['customs_cleared' => 1], ['without_faults' => 1], ['available_for_rent' => 1], ['deal' => 1],
             ['availability' => 'rent'], ['availability' => 'both'],
@@ -295,4 +295,35 @@ class UnifiedVehicleCatalogTest extends TestCase
         $this->getJson($this->endpoint(['sort_by' => 'purchase_price', 'sort_dir' => 'invalid']))->assertOk()
             ->assertJsonCount(0, 'data')->assertJsonPath('meta.last_page', 1)->assertJsonPath('links.next', null);
     }
+
+    public function test_private_listings_are_filtered_by_vehicle_type_and_missing_type_counts_as_passenger(): void
+    {
+        $typeless = $this->listing(['title' => 'Ancienne annonce sans type']);
+        $car = $this->listing(['title' => 'Voiture particulière', 'vehicle_type' => 'passenger']);
+        $moto = $this->listing([
+            'title' => 'Yamaha YBR125E',
+            'vehicle_type' => 'two_wheeler',
+        ]);
+
+        $twoWheelers = $this->getJson($this->endpoint(['vehicle_type' => 'two_wheeler']))->assertOk();
+        $twoWheelers->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.source', 'private_listing')
+            ->assertJsonPath('data.0.source_id', $moto->id)
+            ->assertJsonPath('meta.total', 1);
+
+        $passengerIds = array_column(
+            $this->getJson($this->endpoint(['vehicle_type' => 'passenger']))->assertOk()
+                ->assertJsonCount(2, 'data')
+                ->assertJsonPath('meta.total', 2)
+                ->json('data'),
+            'source_id'
+        );
+        $this->assertEqualsCanonicalizing([$typeless->id, $car->id], $passengerIds);
+        $this->assertNotContains($moto->id, $passengerIds);
+
+        $this->getJson($this->endpoint(['vehicle_type' => 'utility']))->assertOk()
+            ->assertJsonCount(0, 'data')
+            ->assertJsonPath('meta.total', 0);
+    }
+
 }
