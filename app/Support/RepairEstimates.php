@@ -132,7 +132,9 @@ final class RepairEstimates
         }
         $today ??= CarbonImmutable::today();
 
-        return $estimated->addMonthsNoOverflow(self::STALE_MONTHS)->lte($today->startOfDay());
+        return $estimated->startOfDay()
+            ->addMonthsNoOverflow(self::STALE_MONTHS)
+            ->lte($today->startOfDay());
     }
 
     /**

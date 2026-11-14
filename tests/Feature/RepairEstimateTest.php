@@ -262,11 +262,17 @@ class RepairEstimateTest extends TestCase
             ->assertJsonPath('data.fault_declaration.faults.0.repair_estimate.cost_min', 35000)
             ->assertJsonPath('data.fault_declaration.faults.0.private_quote.original_name', 'atelier-confidentiel.pdf');
 
+        $listing->forceFill([
+            'status' => 'published', 'published_at' => now(),
+            'verified_phone' => '+22670000001', 'phone_verified_at' => now(),
+        ])->save();
+
         Sanctum::actingAs($this->manager);
         $this->post('/api/private-listing-reviews/'.$id.'/faults/'.$faultId.'/repair-quote/publish', [
             'document' => UploadedFile::fake()->image('devis-masque.jpg', 400, 400),
         ])->assertCreated();
 
+        $this->defaultHeaders = [];
         $published = $this->getJson('/api/private-listings/'.$id)->assertOk()
             ->assertJsonPath('data.fault_declaration.faults.0.published_quote.mime_type', 'image/jpeg');
         $this->assertNotEmpty($published->json('data.fault_declaration.faults.0.published_quote.url'));
@@ -287,12 +293,12 @@ class RepairEstimateTest extends TestCase
             ])],
         ])->assertCreated()
             ->assertJsonPath('data.fault_declaration.faults.0.repair_estimate.source', 'autoparc')
-            ->assertJsonPath('data.sale_price', 3000000)
             ->json('data.id');
 
-        $this->getJson('/api/catalog/vehicles/'.$id)->assertOk()
-            ->assertJsonPath('data.sale_price', 3000000)
-            ->assertJsonPath('data.fault_declaration.faults.0.repair_estimate.source', 'autoparc')
+        $created = $this->getJson('/api/vehicles/'.$id)->assertOk();
+        $this->assertEquals(3000000, (float) $created->json('data.commercial.sale_price'));
+        $created->assertJsonPath('data.fault_declaration.faults.0.repair_estimate.source', 'autoparc')
             ->assertJsonMissingPath('data.fault_declaration.faults.0.private_quote');
+        $this->assertStringNotContainsString('estimated_repair_cost', json_encode($created->json()));
     }
 }

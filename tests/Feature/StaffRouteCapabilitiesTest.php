@@ -63,6 +63,8 @@ class StaffRouteCapabilitiesTest extends TestCase
             // Private ownership, insurance and registration evidence is limited to catalog managers.
             'api/vehicles/{vehicle}/equipment-documents' => 'manage-catalog',
             'api/vehicles/{vehicle}/equipment-documents/{document}/download' => 'manage-catalog',
+            // The unredacted workshop quote must stay off the general staff consultation.
+            'api/vehicles/{vehicle}/faults/{fault}/repair-quote' => 'manage-faults',
             'api/settings/contact' => 'manage-settings',
         ];
 
