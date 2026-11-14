@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Support\VehicleTypes;
 use Illuminate\Validation\Rule;
 
 class StoreCustomerNeedRequest extends FormRequest
@@ -25,7 +26,7 @@ class StoreCustomerNeedRequest extends FormRequest
             // ── Critères véhicule (tous optionnels) ───────────────────
             'brand_id'         => ['nullable', 'exists:brands,id'],
             'vehicle_model_id' => ['nullable', 'exists:vehicle_models,id'],
-            'vehicle_type'     => ['nullable', Rule::in(['passenger', 'utility', 'heavy'])],
+            'vehicle_type'     => ['nullable', Rule::in(VehicleTypes::VALUES)],
             'body_style'       => ['nullable', Rule::in([
                 'sedan', 'hatchback', 'suv', 'estate', 'coupe', 'convertible',
                 'pickup', 'van', 'minibus', 'bus', 'truck', 'other',

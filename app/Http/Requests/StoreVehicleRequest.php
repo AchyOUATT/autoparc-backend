@@ -12,6 +12,8 @@ use App\Enums\VehicleStatus;
 use App\Support\EngineCode;
 use App\Support\EquipmentDetails;
 use App\Support\HeavyVehicleConfiguration;
+use App\Support\TwoWheelerConfiguration;
+use App\Support\VehicleTypes;
 use App\Support\VehicleClassification;
 use App\Support\FaultDeclarationInput;
 use Illuminate\Foundation\Http\FormRequest;
@@ -97,7 +99,7 @@ class StoreVehicleRequest extends FormRequest
             'equipment_details.quick_coupler' => ['nullable', 'boolean'],
             'equipment_details.attachments' => ['nullable', 'string', 'max:2000'],
             'reference'           => ['nullable', 'string', 'max:50', Rule::unique('vehicles', 'reference')],
-            'vin'                 => ['nullable', 'string', 'size:17', Rule::unique('vehicles', 'vin')],
+            'vin'                 => $this->vinRules(),
             // Envoye, il prime. Absent, il est DEDUIT de `plate_number` :
             // une plaque vaut immatriculation. Ce champ etait accepte ici
             // puis ecrase par le controleur, si bien qu'un vehicule
@@ -105,7 +107,7 @@ class StoreVehicleRequest extends FormRequest
             // au catalogue du cote import. Voir VehicleController::store().
             'registration_status' => ['nullable', Rule::in(RegistrationStatus::values())],
             'plate_number'        => ['nullable', 'string', 'max:30'],
-            'vehicle_type'        => ['nullable', Rule::in(['passenger', 'utility', 'heavy'])],
+            'vehicle_type'        => ['nullable', Rule::in(VehicleTypes::VALUES)],
             'body_style'          => ['nullable', Rule::in([
                 'sedan', 'hatchback', 'suv', 'estate', 'coupe', 'convertible',
                 'pickup', 'van', 'minibus', 'bus', 'truck', 'other',
@@ -145,6 +147,15 @@ class StoreVehicleRequest extends FormRequest
             'heavy_configuration.payload_kg' => ['nullable', 'integer', 'min:'.HeavyVehicleConfiguration::PAYLOAD_MIN, 'max:'.HeavyVehicleConfiguration::PAYLOAD_MAX],
             // Derived response metadata must never be supplied by the client.
             'heavy_configuration_status' => ['missing'],
+
+            'two_wheeler_configuration' => ['nullable', 'array:'.implode(',', TwoWheelerConfiguration::KEYS)],
+            'two_wheeler_configuration.body_type' => ['nullable', Rule::in(TwoWheelerConfiguration::BODY_TYPES)],
+            'two_wheeler_configuration.stroke' => ['nullable', Rule::in(TwoWheelerConfiguration::STROKES)],
+            'two_wheeler_configuration.cooling' => ['nullable', Rule::in(TwoWheelerConfiguration::COOLINGS)],
+            'two_wheeler_configuration.starter' => ['nullable', Rule::in(TwoWheelerConfiguration::STARTERS)],
+            'two_wheeler_configuration.drive' => ['nullable', Rule::in(TwoWheelerConfiguration::DRIVES)],
+            'two_wheeler_configuration.transmission' => ['nullable', Rule::in(TwoWheelerConfiguration::TRANSMISSIONS)],
+            'two_wheeler_configuration_status' => ['missing'],
 
             'consumption_urban'        => ['nullable', 'numeric', 'min:0', 'max:99.99'],
             'consumption_extra_urban'  => ['nullable', 'numeric', 'min:0', 'max:99.99'],
@@ -223,6 +234,23 @@ class StoreVehicleRequest extends FormRequest
             'registration.notes'                    => ['nullable', 'string'],
 
         ], FaultDeclarationInput::rules($this->user()?->role?->canManageFaults() ?? false));
+    }
+
+
+    /** @return list<mixed> */
+    protected function vinRules($ignoreId = null): array
+    {
+        $type = $this->input('vehicle_type', $this->route('vehicle')?->vehicle_type);
+        $unique = Rule::unique('vehicles', 'vin');
+        if ($ignoreId !== null) {
+            $unique = $unique->ignore($ignoreId);
+        }
+
+        if (TwoWheelerConfiguration::isTwoWheeler(is_string($type) ? $type : null)) {
+            return ['nullable', 'string', 'min:'.TwoWheelerConfiguration::VIN_MIN, 'max:'.TwoWheelerConfiguration::VIN_MAX, $unique];
+        }
+
+        return ['nullable', 'string', 'size:17', $unique];
     }
 
     public function withValidator($validator): void

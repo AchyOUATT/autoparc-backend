@@ -7,6 +7,7 @@ use App\Models\Vehicle;
 use App\Services\StaffVehicleInspections;
 use App\Support\EquipmentDetails;
 use App\Support\HeavyVehicleConfiguration;
+use App\Support\TwoWheelerConfiguration;
 
 trait HasStaffInspections
 {
@@ -42,6 +43,11 @@ trait HasStaffInspections
                 && HeavyVehicleConfiguration::normalize($model->heavy_configuration)
                     === HeavyVehicleConfiguration::normalize($model->getOriginal('heavy_configuration'))) {
                 $technicalChanges = array_diff($technicalChanges, ['heavy_configuration']);
+            }
+            if ($model instanceof Vehicle && in_array('two_wheeler_configuration', $technicalChanges, true)
+                && TwoWheelerConfiguration::normalize($model->two_wheeler_configuration)
+                    === TwoWheelerConfiguration::normalize($model->getOriginal('two_wheeler_configuration'))) {
+                $technicalChanges = array_diff($technicalChanges, ['two_wheeler_configuration']);
             }
             if ($model instanceof Vehicle && in_array('equipment_details', $technicalChanges, true)
                 && EquipmentDetails::normalize($model->equipment_details)

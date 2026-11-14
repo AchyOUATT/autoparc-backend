@@ -8,6 +8,7 @@ use App\Services\StaffVehicleInspections;
 use App\Support\CotesOfficielles;
 use App\Support\EquipmentDetails;
 use App\Support\HeavyVehicleConfiguration;
+use App\Support\TwoWheelerConfiguration;
 use App\Support\PartnerListingPresentation;
 use App\Support\PartnerMedia;
 use App\Support\PhotoPartage;
@@ -24,6 +25,7 @@ class VehicleResource extends JsonResource
         $fullFaultManagement = $faultManagement && $request->user()?->isStaff();
         $faultDeclaration = FaultDeclarations::present($this->resource, $request, $faultManagement);
         $heavyConfiguration = HeavyVehicleConfiguration::normalize($this->heavy_configuration);
+        $twoWheelerConfiguration = TwoWheelerConfiguration::normalize($this->two_wheeler_configuration);
         $isEquipment = ($this->asset_kind ?? 'road_vehicle') === 'equipment';
         $equipment = $isEquipment ? EquipmentDetails::normalize($this->equipment_details) : null;
 
@@ -92,6 +94,8 @@ class VehicleResource extends JsonResource
                 'mileage_km'             => $this->mileage_km,
                 'heavy_configuration'    => $heavyConfiguration,
                 'heavy_configuration_status' => $heavyConfiguration === null ? null : 'declared',
+                'two_wheeler_configuration' => $twoWheelerConfiguration,
+                'two_wheeler_configuration_status' => $twoWheelerConfiguration === null ? null : 'declared',
             ],
 
             'consumption' => [
