@@ -823,4 +823,22 @@ class ControleAvantVoyageTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.last_check', null);
     }
+
+    public function test_un_deux_roues_ne_voit_pas_les_points_de_voiture(): void
+    {
+        $moto = $this->vehicule(['vehicle_type' => 'two_wheeler']);
+        $voiture = $this->vehicule(['vehicle_type' => 'passenger']);
+
+        $codesMoto = $this->codes($this->liste($moto));
+        $codesVoiture = $this->codes($this->liste($voiture));
+
+        $this->assertContains('papiers-assurance', $codesMoto);
+        $this->assertContains('freins', $codesMoto);
+        $this->assertContains('eclairage-feux', $codesMoto);
+        $this->assertNotContains('confort-clim', $codesMoto);
+        $this->assertNotContains('pluies-etancheite', $codesMoto);
+        $this->assertNotContains('pneus-secours', $codesMoto);
+        $this->assertContains('confort-clim', $codesVoiture);
+        $this->assertContains('pneus-secours', $codesVoiture);
+    }
 }

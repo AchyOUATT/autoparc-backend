@@ -3,12 +3,15 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
+use App\Support\TwoWheelerConfiguration;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class OwnedVehicleResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $twoWheelerConfiguration = TwoWheelerConfiguration::normalize($this->two_wheeler_configuration);
+
         return [
             'id'               => $this->id,
             'designation'      => $this->designation,
@@ -25,6 +28,9 @@ class OwnedVehicleResource extends JsonResource
             // pouvoir le reafficher, et non le remplacer par un vide qui
             // effacerait la seule trace du modele reel.
             'model_libre'      => $this->model_libre,
+            'vehicle_type'  => $this->vehicle_type,
+            'two_wheeler_configuration' => $twoWheelerConfiguration,
+            'two_wheeler_configuration_status' => $twoWheelerConfiguration === null ? null : 'declared',
             'vin'          => $this->vin,
             'engine_code'  => $this->engine_code,
             'engine_displacement_cc' => $this->engine_displacement_cc,

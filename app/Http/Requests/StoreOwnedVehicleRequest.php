@@ -7,6 +7,7 @@ use App\Support\EngineCode;
 use App\Support\TwoWheelerConfiguration;
 use App\Support\VehicleClassification;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreOwnedVehicleRequest extends FormRequest
 {
@@ -96,6 +97,14 @@ class StoreOwnedVehicleRequest extends FormRequest
             'model_year' => ['nullable', 'integer', 'min:1950', 'max:'.(now()->year + 1)],
             'specification_market' => ['nullable', 'string', 'max:20', 'regex:/^[A-Z0-9_-]+$/'],
             'vehicle_type'       => ['nullable', 'string', 'in:passenger,utility,heavy,two_wheeler'],
+            'two_wheeler_configuration' => ['nullable', 'array:'.implode(',', TwoWheelerConfiguration::KEYS)],
+            'two_wheeler_configuration.body_type' => ['nullable', Rule::in(TwoWheelerConfiguration::BODY_TYPES)],
+            'two_wheeler_configuration.stroke' => ['nullable', Rule::in(TwoWheelerConfiguration::STROKES)],
+            'two_wheeler_configuration.cooling' => ['nullable', Rule::in(TwoWheelerConfiguration::COOLINGS)],
+            'two_wheeler_configuration.starter' => ['nullable', Rule::in(TwoWheelerConfiguration::STARTERS)],
+            'two_wheeler_configuration.drive' => ['nullable', Rule::in(TwoWheelerConfiguration::DRIVES)],
+            'two_wheeler_configuration.transmission' => ['nullable', Rule::in(TwoWheelerConfiguration::TRANSMISSIONS)],
+            'two_wheeler_configuration_status' => ['missing'],
             'vin'                => $this->vinRules(),
             // Code moteur fourni par le decodage VIN (NHTSA) ou saisi manuellement.
             // Exemples : "1NZ", "K20", "OM651". Max 20 chars, tout format accepte.

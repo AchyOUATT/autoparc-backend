@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Services\FaultDeclarations;
+use App\Support\TwoWheelerConfiguration;
 use App\Support\FaultDeclarationInput;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PrivateVehicleListingResource;
@@ -69,7 +70,9 @@ class PrivateVehicleListingController extends Controller
     {
         $data = $this->validateFields($request);
         if (isset($data['owned_vehicle_id'])) {
-            abort_unless(OwnedVehicle::whereKey($data['owned_vehicle_id'])->where('user_id', $request->user()->id)->exists(), 404);
+            $owned = OwnedVehicle::whereKey($data['owned_vehicle_id'])->where('user_id', $request->user()->id)->first();
+            abort_unless($owned !== null, 404);
+            $data = $this->suivreLeGarage($data, $owned, $request);
         }
 
         $listing = DB::transaction(function () use ($request, $data) {
@@ -399,6 +402,15 @@ class PrivateVehicleListingController extends Controller
             'phone' => ['required', 'string', 'regex:/^\+[1-9][0-9]{7,14}$/'],
             'transmission' => ['nullable', Rule::in(Transmission::values())],
             'whatsapp_enabled' => ['required', 'boolean'],
+            'vehicle_type' => ['nullable', 'string', 'in:passenger,utility,heavy,two_wheeler'],
+            'two_wheeler_configuration' => ['nullable', 'array:'.implode(',', TwoWheelerConfiguration::KEYS)],
+            'two_wheeler_configuration.body_type' => ['nullable', Rule::in(TwoWheelerConfiguration::BODY_TYPES)],
+            'two_wheeler_configuration.stroke' => ['nullable', Rule::in(TwoWheelerConfiguration::STROKES)],
+            'two_wheeler_configuration.cooling' => ['nullable', Rule::in(TwoWheelerConfiguration::COOLINGS)],
+            'two_wheeler_configuration.starter' => ['nullable', Rule::in(TwoWheelerConfiguration::STARTERS)],
+            'two_wheeler_configuration.drive' => ['nullable', Rule::in(TwoWheelerConfiguration::DRIVES)],
+            'two_wheeler_configuration.transmission' => ['nullable', Rule::in(TwoWheelerConfiguration::TRANSMISSIONS)],
+            'two_wheeler_configuration_status' => ['missing'],
         ];
         if ($creating) {
             $rules['owned_vehicle_id'] = ['nullable', 'integer'];
@@ -445,7 +457,30 @@ class PrivateVehicleListingController extends Controller
         ], fn ($part) => $part !== null && $part !== '')), 120, '');
         $data['vehicle_identity'] = $identity;
         $data['fuel_type'] = $engine?->code;
+        if (array_key_exists('two_wheeler_configuration', $data)) {
+            $data['two_wheeler_configuration'] = TwoWheelerConfiguration::normalize($data['two_wheeler_configuration']);
+        }
 
         return $data;
     }
+
+    /**
+     * An ad created from the garage keeps the two-wheeler type and setup
+     * when the client form omitted them.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function suivreLeGarage(array $data, OwnedVehicle $owned, Request $request): array
+    {
+        if (! $request->exists('vehicle_type')) {
+            $data['vehicle_type'] = $owned->vehicle_type;
+        }
+        if (! $request->exists('two_wheeler_configuration')) {
+            $data['two_wheeler_configuration'] = TwoWheelerConfiguration::normalize($owned->two_wheeler_configuration);
+        }
+
+        return $data;
+    }
+
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\TwoWheelerConfiguration;
 use App\Services\StaffVehicleInspections;
 use App\Services\FaultDeclarations;
 use Illuminate\Http\Request;
@@ -24,6 +25,9 @@ class PrivateVehicleListingResource extends JsonResource
             'engine_type_id' => $this->engine_type_id, 'drivetrain_id' => $this->drivetrain_id,
             'color_id' => $this->color_id, 'vehicle_identity' => $this->vehicle_identity,
             'year' => $this->year, 'mileage_km' => $this->mileage_km,
+            'vehicle_type' => $this->vehicle_type,
+            'two_wheeler_configuration' => TwoWheelerConfiguration::normalize($this->two_wheeler_configuration),
+
             'price' => $this->price, 'currency' => $this->currency, 'city' => $this->city,
             'fuel_type' => $this->fuel_type, 'transmission' => $this->transmission,
             'description' => $this->description,
