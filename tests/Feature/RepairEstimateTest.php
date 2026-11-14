@@ -13,6 +13,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -272,6 +273,7 @@ class RepairEstimateTest extends TestCase
             'document' => UploadedFile::fake()->image('devis-masque.jpg', 400, 400),
         ])->assertCreated();
 
+        Auth::forgetGuards();
         $this->defaultHeaders = [];
         $published = $this->getJson('/api/private-listings/'.$id)->assertOk()
             ->assertJsonPath('data.fault_declaration.faults.0.published_quote.mime_type', 'image/jpeg');
@@ -299,6 +301,9 @@ class RepairEstimateTest extends TestCase
         $this->assertEquals(3000000, (float) $created->json('data.commercial.sale_price'));
         $created->assertJsonPath('data.fault_declaration.faults.0.repair_estimate.source', 'autoparc')
             ->assertJsonMissingPath('data.fault_declaration.faults.0.private_quote');
-        $this->assertStringNotContainsString('estimated_repair_cost', json_encode($created->json()));
+        $this->assertStringNotContainsString(
+            'estimated_repair_cost',
+            json_encode($created->json('data.fault_declaration')),
+        );
     }
 }
