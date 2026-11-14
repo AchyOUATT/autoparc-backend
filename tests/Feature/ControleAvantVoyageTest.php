@@ -829,16 +829,17 @@ class ControleAvantVoyageTest extends TestCase
         $moto = $this->vehicule(['vehicle_type' => 'two_wheeler']);
         $voiture = $this->vehicule(['vehicle_type' => 'passenger']);
 
-        $codesMoto = $this->codes($this->liste($moto));
-        $codesVoiture = $this->codes($this->liste($voiture));
+        $codesMoto = $this->codes($this->liste($moto, 360));
+        $codesVoiture = $this->codes($this->liste($voiture, 360));
 
         $this->assertContains('papiers-assurance', $codesMoto);
         $this->assertContains('freins', $codesMoto);
         $this->assertContains('eclairage-feux', $codesMoto);
         $this->assertNotContains('confort-clim', $codesMoto);
-        $this->assertNotContains('pluies-etancheite', $codesMoto);
+        $this->assertNotContains('visibilite', $codesMoto);
         $this->assertNotContains('pneus-secours', $codesMoto);
         $this->assertContains('confort-clim', $codesVoiture);
+        $this->assertContains('visibilite', $codesVoiture);
         $this->assertContains('pneus-secours', $codesVoiture);
     }
 }

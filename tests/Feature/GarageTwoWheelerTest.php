@@ -148,6 +148,7 @@ class GarageTwoWheelerTest extends TestCase
 
     public function test_une_annonce_creee_depuis_le_garage_reprend_le_type_et_la_configuration(): void
     {
+        config()->set('private_sales.enabled', true);
         [$brand, $model] = $this->motoRefs();
         $user = User::factory()->create(['role' => 'client', 'firebase_uid' => 'vendeur-moto']);
         $vehicle = OwnedVehicle::create([
