@@ -21,6 +21,7 @@ class VehicleFault extends Model
         'vehicle_id', 'code', 'category', 'title', 'description', 'severity', 'status',
         'affects_drivability', 'is_safety_critical', 'disclosed_to_buyer', 'detected_at',
         'mileage_at_detection_km', 'reported_by', 'estimated_repair_cost',
+        'repair_necessity', 'repair_cost_min', 'repair_cost_max', 'repair_estimate_source', 'repair_estimated_at',
         'actual_repair_cost', 'repaired_at', 'assigned_to',
     ];
 
@@ -39,7 +40,25 @@ class VehicleFault extends Model
             'repaired_at'           => 'date',
             'estimated_repair_cost' => 'decimal:2',
             'actual_repair_cost'    => 'decimal:2',
+            'repair_cost_min'       => 'integer',
+            'repair_cost_max'       => 'integer',
+            'repair_estimated_at'   => 'date',
         ];
+    }
+
+
+    protected static function booted(): void
+    {
+        static::deleting(function ($fault) {
+            $fault->repairQuotes()->get()->each(function (FaultRepairQuote $quote) {
+                try {
+                    \Illuminate\Support\Facades\Storage::disk($quote->disk)->delete($quote->path);
+                } catch (\Throwable) {
+                    // The row must still disappear so a leftover path cannot be served.
+                }
+                $quote->delete();
+            });
+        });
     }
 
     public function vehicle()
@@ -58,6 +77,21 @@ class VehicleFault extends Model
         return $this->belongsToMany(Part::class, 'fault_part')
                     ->withPivot('quantity')
                     ->withTimestamps();
+    }
+
+    public function repairQuotes()
+    {
+        return $this->morphMany(FaultRepairQuote::class, 'fault');
+    }
+
+    public function privateQuote()
+    {
+        return $this->morphOne(FaultRepairQuote::class, 'fault')->where('kind', FaultRepairQuote::KIND_PRIVATE);
+    }
+
+    public function publishedQuote()
+    {
+        return $this->morphOne(FaultRepairQuote::class, 'fault')->where('kind', FaultRepairQuote::KIND_PUBLISHED);
     }
 
     public function scopeOpen(Builder $q): Builder

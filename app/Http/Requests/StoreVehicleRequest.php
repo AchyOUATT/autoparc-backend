@@ -306,6 +306,11 @@ class StoreVehicleRequest extends FormRequest
                 $validator->errors()->add('rental_weekly_rate', $message);
                 $validator->errors()->add('rental_monthly_rate', $message);
             }
+
+            FaultDeclarationInput::after(
+                $validator,
+                $this->user()?->role?->canManageFaults() ?? false,
+            );
         });
     }
 }

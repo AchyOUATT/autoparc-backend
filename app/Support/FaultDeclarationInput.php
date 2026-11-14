@@ -6,6 +6,7 @@ use App\Enums\FaultCategory;
 use App\Enums\FaultSeverity;
 use App\Enums\FaultStatus;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 final class FaultDeclarationInput
 {
@@ -14,7 +15,7 @@ final class FaultDeclarationInput
         return [
             'fault_declaration_state' => ['sometimes', 'required', Rule::in(['unknown', 'none', 'has_faults'])],
             'faults' => ['sometimes', 'array', 'list', 'max:100'],
-            'faults.*' => ['required', 'array:id,category,title,description,severity,status,affects_drivability,is_safety_critical,disclosed_to_buyer'],
+            'faults.*' => ['required', 'array:id,category,title,description,severity,status,affects_drivability,is_safety_critical,disclosed_to_buyer,repair_necessity,repair_estimate'],
             'faults.*.id' => ['sometimes', 'integer', 'min:1', 'distinct'],
             'faults.*.category' => ['required', Rule::in(FaultCategory::values())],
             'faults.*.title' => ['required', 'string', 'max:180'],
@@ -27,6 +28,11 @@ final class FaultDeclarationInput
             'faults.*.disclosed_to_buyer' => ['sometimes', $staff ? 'boolean' : 'accepted'],
             'fault_declared_at' => ['prohibited'], 'fault_declaration' => ['prohibited'],
             'fault_declaration_editable' => ['prohibited'],
-        ];
+        ] + RepairEstimates::rules());
+    }
+
+    public static function after(Validator $validator, bool $staff = false): void
+    {
+        RepairEstimates::rejectStaffOnlySource($validator, $validator->getData()['faults'] ?? null, $staff);
     }
 }

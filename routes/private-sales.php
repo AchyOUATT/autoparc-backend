@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\PrivateVehicleListingController as Listings;
 use App\Http\Controllers\Api\Admin\PrivateListingReviewController as Reviews;
+use App\Http\Controllers\Api\FaultRepairQuoteController as Quotes;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('private-sales')->group(function () {
@@ -22,6 +23,9 @@ Route::middleware('private-sales')->group(function () {
         // AppServiceProvider, limiteur `depot-de-photos`.
         Route::post('{listing}/photos', [Listings::class, 'upload'])->middleware('throttle:depot-de-photos');
         Route::delete('{listing}/photos/{photo}', [Listings::class, 'deletePhoto'])->whereNumber('photo');
+        Route::post('{listing}/faults/{fault}/repair-quote', [Quotes::class, 'storeForListing'])->middleware('throttle:depot-de-photos');
+        Route::get('{listing}/faults/{fault}/repair-quote', [Quotes::class, 'downloadPrivateForListing']);
+        Route::delete('{listing}/faults/{fault}/repair-quote', [Quotes::class, 'destroyPrivateForListing']);
     });
 
     Route::middleware(['auth:sanctum', 'staff', 'capability:manage-catalog'])->prefix('private-listing-reviews')->group(function () {
@@ -35,5 +39,7 @@ Route::middleware('private-sales')->group(function () {
         // editable, ce qu'une annonce refusee publiee n'est plus.
         Route::delete('{listing}/photos/{photo}', [Reviews::class, 'destroyPhoto'])
             ->whereNumber('photo');
+        Route::post('{listing}/faults/{fault}/repair-quote/publish', [Quotes::class, 'publishForListing'])->middleware('throttle:depot-de-photos');
+        Route::delete('{listing}/faults/{fault}/repair-quote/published', [Quotes::class, 'destroyPublishedForListing']);
     });
 });
