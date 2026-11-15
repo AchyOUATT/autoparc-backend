@@ -49,6 +49,6 @@ class FaultRepairQuote extends Model
             return null;
         }
 
-        return url('/api/repair-quotes/'.$this->id);
+        return url('/api/catalog/repair-quotes/'.$this->id);
     }
 }

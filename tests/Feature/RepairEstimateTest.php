@@ -361,7 +361,7 @@ class RepairEstimateTest extends TestCase
 
         $this->travel(6)->months();
         $listing = $listing->fresh();
-        $this->assertTrue(RepairEstimates::isStale($fault->fresh()->repair_estimated_at, now()));
+        $this->assertTrue(RepairEstimates::isStale($fault->fresh()->repair_estimated_at?->toDateString(), CarbonImmutable::now()));
         $this->assertTrue(StaffVehicleInspections::isCurrent($inspection->fresh(), $listing->unsetRelation('faults')->load('faults')));
         $this->assertSame($legacy, StaffVehicleInspections::fingerprint($listing));
 
