@@ -103,6 +103,17 @@ enum UserRole: string
     }
 
     /**
+     * Taux des frais AutoParc sur les annonces de particuliers.
+     *
+     * Ce reglage change le prix public que les acheteurs voient. Il reste
+     * reserve a l'administrateur, pas au manager.
+     */
+    public function canManagePrivateListingMargin(): bool
+    {
+        return $this === self::Admin;
+    }
+
+    /**
      * Envoyer une notification a tous les clients.
      *
      * Le message part vers l'exterieur et ne se rattrape pas : la capacite
@@ -131,6 +142,7 @@ enum UserRole: string
             'manage-customers' => $this->canManageCustomers(),
             'manage-partners' => $this->canManagePartners(),
             'manage-settings' => $this->canManageSettings(),
+            'manage-private-listing-margin' => $this->canManagePrivateListingMargin(),
             'broadcast' => $this->canBroadcast(),
             default => false,
         };

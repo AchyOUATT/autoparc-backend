@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\CatalogSyncController;
 use App\Http\Controllers\Api\CatalogVehicleListingController;
 use App\Http\Controllers\Api\CompatibilityController;
 use App\Http\Controllers\Api\ContactSettingsController;
+use App\Http\Controllers\Api\PrivateListingMarginController;
 use App\Http\Controllers\Api\ClientSessionController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\CustomerNeedController;
@@ -65,6 +66,7 @@ require __DIR__.'/private-sales.php';
 // 'auth:sanctum' : un 401 la laisserait croire que tout va bien.
 Route::get('app/version', AppVersionController::class);
 Route::get('app/contact', [ContactSettingsController::class, 'show']);
+Route::get('app/private-listing-margin', [PrivateListingMarginController::class, 'showPublic']);
 
 /* ---------------------- Catalogue public (lecture) ---------------------- */
 Route::prefix('catalog')->group(function () {
@@ -252,6 +254,10 @@ Route::middleware(['auth:sanctum', 'staff'])->group(function () {
         ->middleware('capability:manage-settings');
     Route::put('settings/contact', [ContactSettingsController::class, 'update'])
         ->middleware('capability:manage-settings');
+    Route::get('settings/private-listing-margin', [PrivateListingMarginController::class, 'show'])
+        ->middleware('capability:manage-private-listing-margin');
+    Route::put('settings/private-listing-margin', [PrivateListingMarginController::class, 'update'])
+        ->middleware('capability:manage-private-listing-margin');
 
     // --- Referentiels
     Route::apiResource('brands', BrandController::class)

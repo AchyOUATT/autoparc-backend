@@ -19,6 +19,7 @@ class PrivateVehicleListing extends Model
     {
         return [
             'year' => 'integer', 'mileage_km' => 'integer', 'price' => 'integer',
+            'private_pricing' => 'array',
             'revision' => 'integer',
             'fault_declared_at' => 'datetime',
             'vehicle_identity' => 'array',

@@ -66,6 +66,7 @@ class StaffRouteCapabilitiesTest extends TestCase
             // The unredacted workshop quote must stay off the general staff consultation.
             'api/vehicles/{vehicle}/faults/{fault}/repair-quote' => 'manage-faults',
             'api/settings/contact' => 'manage-settings',
+            'api/settings/private-listing-margin' => 'manage-private-listing-margin',
         ];
 
         foreach ($this->staffRoutes() as $route) {
