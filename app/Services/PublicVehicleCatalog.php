@@ -90,9 +90,10 @@ final class PublicVehicleCatalog
         }
 
         // These facts are absent from a private snapshot. Unknown never satisfies a strict filter.
+        // vehicle_type is no longer in this list: the private listing now stores it.
         foreach ([
             'registration_status', 'status', 'condition', 'consumption_max', 'origin_country_id',
-            'vehicle_type', 'body_style', 'location_id', 'deal_type',
+            'body_style', 'location_id', 'deal_type',
         ] as $field) {
             if ($request->filled($field)) {
                 return null;
@@ -111,6 +112,20 @@ final class PublicVehicleCatalog
         foreach (['brand_id', 'vehicle_model_id', 'trim_id', 'engine_type_id', 'drivetrain_id', 'color_id', 'city'] as $field) {
             $query->when($request->filled($field), fn ($q) => $q->where($field, $request->input($field)));
         }
+
+        // A missing private vehicle_type is treated as a passenger car. That
+        // matches VehicleResource's public default and listings published
+        // before the column existed. Other types must be stored explicitly.
+        $query->when($request->filled('vehicle_type'), function ($q) use ($request) {
+            $type = $request->input('vehicle_type');
+            if ($type === 'passenger') {
+                $q->where(fn ($known) => $known
+                    ->where('vehicle_type', 'passenger')
+                    ->orWhereNull('vehicle_type'));
+            } else {
+                $q->where('vehicle_type', $type);
+            }
+        });
 
         return $query
             ->when($request->boolean('validated_by_autoparc'), fn ($q) => $q->whereHas(

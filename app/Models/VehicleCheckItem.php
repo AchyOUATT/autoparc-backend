@@ -31,7 +31,7 @@ class VehicleCheckItem extends Model
     protected $fillable = [
         'code', 'category', 'title', 'help', 'severity', 'is_core',
         'min_trip_distance_km', 'min_mileage_km', 'min_age_years',
-        'engine_codes', 'excluded_engine_codes', 'body_types', 'months', 'seasons', 'trigger_label',
+        'engine_codes', 'excluded_engine_codes', 'body_types', 'vehicle_types', 'months', 'seasons', 'trigger_label',
         'prefill_source', 'part_category_slug', 'position', 'is_active',
     ];
 
@@ -46,6 +46,7 @@ class VehicleCheckItem extends Model
             'engine_codes'          => 'array',
             'excluded_engine_codes' => 'array',
             'body_types'           => 'array',
+            'vehicle_types'        => 'array',
             'months'                => 'array',
             'seasons'               => 'array',
             'position'             => 'integer',
@@ -148,6 +149,16 @@ class VehicleCheckItem extends Model
             $raisons[] = __(ucfirst($carrosserie));
         }
 
+        // Null vehicle_types keeps the previous behaviour: the point stays
+        // available for every category. A two-wheeler must not inherit
+        // door, windshield or air-conditioning checks.
+        if (! empty($this->vehicle_types)) {
+            $type = $vehicule->vehicle_type ?: 'passenger';
+            if (! in_array($type, $this->vehicle_types, true)) {
+                return null;
+            }
+        }
+
         if (! empty($this->months)) {
             if (! in_array((int) $jour->month, array_map('intval', $this->months), true)) {
                 return null;
@@ -173,6 +184,7 @@ class VehicleCheckItem extends Model
             && empty($this->engine_codes)
             && empty($this->excluded_engine_codes)
             && empty($this->body_types)
+            && empty($this->vehicle_types)
             && empty($this->months);
     }
 

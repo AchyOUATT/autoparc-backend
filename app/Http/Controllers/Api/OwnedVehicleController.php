@@ -7,6 +7,7 @@ use App\Http\Requests\StoreOwnedVehicleRequest;
 use App\Http\Requests\UpdateOwnedVehicleRequest;
 use App\Http\Resources\OwnedVehicleResource;
 use App\Models\OwnedVehicle;
+use App\Support\TwoWheelerConfiguration;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -43,8 +44,10 @@ class OwnedVehicleController extends Controller
     {
         $this->authorize('create', OwnedVehicle::class);
 
+        $data = $this->normalizeTwoWheeler($request->validated());
+
         $vehicle = OwnedVehicle::create(array_merge(
-            $request->validated(),
+            $data,
             ['user_id' => $request->user()->id]
         ));
 
@@ -64,7 +67,7 @@ class OwnedVehicleController extends Controller
     {
         $this->authorize('update', $ownedVehicle);
 
-        $ownedVehicle->update($request->validated());
+        $ownedVehicle->update($this->normalizeTwoWheeler($request->validated(), $ownedVehicle));
 
         return new OwnedVehicleResource($ownedVehicle->refresh()->load($this->relations));
     }
@@ -76,5 +79,23 @@ class OwnedVehicleController extends Controller
         $ownedVehicle->delete();
 
         return response()->json(['message' => __('Vehicule retire de votre garage.')]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function normalizeTwoWheeler(array $data, ?OwnedVehicle $existing = null): array
+    {
+        if (array_key_exists('two_wheeler_configuration', $data)) {
+            $data['two_wheeler_configuration'] = $existing === null
+                ? TwoWheelerConfiguration::normalize($data['two_wheeler_configuration'])
+                : TwoWheelerConfiguration::merge(
+                    $existing->two_wheeler_configuration,
+                    $data['two_wheeler_configuration'],
+                );
+        }
+
+        return $data;
     }
 }

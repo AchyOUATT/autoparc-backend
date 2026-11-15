@@ -44,6 +44,7 @@ class VehicleCheckItemsSeeder extends Seeder
         'engine_codes' => null,
         'excluded_engine_codes' => null,
         'body_types' => null,
+        'vehicle_types' => null,
         'months' => null,
         'seasons' => null,
         'trigger_label' => null,
@@ -60,7 +61,7 @@ class VehicleCheckItemsSeeder extends Seeder
         foreach ($this->points() as $point) {
             $ligne = array_merge(self::NEUTRE, $point);
 
-            foreach (['engine_codes', 'excluded_engine_codes', 'body_types', 'months', 'seasons'] as $json) {
+            foreach (['engine_codes', 'excluded_engine_codes', 'body_types', 'vehicle_types', 'months', 'seasons'] as $json) {
                 if ($ligne[$json] !== null) {
                     $ligne[$json] = json_encode($ligne[$json]);
                 }
@@ -126,7 +127,8 @@ class VehicleCheckItemsSeeder extends Seeder
                 'severity' => 'blocking', 'is_core' => true, 'part_category_slug' => 'pneus',
             ],
             [
-                'code' => 'pneus-secours', 'category' => 'pneus', 'position' => 210,
+                'code' => 'pneus-secours',
+                'vehicle_types' => ['passenger', 'utility', 'heavy'], 'category' => 'pneus', 'position' => 210,
                 'title' => 'Roue de secours, cric et clé',
                 'help' => "Une roue de secours se dégonfle sans qu'on s'en aperçoive, et un cric absent la rend inutile. Entre deux villes, une crevaison sans secours, c'est la nuit sur place.",
                 'severity' => 'blocking', 'is_core' => true, 'part_category_slug' => 'pneus',
@@ -169,7 +171,8 @@ class VehicleCheckItemsSeeder extends Seeder
                 'severity' => 'blocking', 'is_core' => true, 'part_category_slug' => 'eclairage',
             ],
             [
-                'code' => 'visibilite', 'category' => 'eclairage', 'position' => 510,
+                'code' => 'visibilite',
+                'vehicle_types' => ['passenger', 'utility', 'heavy'], 'category' => 'eclairage', 'position' => 510,
                 'title' => 'Pare-brise, balais et rétroviseurs',
                 'help' => "Un impact dans l'axe du regard s'agrandit avec la chaleur, et fait refuser la visite technique. Un balai durci transforme une averse en écran opaque — vérifie aussi que le lave-glace a de l'eau.",
                 'severity' => 'watch', 'is_core' => true, 'part_category_slug' => 'pare-brise',
@@ -238,7 +241,8 @@ class VehicleCheckItemsSeeder extends Seeder
 
             // ── Confort qui n'en est pas un ─────────────────────────
             [
-                'code' => 'confort-clim', 'category' => 'confort', 'position' => 700,
+                'code' => 'confort-clim',
+                'vehicle_types' => ['passenger', 'utility', 'heavy'], 'category' => 'confort', 'position' => 700,
                 'title' => 'Climatisation',
                 'help' => "Trois cents kilomètres à 40 degrés sans climatisation, ce n'est pas une question de confort : c'est la vigilance du conducteur qui baisse.",
                 'severity' => 'watch', 'is_core' => false, 'min_trip_distance_km' => 150,
@@ -284,7 +288,8 @@ class VehicleCheckItemsSeeder extends Seeder
                 'part_category_slug' => 'pneus',
             ],
             [
-                'code' => 'pluies-essuie-glaces', 'category' => 'eclairage', 'position' => 2010,
+                'code' => 'pluies-essuie-glaces',
+                'vehicle_types' => ['passenger', 'utility', 'heavy'], 'category' => 'eclairage', 'position' => 2010,
                 'title' => 'Balais et lave-glace',
                 'help' => "Un balai durci transforme une averse en écran opaque. Ils se remplacent avant la première pluie, pas après — au milieu de la saison, tout le monde en cherche en même temps.",
                 'severity' => 'blocking', 'seasons' => ['pluies'],
@@ -297,13 +302,15 @@ class VehicleCheckItemsSeeder extends Seeder
                 'part_category_slug' => 'eclairage',
             ],
             [
-                'code' => 'pluies-etancheite', 'category' => 'niveaux', 'position' => 2030,
+                'code' => 'pluies-etancheite',
+                'vehicle_types' => ['passenger', 'utility', 'heavy'], 'category' => 'niveaux', 'position' => 2030,
                 'title' => 'Écoulements et joints de portes',
                 'help' => "Les écoulements du pare-brise et du toit se bouchent de poussière et de feuilles pendant la saison sèche. L'eau passe alors dans l'habitacle, pourrit les tapis et finit dans le faisceau électrique — une panne qui coûte cher et qu'on ne relie jamais à la pluie.",
                 'severity' => 'watch', 'seasons' => ['pluies'],
             ],
             [
-                'code' => 'pluies-desembuage', 'category' => 'confort', 'position' => 2040,
+                'code' => 'pluies-desembuage',
+                'vehicle_types' => ['passenger', 'utility', 'heavy'], 'category' => 'confort', 'position' => 2040,
                 'title' => 'Désembuage du pare-brise',
                 'help' => "Par temps de pluie, c'est la climatisation qui assèche l'air et désembue, pas la ventilation seule. Si elle ne fonctionne pas, tu roules à l'aveugle au premier orage.",
                 'severity' => 'watch', 'seasons' => ['pluies'],
@@ -328,14 +335,16 @@ class VehicleCheckItemsSeeder extends Seeder
                 'part_category_slug' => 'refroidissement',
             ],
             [
-                'code' => 'seche-clim', 'category' => 'confort', 'position' => 2120,
+                'code' => 'seche-clim',
+                'vehicle_types' => ['passenger', 'utility', 'heavy'], 'category' => 'confort', 'position' => 2120,
                 'title' => 'Climatisation',
                 'help' => "Elle va servir tous les jours pendant six mois. Une clim qui souffle tiède se recharge maintenant, pas en pleine chaleur quand tous les garages sont pris.",
                 'severity' => 'watch', 'seasons' => ['seche'],
                 'part_category_slug' => 'climatisation',
             ],
             [
-                'code' => 'seche-filtre-habitacle', 'category' => 'confort', 'position' => 2130,
+                'code' => 'seche-filtre-habitacle',
+                'vehicle_types' => ['passenger', 'utility', 'heavy'], 'category' => 'confort', 'position' => 2130,
                 'title' => "Filtre d'habitacle",
                 'help' => "Celui qui filtre ce que tu respires, et ce que respirent les enfants à l'arrière. Saturé, il laisse passer la poussière et fait peiner la climatisation.",
                 'severity' => 'watch', 'seasons' => ['seche'],
