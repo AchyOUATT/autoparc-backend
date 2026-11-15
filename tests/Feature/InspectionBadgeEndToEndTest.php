@@ -78,13 +78,10 @@ class InspectionBadgeEndToEndTest extends TestCase
             'repair_estimate_source' => 'seller',
             'repair_estimated_at' => now()->subDay()->toDateString(),
         ]);
+        $this->assertInspectionRemains($inspection, $stored, '/api/catalog/vehicles/'.$vehicle->id, $inspectionId);
+
         $this->publishQuote($vehicle, $fault, 'devis-masque-2.jpg');
-        $inspection->refresh();
-        $this->assertSame('active', $inspection->status);
-        $this->assertSame($stored, $inspection->technical_fingerprint);
-        $this->asPublic();
-        $this->getJson('/api/catalog/vehicles/'.$vehicle->id)->assertOk()
-            ->assertJsonPath('data.inspection.id', $inspectionId);
+        $this->assertInspectionRemains($inspection, $stored, '/api/catalog/vehicles/'.$vehicle->id, $inspectionId);
 
         $fault->update(['description' => 'Le constat technique a changé.']);
         $this->assertSame('withdrawn', $inspection->fresh()->status);
@@ -123,13 +120,10 @@ class InspectionBadgeEndToEndTest extends TestCase
             'repair_estimate_source' => 'seller',
             'repair_estimated_at' => now()->subDay()->toDateString(),
         ]);
+        $this->assertInspectionRemains($inspection, $stored, '/api/private-listings/'.$listing->id, $inspectionId);
+
         $this->publishQuote($listing, $fault, 'devis-masque-2.jpg');
-        $inspection->refresh();
-        $this->assertSame('active', $inspection->status);
-        $this->assertSame($stored, $inspection->technical_fingerprint);
-        $this->asPublic();
-        $this->getJson('/api/private-listings/'.$listing->id)->assertOk()
-            ->assertJsonPath('data.inspection.id', $inspectionId);
+        $this->assertInspectionRemains($inspection, $stored, '/api/private-listings/'.$listing->id, $inspectionId);
 
         $listing->update(['mileage_km' => 60000]);
         $this->assertSame('withdrawn', $inspection->fresh()->status);
@@ -182,7 +176,7 @@ class InspectionBadgeEndToEndTest extends TestCase
 
     private function declareFault(Vehicle|PrivateVehicleListing $target, array $extra): VehicleFault|PrivateListingFault
     {
-        return $target->faults()->create(array_replace([
+        $fault = $target->faults()->create(array_replace([
             'category' => 'braking',
             'title' => 'Freins à réparer',
             'description' => 'Usure avancée des plaquettes.',
@@ -190,6 +184,10 @@ class InspectionBadgeEndToEndTest extends TestCase
             'status' => 'declared',
             'disclosed_to_buyer' => true,
         ], $extra));
+
+        // create() leaves wasRecentlyCreated set. DeclaredFaultObserver would otherwise
+        // treat a later estimate-only update as a new defect and withdraw the badge.
+        return $fault->fresh();
     }
 
     private function publishQuote(
@@ -238,6 +236,20 @@ class InspectionBadgeEndToEndTest extends TestCase
         $hashWith = StaffVehicleInspections::fingerprint($without->load('faults'));
         $this->assertNotSame($hashWithout, $hashWith);
         $this->assertSame($hashWith, $stored);
+    }
+
+    private function assertInspectionRemains(
+        StaffVehicleInspection $inspection,
+        string $stored,
+        string $publicUrl,
+        int $inspectionId,
+    ): void {
+        $inspection->refresh();
+        $this->assertSame('active', $inspection->status);
+        $this->assertNull($inspection->withdrawal_reason);
+        $this->assertSame($stored, $inspection->technical_fingerprint);
+        $this->asPublic();
+        $this->getJson($publicUrl)->assertOk()->assertJsonPath('data.inspection.id', $inspectionId);
     }
 
     private function asPublic(): void
