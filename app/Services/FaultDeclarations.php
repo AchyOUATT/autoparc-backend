@@ -228,15 +228,15 @@ final class FaultDeclarations
         return $faults->sortBy('id')->map(function ($fault) {
             $row = [
                 'id' => $fault->id,
-                'category' => $fault->category,
+                'category' => $fault->category->value,
                 'title' => $fault->title,
                 'description' => $fault->description,
-                'severity' => $fault->severity,
-                'status' => $fault->status,
-                'is_open' => $fault->isOpen(),
-                'affects_drivability' => $fault->affects_drivability,
-                'is_safety_critical' => $fault->is_safety_critical,
-                'disclosed_to_buyer' => $fault->disclosed_to_buyer,
+                'severity' => $fault->severity->value,
+                'status' => $fault->status->value,
+                'is_open' => $fault->status->isOpen(),
+                'affects_drivability' => (bool) $fault->affects_drivability,
+                'is_safety_critical' => (bool) $fault->is_safety_critical,
+                'disclosed_to_buyer' => (bool) $fault->disclosed_to_buyer,
             ];
             if ($fault instanceof VehicleFault) {
                 // Part of the inspection's evidence, never the public declaration payload.
