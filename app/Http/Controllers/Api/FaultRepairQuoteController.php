@@ -9,6 +9,7 @@ use App\Models\PrivateVehicleListing;
 use App\Models\Vehicle;
 use App\Models\VehicleFault;
 use App\Services\FaultDeclarations;
+use App\Support\FaultRepairQuoteStorage;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -111,9 +112,35 @@ class FaultRepairQuoteController extends Controller
 
     public function showPublished(FaultRepairQuote $quote): StreamedResponse
     {
-        abort_unless($quote->isPublished(), 404);
+        $quote->loadMissing('fault');
+        abort_unless($this->isPubliclyVisible($quote), 404);
+        FaultRepairQuoteStorage::reclaim($quote);
+        $quote->refresh();
 
-        return $this->download($quote, public: true);
+        return $this->download($quote);
+    }
+
+    private function isPubliclyVisible(FaultRepairQuote $quote): bool
+    {
+        if (! $quote->isPublished()) {
+            return false;
+        }
+        $fault = $quote->fault;
+        if (! $fault || ! $fault->disclosed_to_buyer) {
+            return false;
+        }
+        if ($fault instanceof PrivateListingFault) {
+            $listing = $fault->listing;
+
+            return $listing !== null && PrivateVehicleListing::published()->whereKey($listing->getKey())->exists();
+        }
+        if ($fault instanceof VehicleFault) {
+            $vehicle = $fault->vehicle;
+
+            return $vehicle !== null && Vehicle::visibleToPublic()->whereKey($vehicle->getKey())->exists();
+        }
+
+        return false;
     }
 
     private function storePrivate(Request $request, VehicleFault|PrivateListingFault $fault): JsonResponse
@@ -132,10 +159,8 @@ class FaultRepairQuoteController extends Controller
     private function storePublished(Request $request, VehicleFault|PrivateListingFault $fault): JsonResponse
     {
         $file = $this->acceptedFile($request);
-        $disk = config('media.disk', 'public');
-        $settings = config('filesystems.disks.'.$disk);
-        abort_unless(is_array($settings) && ($settings['visibility'] ?? null) === 'public', 503, __('Le stockage des photos est indisponible.'));
-        $path = $this->storeFile($file, $disk, 'published', visibility: 'public', stripImage: true);
+        $disk = $this->privateDiskName();
+        $path = $this->storeFile($file, $disk, 'published', visibility: 'private', stripImage: true);
         $quote = $this->replaceQuote($fault, FaultRepairQuote::KIND_PUBLISHED, $disk, $path, $file, $request->user()->id);
         $target = $fault instanceof VehicleFault ? $fault->vehicle : $fault->listing;
 
@@ -233,7 +258,7 @@ class FaultRepairQuoteController extends Controller
         $quote->delete();
     }
 
-    private function download(FaultRepairQuote $quote, bool $public = false): StreamedResponse
+    private function download(FaultRepairQuote $quote): StreamedResponse
     {
         $storage = $this->storage($quote);
         try {
@@ -247,7 +272,7 @@ class FaultRepairQuoteController extends Controller
 
         return $storage->download($quote->path, $quote->original_name, [
             'Content-Type' => $quote->mime_type,
-            'Cache-Control' => $public ? 'public, max-age=86400' : 'private, no-store',
+            'Cache-Control' => 'private, no-store',
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }

@@ -3,8 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
-
 /** A private quote, or a staff-published redacted copy. Paths stay off the public API. */
 class FaultRepairQuote extends Model
 {
@@ -50,10 +48,7 @@ class FaultRepairQuote extends Model
         if (! $this->isPublished()) {
             return null;
         }
-        $settings = config('filesystems.disks.'.$this->disk);
 
-        return is_array($settings) && ($settings['visibility'] ?? null) === 'public'
-            ? Storage::disk($this->disk)->url($this->path)
-            : url('/api/repair-quotes/'.$this->id);
+        return url('/api/repair-quotes/'.$this->id);
     }
 }

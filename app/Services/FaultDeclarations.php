@@ -218,10 +218,26 @@ final class FaultDeclarations
         ];
     }
 
+    /**
+     * Snapshot used to detect a change in the physical findings, not a typo in the commercial copy.
+     * The field list must stay identical to the pre-estimate fingerprint so a repair estimate,
+     * a published quote or the six-month stale flag cannot withdraw the inspection badge.
+     */
     public static function technicalSnapshot(Collection $faults): array
     {
         return $faults->sortBy('id')->map(function ($fault) {
-            $row = self::row($fault);
+            $row = [
+                'id' => $fault->id,
+                'category' => $fault->category,
+                'title' => $fault->title,
+                'description' => $fault->description,
+                'severity' => $fault->severity,
+                'status' => $fault->status,
+                'is_open' => $fault->isOpen(),
+                'affects_drivability' => $fault->affects_drivability,
+                'is_safety_critical' => $fault->is_safety_critical,
+                'disclosed_to_buyer' => $fault->disclosed_to_buyer,
+            ];
             if ($fault instanceof VehicleFault) {
                 // Part of the inspection's evidence, never the public declaration payload.
                 $row['detected_at'] = $fault->detected_at?->format('Y-m-d');
