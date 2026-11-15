@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\ScheduledTaskController;
 use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\VehicleCheckController;
 use App\Http\Controllers\Api\VehicleFaultController;
+use App\Http\Controllers\Api\FaultRepairQuoteController;
 use App\Http\Controllers\Api\StaffVehicleInspectionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -71,6 +72,7 @@ Route::prefix('catalog')->group(function () {
     Route::get('vehicle-listings', [CatalogVehicleListingController::class, 'index']);
     Route::get('vehicles', [VehicleController::class, 'index']);
     Route::get('vehicles/{vehicle}', [VehicleController::class, 'show']);
+    Route::get('repair-quotes/{quote}', [FaultRepairQuoteController::class, 'showPublished'])->whereNumber('quote');
     Route::get('parts', [PartController::class, 'index']);
     Route::get('parts/{part}', [PartController::class, 'show']);
 
@@ -290,6 +292,11 @@ Route::middleware(['auth:sanctum', 'staff'])->group(function () {
         Route::put('vehicles/{vehicle}/faults/{fault}', [VehicleFaultController::class, 'update']);
         Route::post('vehicles/{vehicle}/faults/{fault}/resolve', [VehicleFaultController::class, 'resolve']);
         Route::delete('vehicles/{vehicle}/faults/{fault}', [VehicleFaultController::class, 'destroy']);
+        Route::post('vehicles/{vehicle}/faults/{fault}/repair-quote', [FaultRepairQuoteController::class, 'storeForVehicle']);
+        Route::get('vehicles/{vehicle}/faults/{fault}/repair-quote', [FaultRepairQuoteController::class, 'downloadPrivateForVehicle']);
+        Route::delete('vehicles/{vehicle}/faults/{fault}/repair-quote', [FaultRepairQuoteController::class, 'destroyPrivateForVehicle']);
+        Route::post('vehicles/{vehicle}/faults/{fault}/repair-quote/publish', [FaultRepairQuoteController::class, 'publishForVehicle']);
+        Route::delete('vehicles/{vehicle}/faults/{fault}/repair-quote/published', [FaultRepairQuoteController::class, 'destroyPublishedForVehicle']);
     });
 
     // --- Partenaires (annuaire)

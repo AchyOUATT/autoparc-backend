@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\PartnerApplicationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EquipmentDocumentController;
+use App\Http\Controllers\Api\FaultRepairQuoteController;
 use App\Http\Controllers\Api\Partner\AccessoryController;
 use App\Http\Controllers\Api\Partner\AuthController as PartnerAuthController;
 use App\Http\Controllers\Api\Partner\DashboardController;
@@ -49,6 +50,9 @@ Route::prefix('partner')->name('partner.')->middleware('partner.space')->group(f
             Route::get('dashboard', DashboardController::class)->name('dashboard');
 
             Route::apiResource('vehicles', VehicleController::class);
+            Route::post('vehicles/{vehicle}/faults/{fault}/repair-quote', [FaultRepairQuoteController::class, 'storeForVehicle']);
+            Route::get('vehicles/{vehicle}/faults/{fault}/repair-quote', [FaultRepairQuoteController::class, 'downloadPrivateForVehicle']);
+            Route::delete('vehicles/{vehicle}/faults/{fault}/repair-quote', [FaultRepairQuoteController::class, 'destroyPrivateForVehicle']);
             Route::apiResource('parts', PartController::class);
             Route::apiResource('accessories', AccessoryController::class);
 

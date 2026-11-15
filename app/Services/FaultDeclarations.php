@@ -9,6 +9,7 @@ use App\Models\Vehicle;
 use App\Models\VehicleFault;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use App\Support\RepairEstimates;
 use Illuminate\Validation\ValidationException;
 
 final class FaultDeclarations
@@ -98,6 +99,18 @@ final class FaultDeclarations
                 $values += ['status' => $original?->status?->value ?? 'declared', 'severity' => $original?->severity?->value ?? 'minor',
                     'affects_drivability' => $original?->affects_drivability ?? false,
                     'is_safety_critical' => $original?->is_safety_critical ?? false, 'description' => $original?->description];
+                if (array_key_exists('repair_necessity', $row)) {
+                    $values['repair_necessity'] = $row['repair_necessity'];
+                } elseif ($original) {
+                    $values['repair_necessity'] = $original->repair_necessity;
+                } else {
+                    $values['repair_necessity'] = 'necessary';
+                }
+                if (array_key_exists('repair_estimate', $row)) {
+                    $values += RepairEstimates::columnsFromInput($row['repair_estimate']);
+                } elseif ($original) {
+                    $values += RepairEstimates::columnsFromModel($original);
+                }
                 $values['disclosed_to_buyer'] = $target instanceof Vehicle && $actor->role->canManageFaults()
                     ? ($row['disclosed_to_buyer'] ?? $original?->disclosed_to_buyer ?? true) : true;
                 if ($target instanceof Vehicle && $actor->role->canManageFaults()) {
@@ -144,9 +157,13 @@ final class FaultDeclarations
             'description' => $fault->description, 'severity' => $fault->severity->value,
             'status' => $fault->status->value, 'is_open' => $fault->status->isOpen(),
             'affects_drivability' => (bool) $fault->affects_drivability,
-            'is_safety_critical' => (bool) $fault->is_safety_critical, 'disclosed_to_buyer' => (bool) $fault->disclosed_to_buyer];
+            'is_safety_critical' => (bool) $fault->is_safety_critical, 'disclosed_to_buyer' => (bool) $fault->disclosed_to_buyer,
+            'repair_necessity' => $fault->repair_necessity ?: 'necessary',
+            'repair_estimate' => RepairEstimates::present($fault),
+            'published_quote' => self::publishedQuote($fault)];
         if ($management && $target !== null) {
             $data['editable'] = self::editable($fault, $actor, $target);
+            $data['private_quote'] = self::privateQuote($fault);
         }
 
         return $data;
@@ -159,15 +176,68 @@ final class FaultDeclarations
         $state = $all->isNotEmpty() ? 'has_faults' : ($target->fault_declaration_state ?? 'unknown');
 
         // Hidden rows still establish that a diagnostic exists; only its technical details are withheld.
+        $publicVisible = $all->where('disclosed_to_buyer', true);
+
         return ['state' => $state, 'declared_at' => $target->fault_declared_at?->toIso8601String(),
             'faults' => $visible->map(fn ($fault) => self::row($fault, $management, $request->user(), $target))->values()->all(),
-            'unresolved_count' => $all->filter(fn ($fault) => $fault->status !== FaultStatus::Repaired)->count()];
+            'unresolved_count' => $all->filter(fn ($fault) => $fault->status !== FaultStatus::Repaired)->count(),
+            'repair_budget' => RepairEstimates::budget($publicVisible)];
     }
 
+    private static function publishedQuote($fault): ?array
+    {
+        $quote = $fault->relationLoaded('publishedQuote')
+            ? $fault->getRelation('publishedQuote')
+            : $fault->publishedQuote()->first();
+        if ($quote === null) {
+            return null;
+        }
+
+        return [
+            'id' => $quote->id,
+            'url' => $quote->publicUrl(),
+            'mime_type' => $quote->mime_type,
+        ];
+    }
+
+    private static function privateQuote($fault): ?array
+    {
+        $quote = $fault->relationLoaded('privateQuote')
+            ? $fault->getRelation('privateQuote')
+            : $fault->privateQuote()->first();
+        if ($quote === null) {
+            return null;
+        }
+
+        return [
+            'id' => $quote->id,
+            'original_name' => $quote->original_name,
+            'mime_type' => $quote->mime_type,
+            'size' => $quote->size,
+            'uploaded_at' => $quote->created_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Snapshot used to detect a change in the physical findings, not a typo in the commercial copy.
+     * The field list must stay identical to the pre-estimate fingerprint so a repair estimate,
+     * a published quote or the six-month stale flag cannot withdraw the inspection badge.
+     */
     public static function technicalSnapshot(Collection $faults): array
     {
         return $faults->sortBy('id')->map(function ($fault) {
-            $row = self::row($fault);
+            $row = [
+                'id' => $fault->id,
+                'category' => $fault->category->value,
+                'title' => $fault->title,
+                'description' => $fault->description,
+                'severity' => $fault->severity->value,
+                'status' => $fault->status->value,
+                'is_open' => $fault->status->isOpen(),
+                'affects_drivability' => (bool) $fault->affects_drivability,
+                'is_safety_critical' => (bool) $fault->is_safety_critical,
+                'disclosed_to_buyer' => (bool) $fault->disclosed_to_buyer,
+            ];
             if ($fault instanceof VehicleFault) {
                 // Part of the inspection's evidence, never the public declaration payload.
                 $row['detected_at'] = $fault->detected_at?->format('Y-m-d');

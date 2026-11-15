@@ -434,6 +434,7 @@ class PrivateVehicleListingController extends Controller
             if ($input['vehicle_model_id'] !== null && ! empty($input['model_libre'])) {
                 $validator->errors()->add('model_libre', __('Choisissez un modèle du catalogue ou une saisie libre, pas les deux.'));
             }
+            FaultDeclarationInput::after($validator, false);
         });
         // `prohibited` permits empty/null values. They must still NEVER enter
         // a mass assignment or shadow a server-owned default through array union.
