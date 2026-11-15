@@ -292,7 +292,10 @@ class RepairEstimateTest extends TestCase
             Storage::disk('public')->allFiles(),
             fn ($path) => str_starts_with($path, 'fault-repair-quotes/published/'),
         ));
-        $this->get($url)->assertOk()->assertHeader('Cache-Control', 'private, no-store');
+        $download = $this->get($url)->assertOk();
+        $cache = (string) $download->headers->get('Cache-Control');
+        $this->assertStringContainsString('private', $cache);
+        $this->assertStringContainsString('no-store', $cache);
     }
 
     public function test_le_personnel_peut_attribuer_un_chiffrage_autoparc_sans_en_faire_un_controle(): void
