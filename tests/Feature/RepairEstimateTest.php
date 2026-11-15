@@ -285,7 +285,7 @@ class RepairEstimateTest extends TestCase
             ->assertJsonPath('data.fault_declaration.faults.0.published_quote.mime_type', 'image/jpeg');
         $url = $published->json('data.fault_declaration.faults.0.published_quote.url');
         $this->assertIsString($url);
-        $this->assertMatchesRegularExpression('#/api/repair-quotes/\d+$#', $url);
+        $this->assertMatchesRegularExpression('#/api/catalog/repair-quotes/\d+$#', $url);
         $this->assertStringNotContainsString('/storage/', $url);
         $this->assertStringNotContainsString('atelier-confidentiel', json_encode($published->json(), JSON_UNESCAPED_UNICODE));
         $this->assertSame([], array_filter(
