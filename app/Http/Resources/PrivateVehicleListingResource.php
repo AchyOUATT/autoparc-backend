@@ -54,7 +54,24 @@ class PrivateVehicleListingResource extends JsonResource
                 // qu'aucune verification n'existe, donc quand `phone` est vide.
                 'phone_claimed' => $this->phone,
                 'phone_verified_at' => $this->phone_verified_at?->toIso8601String(),
+                'private_pricing' => $this->pricingDetail(),
             ]),
+        ];
+    }
+
+    /** @return array{prix_propose: int, taux: float, applique_le: ?string, total: int}|null */
+    protected function pricingDetail(): ?array
+    {
+        $detail = $this->private_pricing;
+        if (! is_array($detail) || ! isset($detail['prix_propose'])) {
+            return null;
+        }
+
+        return [
+            'prix_propose' => (int) $detail['prix_propose'],
+            'taux' => (float) ($detail['taux'] ?? 0),
+            'applique_le' => $detail['applique_le'] ?? null,
+            'total' => (int) $this->price,
         ];
     }
 

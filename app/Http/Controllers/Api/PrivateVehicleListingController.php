@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Services\FaultDeclarations;
+use App\Support\MargeAnnonceParticuliere;
 use App\Support\TwoWheelerConfiguration;
 use App\Support\FaultDeclarationInput;
 use App\Http\Controllers\Controller;
@@ -69,6 +70,7 @@ class PrivateVehicleListingController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateFields($request);
+        $data = MargeAnnonceParticuliere::appliquer($data);
         if (isset($data['owned_vehicle_id'])) {
             $owned = OwnedVehicle::whereKey($data['owned_vehicle_id'])->where('user_id', $request->user()->id)->first();
             abort_unless($owned !== null, 404);
@@ -101,6 +103,7 @@ class PrivateVehicleListingController extends Controller
         DB::transaction(function () use ($request, $listing, $data) {
             $locked = PrivateVehicleListing::whereKey($listing->id)->lockForUpdate()->firstOrFail();
             $this->requireEditable($locked);
+            $data = MargeAnnonceParticuliere::appliquer($data, $locked->private_pricing, $locked->price !== null ? (int) $locked->price : null);
 
             // CHANGER DE NUMERO ANNULE L'APPEL DEJA PASSE.
             //
@@ -418,7 +421,7 @@ class PrivateVehicleListingController extends Controller
         $rules = array_merge($rules, FaultDeclarationInput::rules());
         $allowedFields = array_fill_keys(array_filter(array_keys($rules), fn ($key) => ! str_contains($key, '.')
             && ! in_array($key, ['fault_declared_at', 'fault_declaration', 'fault_declaration_editable'], true)), true);
-        foreach (['title', 'vehicle_identity', 'fuel_type', 'status', 'revision', 'user_id', 'active_user_id', 'verified_phone', 'phone_verified_at', 'published_at', 'reviewed_by', 'review_reason', 'currency', 'seller_type'] as $field) {
+        foreach (['title', 'vehicle_identity', 'fuel_type', 'status', 'revision', 'user_id', 'active_user_id', 'verified_phone', 'phone_verified_at', 'published_at', 'reviewed_by', 'review_reason', 'currency', 'seller_type', 'private_pricing'] as $field) {
             $rules[$field] = ['prohibited'];
         }
 
