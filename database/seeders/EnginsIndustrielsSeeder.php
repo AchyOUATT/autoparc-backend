@@ -13,15 +13,15 @@ use Illuminate\Support\Facades\DB;
  *
  * ── CE QUE CE LOT EST, ET SURTOUT CE QU'IL N'EST PAS ───────────────────────
  *
- * Il n'est PAS le referentiel des engins du Burkina Faso. Celui-la demande une
+ * Il n'est PAS le referentiel complet des engins du Burkina Faso. Celui-la demande une
  * enquete de marche — Foton Lovol, Massey Ferguson pakistanaises, Sinotruk,
  * Shacman, Renault Trucks — et il est decrit dans
  * `docs/proposition-referentiel-engins.md`, en attente d'arbitrage.
  *
  * Ce lot ne pose QUE les machines pour lesquelles une source NOMME a la fois
- * la machine et l'une des onze references en stock. Rien d'autre. Un document
- * proposait une soixantaine de modeles ; apres deux relectures croisees, il en
- * reste neuf qui tiennent.
+ * la machine et l'une des onze references en stock. Rien d'autre. Les guides
+ * officiels John Deere et les fiches Caterpillar consultes le 16/11/2026 ont
+ * permis d'ajouter des lignes de premier rang, toujours machine par machine.
  *
  * ── DEUX RANGS DE SOURCE, ET LA DIFFERENCE EST ECRITE SUR CHAQUE LIGNE ─────
  *
@@ -55,8 +55,8 @@ use Illuminate\Support\Facades\DB;
  * tractopelle ou un tracteur. Detourner `generation`, `segment` ou
  * `body_type` pour y loger cette information serait pire que le vide — on
  * retrouve six mois plus tard un champ requisitionne dont plus personne ne
- * sait ce qu'il veut dire. Un champ `equipment_category` est la bonne reponse,
- * et il n'existe pas encore.
+ * sait ce qu'il veut dire. `equipment_category` porte le type d'engin
+ * (tracteur, tractopelle, groupe, ou `other` pour une niveleuse).
  *
  * Les annees de production ne sont posees que lorsqu'une source les donne.
  * Un NULL honnete vaut mieux qu'une date inventee : c'est une date fausse qui
@@ -73,7 +73,7 @@ class EnginsIndustrielsSeeder extends Seeder
     ];
 
     /**
-     * Les neuf machines, avec le rang de leur source et la piece qu'elles portent.
+     * Les machines, avec le rang de leur source et la piece qu'elles portent.
      *
      * `piece` est le SKU d'une des onze references en stock. `moteur` alimente
      * `part_fitments.engine_code` : une compatibilite qui ne le porte pas est
@@ -95,37 +95,112 @@ class EnginsIndustrielsSeeder extends Seeder
                 .'constructeur. '
                 .'RÉSERVE : ce kit ne contient PAS 435-6493, contrairement au kit 610-3589, qui '
                 .'est aussi un kit C7.1. Les contenus diffèrent selon la configuration, et '
-                .'Caterpillar renvoie au concessionnaire. Ne pas étendre cette ligne aux DE165, '
-                .'DE200 ni DE220 sans leur propre kit : c\'est une table à demander, pas à déduire.',
+                .'Caterpillar renvoie au concessionnaire. La fiche officielle de 435-6493 cite '
+                .'aussi le DE150GC, mais ce kit ne le contient pas : 435-6493 n\'est donc pas '
+                .'relié à cette machine.',
+        ],
+        [
+            'marque' => 'Caterpillar',
+            'nom' => '140 GC', 'slug' => 'cat-140-gc',
+            'generation' => null, 'type' => 'Niveleuse',
+            'debut' => null, 'fin' => null,
+            'piece' => '435-6493', 'moteur' => null, 'rang' => 'premier',
+            'note' => 'SOURCE DE PREMIER RANG — Caterpillar. La fiche officielle de 435-6493 '
+                .'(parts.cat.com) le liste sous « Motor Grader — 140 GC ». Ce n\'est pas la '
+                .'140M2, qui a déjà été écartée parce qu\'elle porte un C9.3. Vérifier le numéro '
+                .'de série : Caterpillar prévient que la liste est indicative. '
+                .'https://parts.cat.com/en/catcorp/product/435-6493',
+        ],
+        [
+            'marque' => 'Caterpillar',
+            'nom' => 'DE200 GC', 'slug' => 'cat-de200-gc',
+            'generation' => null, 'type' => 'Groupe électrogène',
+            'debut' => null, 'fin' => null,
+            'piece' => '435-6493', 'moteur' => 'C7.1', 'rang' => 'premier',
+            'note' => 'SOURCE DE PREMIER RANG — Caterpillar. La fiche officielle de 435-6493 '
+                .'(parts.cat.com) le liste parmi les groupes « DE200GC » / « DE200E0 » à moteur '
+                .'C7.1. Vérifier le numéro de série. Pas le DE150GC, dont le kit 610-3587 ne '
+                .'contient pas cette référence.',
+        ],
+        [
+            'marque' => 'Caterpillar',
+            'nom' => 'DE220 GC', 'slug' => 'cat-de220-gc',
+            'generation' => null, 'type' => 'Groupe électrogène',
+            'debut' => null, 'fin' => null,
+            'piece' => '435-6493', 'moteur' => 'C7.1', 'rang' => 'premier',
+            'note' => 'SOURCE DE PREMIER RANG — Caterpillar. La fiche officielle de 435-6493 '
+                .'(parts.cat.com) le liste parmi les groupes « DE220GC » à moteur C7.1. '
+                .'Vérifier le numéro de série.',
+        ],
+        [
+            'marque' => 'Caterpillar',
+            'nom' => 'XQP150', 'slug' => 'cat-xqp150',
+            'generation' => null, 'type' => 'Groupe électrogène',
+            'debut' => null, 'fin' => null,
+            'piece' => '435-6493', 'moteur' => 'C7.1', 'rang' => 'premier',
+            'note' => 'SOURCE DE PREMIER RANG — Caterpillar. La fiche officielle de 435-6493 '
+                .'(parts.cat.com) le liste parmi les groupes « XQP150 » à moteur C7.1. '
+                .'Vérifier le numéro de série.',
         ],
 
-        // ── SECOND RANG — John Deere, guide d'entretien rapporté ───────────
+        // ── PREMIER RANG — John Deere, guides officiels de filtres ─────────
         [
             'marque' => 'John Deere', 'nom' => '5090M', 'slug' => 'jd-5090m',
             'generation' => '5M', 'type' => 'Tracteur agricole',
             'debut' => null, 'fin' => null,
-            'piece' => 'RE504836', 'moteur' => null, 'rang' => 'second',
-            'note' => 'SOURCE DE SECOND RANG — guide d\'entretien John Deere, rapporté mais non '
-                .'ouvert directement. Le guide donne RE504836 pour les 5090M, 5100M et 5115M dans '
-                .'les configurations documentées. À confirmer sur la fiche du constructeur avant '
-                .'de vendre sans réserve ; le code moteur n\'est pas établi.',
+            'piece' => 'RE504836', 'moteur' => null, 'rang' => 'premier',
+            'note' => 'SOURCE DE PREMIER RANG — John Deere. Le guide officiel de filtres '
+                .'« 5M series - 5075M, 5090M, 5100M and 5115M Tractors » (mars 2021, deere.com) '
+                .'nomme RE504836 comme filtre à huile moteur de ces tracteurs. Code moteur non '
+                .'établi sur ce guide ; vérifier la configuration avant de vendre sans réserve. '
+                .'https://www.deere.com/assets/pdfs/common/qrg/5m-series-5075m-5090m-5100m-5115m-tractors.pdf',
         ],
         [
             'marque' => 'John Deere', 'nom' => '5100M', 'slug' => 'jd-5100m',
             'generation' => '5M', 'type' => 'Tracteur agricole',
             'debut' => 2012, 'fin' => 2022,
-            'piece' => 'RE504836', 'moteur' => null, 'rang' => 'second',
-            'note' => 'SOURCE DE SECOND RANG — même guide que le 5090M. Millésimes 2012-2014 puis '
-                .'2015-2022, usine d\'Augusta (Géorgie). Code moteur non établi.',
+            'piece' => 'RE504836', 'moteur' => null, 'rang' => 'premier',
+            'note' => 'SOURCE DE PREMIER RANG — même guide officiel 5M que le 5090M (mars 2021, '
+                .'deere.com), qui nomme RE504836 pour le 5100M. Les millésimes 2012-2022 déjà '
+                .'portés par cette fiche restent indicatifs. Code moteur non établi.',
         ],
         [
             'marque' => 'John Deere', 'nom' => '5115M', 'slug' => 'jd-5115m',
             'generation' => '5M', 'type' => 'Tracteur agricole',
             'debut' => 2012, 'fin' => 2022,
-            'piece' => 'RE504836', 'moteur' => null, 'rang' => 'second',
-            'note' => 'SOURCE DE SECOND RANG — même guide que le 5090M. Usines d\'Augusta '
-                .'(Géorgie) et de Pune (Inde) : deux provenances pour un même nom, à vérifier '
-                .'avant de confirmer un montage. Code moteur non établi.',
+            'piece' => 'RE504836', 'moteur' => null, 'rang' => 'premier',
+            'note' => 'SOURCE DE PREMIER RANG — même guide officiel 5M que le 5090M (mars 2021, '
+                .'deere.com), qui nomme RE504836 pour le 5115M. Usines d\'Augusta et de Pune '
+                .'parfois citées pour le même nom : à vérifier avant de confirmer un montage. '
+                .'Code moteur non établi.',
+        ],
+        [
+            'marque' => 'John Deere', 'nom' => '5075M', 'slug' => 'jd-5075m',
+            'generation' => '5M', 'type' => 'Tracteur agricole',
+            'debut' => null, 'fin' => null,
+            'piece' => 'RE504836', 'moteur' => null, 'rang' => 'premier',
+            'note' => 'SOURCE DE PREMIER RANG — John Deere. Le même guide officiel 5M (mars 2021, '
+                .'deere.com) nomme RE504836 comme filtre à huile moteur du 5075M, aux côtés des '
+                .'5090M, 5100M et 5115M. Code moteur non établi.',
+        ],
+        [
+            'marque' => 'John Deere', 'nom' => '5410', 'slug' => 'jd-5410',
+            'generation' => '5010', 'type' => 'Tracteur agricole',
+            'debut' => null, 'fin' => null,
+            'piece' => 'RE59754', 'moteur' => null, 'rang' => 'premier',
+            'note' => 'SOURCE DE PREMIER RANG — John Deere. Le guide officiel « FILTER OVERVIEW '
+                .'5010 Series - 5210, 5310, 5410 and 5510 Tractors » (juin 2021, deere.com) nomme '
+                .'RE59754 comme filtre à huile moteur des 5410 et 5510. Les 5210 et 5310 prennent '
+                .'T19044 : ne pas les confondre. '
+                .'https://www.deere.com/assets/pdfs/common/parts-and-service/quick-reference-guides/5010-series-5210-5310-5410-5510.pdf',
+        ],
+        [
+            'marque' => 'John Deere', 'nom' => '5510', 'slug' => 'jd-5510',
+            'generation' => '5010', 'type' => 'Tracteur agricole',
+            'debut' => null, 'fin' => null,
+            'piece' => 'RE59754', 'moteur' => null, 'rang' => 'premier',
+            'note' => 'SOURCE DE PREMIER RANG — même guide officiel 5010 Series (juin 2021, '
+                .'deere.com) que le 5410, qui nomme RE59754 pour le 5510. Pas le 5210 ni le 5310.',
         ],
 
         // ── SECOND RANG — McCormick, via l'équipementier MANN ──────────────
@@ -189,7 +264,7 @@ class EnginsIndustrielsSeeder extends Seeder
     {
         // ── SANS LES FILTRES, PAS DE MACHINES ────────────────────────────
         //
-        // Ces neuf engins n'existent que pour porter les onze references en
+        // Ces engins n'existent que pour porter les onze references en
         // stock. Si aucune n'est en base, ils n'ont rien a servir, et le lot
         // s'abstient entierement.
         //
@@ -250,6 +325,7 @@ class EnginsIndustrielsSeeder extends Seeder
                 'Tracteur agricole' => 'agricultural_tractor',
                 'Tractopelle' => 'backhoe_loader',
                 'Groupe électrogène' => 'generator',
+                default => 'other',
             };
             $modele->production_start = $machine['debut'];
             $modele->production_end   = $machine['fin'];

@@ -29,10 +29,11 @@ use Tests\TestCase;
  * nuance se vend — un acheteur qui demande « du Cummins » accepte un
  * Fleetguard et refuse un adaptable.
  *
- * TROIS. LA CHAINE JCB SE RETROUVE PAR N'IMPORTE LAQUELLE DE SES TROIS
- * REFERENCES. 320/07155 est remplacee par 320/07394, elle-meme par 320/A7170.
- * Un client arrive avec celle qui est gravee sur son vieux filtre ; il doit
- * tomber sur l'article quand meme.
+ * TROIS. LA CHAINE JCB SE RETROUVE PAR N'IMPORTE LAQUELLE DE SES REFERENCES.
+ * 320/07155 est remplacee par 320/07394, elle-meme par 320/A7170. Le marquage
+ * R6354020 figure aussi sur le filtre photographie et est enregistre comme
+ * equivalent, hors de cette chaine. Un client arrive avec celle qui est gravee
+ * sur son vieux filtre ; il doit tomber sur l'article quand meme.
  *
  * ── ET UNE QUATRIEME, QUI EST UNE ABSENCE ──────────────────────────────────
  *
@@ -179,7 +180,7 @@ class FiltresIndustrielsTest extends TestCase
         $numeros = $piece->oemNumbers()->pluck('number')->sort()->values();
 
         $this->assertEqualsCanonicalizing(
-            ['320/07155', '320/07394', '320/A7170'],
+            ['320/07155', '320/07394', '320/A7170', 'R6354020'],
             $numeros->all(),
         );
     }
@@ -198,6 +199,25 @@ class FiltresIndustrielsTest extends TestCase
             .'une recherche sur 3931063 renverrait FF5018 alors que la '
             .'documentation Cummins donne FF5052.'
         );
+    }
+
+    public function test_les_equivalents_cummins_du_fs1280_sont_enregistres(): void
+    {
+        $fs1280 = Part::where('sku', 'FS1280')->firstOrFail();
+
+        $this->assertEqualsCanonicalizing(
+            ['3930942', '3890706', '3903410'],
+            $fs1280->oemNumbers()->pluck('number')->all(),
+        );
+    }
+
+    public function test_les_types_officiels_caterpillar_sont_dans_le_descriptif(): void
+    {
+        $huile = Part::where('sku', '462-1171')->firstOrFail();
+        $gazole = Part::where('sku', '435-6493')->firstOrFail();
+
+        $this->assertStringContainsString('efficacité STANDARD', $huile->description);
+        $this->assertStringContainsString('Ultra High', $gazole->description);
     }
 
     public function test_aucune_compatibilite_n_est_posee(): void
