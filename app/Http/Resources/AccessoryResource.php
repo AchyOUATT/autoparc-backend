@@ -29,6 +29,8 @@ class AccessoryResource extends JsonResource
             'sku'         => $this->sku,
             'name'        => $this->name,
             'description' => $this->description,
+            'city'        => $this->city,
+            'site'        => $this->site,
 
             'category' => [
                 'value' => $this->category->value,

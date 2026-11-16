@@ -57,6 +57,8 @@ class StoreAccessoryRequest extends FormRequest
             'stock_alert_threshold' => ['nullable', 'integer', 'min:0'],
             'storage_location'      => ['nullable', 'string', 'max:60'],
             'location_id'           => ['nullable', 'exists:locations,id'],
+            'city'                  => ['nullable', 'string', 'max:100'],
+            'site'                  => ['nullable', 'string', 'max:120'],
             'is_active'             => ['boolean'],
 
             // Compatibilités déclarées avec des modèles de véhicules

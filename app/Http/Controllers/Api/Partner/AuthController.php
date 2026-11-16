@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Partner;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RegisterPartnerRequest;
+use App\Http\Requests\UpdatePartnerProfileRequest;
 use App\Http\Resources\PartnerAccountResource;
 use App\Models\PartnerAccount;
 use App\Models\User;
@@ -139,6 +140,35 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return response()->json($this->profile($request, $request->user()));
+    }
+
+    /**
+     * Enregistrer l'emplacement par defaut du compte.
+     *
+     * Accessible des qu'un partenaire est connecte, y compris en attente
+     * d'approbation : il peut remplir sa ville avant de publier. Un champ
+     * omis reste tel quel ; un null explicite l'efface. Les autres
+     * informations du compte (nom, numero, statut) ne passent pas ici.
+     */
+    public function update(UpdatePartnerProfileRequest $request): JsonResponse
+    {
+        $compte = $request->user()->partnerAccount;
+        abort_unless($compte, 403, __('Compte partenaire introuvable.'));
+
+        $valeurs = $request->validated();
+        $champs = [];
+        foreach (['city', 'address'] as $champ) {
+            if ($request->exists($champ)) {
+                $champs[$champ] = $valeurs[$champ] ?? null;
+            }
+        }
+        if ($champs !== []) {
+            $compte->update($champs);
+        }
+        $request->user()->setRelation('partnerAccount', $compte->fresh());
+
+        return response()->json($this->profile($request, $request->user()))
+            ->header('Cache-Control', 'no-store');
     }
 
     private function profile(Request $request, User $user): array

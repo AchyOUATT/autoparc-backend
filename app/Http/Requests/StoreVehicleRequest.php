@@ -190,6 +190,7 @@ class StoreVehicleRequest extends FormRequest
             // Mise en avant commerciale ; null = pas de promotion.
             'deal_type'          => ['nullable', Rule::in(VehicleDealType::values())],
             'site'               => ['nullable', 'string', 'max:120'],
+            'city'               => ['nullable', 'string', 'max:100'],
             'description'        => ['nullable', 'string'],
             'features'           => ['array'],
             'features.*'         => ['exists:features,id'],

@@ -159,9 +159,11 @@ class PartnerPublicCatalogTest extends TestCase
             $this->assertArrayNotHasKey($field, $data);
         }
 
-        foreach (['location', 'location_id', 'partner', 'partner_id', 'site'] as $field) {
+        foreach (['location', 'location_id', 'partner', 'partner_id'] as $field) {
             $this->assertArrayNotHasKey($field, $data['commercial']);
         }
+        $this->assertArrayHasKey('city', $data['commercial']);
+        $this->assertArrayHasKey('site', $data['commercial']);
 
         $this->assertSame(['id', 'company_name', 'phone', 'whatsapp'], array_keys($data['seller']));
         $this->assertSame($account->company_name, $data['seller']['company_name']);

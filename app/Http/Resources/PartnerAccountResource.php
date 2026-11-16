@@ -16,6 +16,8 @@ class PartnerAccountResource extends JsonResource
             'contact_name' => $this->contact_name,
             'phone' => $this->phone,
             'whatsapp' => $this->whatsapp,
+            'city' => $this->city,
+            'address' => $this->address,
             'status' => $this->status,
             'review_reason' => $this->review_reason,
             'reviewed_by' => $this->reviewed_by,

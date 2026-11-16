@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Support\EmplacementPartenaire;
 use App\Support\PartnerOwnership;
 
 use App\Enums\FitmentSource;
@@ -50,7 +51,7 @@ class AccessoryController extends Controller
             ->when($request->filled('price_max'), fn ($q) => PrixEffectif::filtrer($q, 'selling_price', '<=', $request->price_max))
             ->when($request->filled('vehicle_model_id'), fn ($q) => $q->compatibleWithModel($request->integer('vehicle_model_id')))
             ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
-            ->when($request->filled('city'), fn ($q) => $q->whereHas('location', fn ($l) => $l->where('city', $request->city)))
+            ->when($request->filled('city'), fn ($q) => EmplacementPartenaire::filtrerParVille($q, $request->string('city')->toString()))
             ->tap(fn ($q) => TriPublic::appliquer($q, $request, TriPublic::articles(), 'name', 'asc'))
             ->paginate($request->integer('per_page', 20))
             ->withQueryString();
@@ -94,7 +95,7 @@ class AccessoryController extends Controller
             ->when($request->filled('vehicle_model_id'), fn ($q) => $q->compatibleWithModel($request->integer('vehicle_model_id')))
             ->when($request->boolean('active_only', true), fn ($q) => $q->active())
             ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
-            ->when($request->filled('city'), fn ($q) => $q->whereHas('location', fn ($l) => $l->where('city', $request->city)))
+            ->when($request->filled('city'), fn ($q) => EmplacementPartenaire::filtrerParVille($q, $request->string('city')->toString()))
             ->tap(fn ($q) => TriPublic::appliquer($q, $request, TriPublic::articles(), 'name', 'asc'))
             ->paginate($request->integer('per_page', 20))
             ->withQueryString();
