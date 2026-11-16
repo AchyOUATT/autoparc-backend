@@ -14,17 +14,17 @@ use Tests\TestCase;
  *
  * ── CE QUE CE BANC PROTEGE ─────────────────────────────────────────────────
  *
- * Deux revues croisees ont reduit une proposition d une soixantaine de
- * machines a neuf. Ce qui a ete coupe, ce sont les GENERALISATIONS :
- * « ce filtre couvre la famille C7.1 », « deux filtres couvrent quatre
- * machines », « 462-1171 couvre C4.4, C6.6 et C7.1 ». Ce qui reste, ce sont
- * des liens NOMMES par une source.
+ * Les generalisations restent interdites : « ce filtre couvre la famille
+ * C7.1 », « 462-1171 couvre C4.4, C6.6 et C7.1 ». Ce qui est pose, ce sont
+ * des liens NOMMES par une source — y compris les guides officiels John Deere
+ * et les fiches Caterpillar consultes le 16/11/2026, qui ont fait passer
+ * plusieurs lignes au premier rang.
  *
  * Le banc tient cette frontiere. Il ne verifie pas que les machines existent
  * — ca, c est le travail des sources — mais que le lot ne REDEVIENNE PAS une
- * generalisation : une seule compatibilite de premier rang, les autres
- * marquees comme telles, et le code moteur present la ou il separe deux
- * generations.
+ * generalisation : chaque compatibilite de premier rang est une machine
+ * nommee, les autres sont marquees comme telles, et le code moteur est
+ * present la ou il separe deux generations.
  *
  * ── LE CAS McCORMICK, ET POURQUOI SON CODE MOTEUR EST VITAL ────────────────
  *
@@ -43,10 +43,15 @@ class EnginsIndustrielsTest extends TestCase
     use RefreshDatabase;
 
     private const SLUGS = [
-        'cat-de150-gc',
-        'jd-5090m', 'jd-5100m', 'jd-5115m',
+        'cat-de150-gc', 'cat-140-gc', 'cat-de200-gc', 'cat-de220-gc', 'cat-xqp150',
+        'jd-5075m', 'jd-5090m', 'jd-5100m', 'jd-5115m', 'jd-5410', 'jd-5510',
         'mccormick-mtx-110', 'mccormick-mtx-125', 'mccormick-mtx-140',
         'jcb-3cx', 'jcb-3dx',
+    ];
+
+    private const PREMIER_RANG = [
+        'cat-de150-gc', 'cat-140-gc', 'cat-de200-gc', 'cat-de220-gc', 'cat-xqp150',
+        'jd-5075m', 'jd-5090m', 'jd-5100m', 'jd-5115m', 'jd-5410', 'jd-5510',
     ];
 
     /**
@@ -88,25 +93,39 @@ class EnginsIndustrielsTest extends TestCase
         );
     }
 
-    public function test_les_neuf_machines_entrent(): void
+    public function test_les_machines_sourcees_entrent(): void
     {
-        $this->assertSame(9, VehicleModel::whereIn('slug', self::SLUGS)->count());
+        $this->assertSame(
+            count(self::SLUGS),
+            VehicleModel::whereIn('slug', self::SLUGS)->count()
+        );
     }
 
-    public function test_une_seule_compatibilite_est_de_premier_rang(): void
+    public function test_les_compatibilites_de_premier_rang_sont_celles_des_guides_officiels(): void
     {
-        // LE COEUR DU LOT. Une source de premier rang nomme la machine ET la
-        // piece chez le constructeur. Il n'y en a qu'UNE, et si ce compte
-        // augmente sans qu'une source soit ajoutee, c'est qu'une
-        // generalisation est revenue.
+        // Une source de premier rang nomme la machine ET la piece chez le
+        // constructeur. Si cette liste s'allonge sans qu'une source soit
+        // ajoutee, c'est qu'une generalisation est revenue.
         $rangs = DB::table('part_fitments')
             ->join('vehicle_models', 'vehicle_models.id', '=', 'part_fitments.vehicle_model_id')
             ->whereIn('vehicle_models.slug', self::SLUGS)
-            ->pluck('part_fitments.notes')
-            ->partition(fn ($n) => str_contains($n, 'PREMIER RANG'));
+            ->select('vehicle_models.slug', 'part_fitments.notes')
+            ->get();
 
-        $this->assertCount(1, $rangs[0], 'Le nombre de compatibilites de premier rang a change.');
-        $this->assertCount(8, $rangs[1]);
+        $premiers = $rangs->filter(fn ($r) => str_contains($r->notes, 'PREMIER RANG'))
+            ->pluck('slug')->sort()->values()->all();
+        $seconds = $rangs->filter(fn ($r) => str_contains($r->notes, 'SECOND RANG'))
+            ->pluck('slug')->sort()->values()->all();
+
+        $this->assertSame(
+            collect(self::PREMIER_RANG)->sort()->values()->all(),
+            $premiers,
+            'La liste des compatibilites de premier rang a change.'
+        );
+        $this->assertSame(
+            ['jcb-3cx', 'jcb-3dx', 'mccormick-mtx-110', 'mccormick-mtx-125', 'mccormick-mtx-140'],
+            $seconds,
+        );
     }
 
     public function test_chaque_compatibilite_porte_le_rang_de_sa_source(): void
@@ -172,7 +191,72 @@ class EnginsIndustrielsTest extends TestCase
         ])->assertSuccessful();
 
         $this->assertSame($avant, DB::table('part_fitments')->count(), 'Les compatibilites s empilent.');
-        $this->assertSame(9, VehicleModel::whereIn('slug', self::SLUGS)->count());
+        $this->assertSame(count(self::SLUGS), VehicleModel::whereIn('slug', self::SLUGS)->count());
+    }
+
+    public function test_le_de150_gc_ne_porte_pas_le_435_6493(): void
+    {
+        // La fiche officielle de 435-6493 cite le DE150GC, mais le kit
+        // 610-3587 de cette machine ne contient pas la reference. On ne
+        // relie pas les deux.
+        $skus = DB::table('part_fitments')
+            ->join('parts', 'parts.id', '=', 'part_fitments.part_id')
+            ->join('vehicle_models', 'vehicle_models.id', '=', 'part_fitments.vehicle_model_id')
+            ->where('vehicle_models.slug', 'cat-de150-gc')
+            ->pluck('parts.sku');
+
+        $this->assertSame(['462-1171'], $skus->all());
+        $this->assertNotContains('435-6493', $skus->all());
+    }
+
+    public function test_le_435_6493_est_relie_aux_machines_nommees_par_caterpillar(): void
+    {
+        $slugs = DB::table('part_fitments')
+            ->join('parts', 'parts.id', '=', 'part_fitments.part_id')
+            ->join('vehicle_models', 'vehicle_models.id', '=', 'part_fitments.vehicle_model_id')
+            ->where('parts.sku', '435-6493')
+            ->pluck('vehicle_models.slug')
+            ->sort()
+            ->values()
+            ->all();
+
+        $this->assertSame(['cat-140-gc', 'cat-de200-gc', 'cat-de220-gc', 'cat-xqp150'], $slugs);
+    }
+
+    public function test_le_re504836_couvre_les_quatre_tracteurs_5m(): void
+    {
+        $slugs = DB::table('part_fitments')
+            ->join('parts', 'parts.id', '=', 'part_fitments.part_id')
+            ->join('vehicle_models', 'vehicle_models.id', '=', 'part_fitments.vehicle_model_id')
+            ->where('parts.sku', 'RE504836')
+            ->pluck('vehicle_models.slug')
+            ->sort()
+            ->values()
+            ->all();
+
+        $this->assertSame(['jd-5075m', 'jd-5090m', 'jd-5100m', 'jd-5115m'], $slugs);
+    }
+
+    public function test_le_re59754_est_relie_aux_5410_et_5510(): void
+    {
+        $slugs = DB::table('part_fitments')
+            ->join('parts', 'parts.id', '=', 'part_fitments.part_id')
+            ->join('vehicle_models', 'vehicle_models.id', '=', 'part_fitments.vehicle_model_id')
+            ->where('parts.sku', 'RE59754')
+            ->pluck('vehicle_models.slug')
+            ->sort()
+            ->values()
+            ->all();
+
+        $this->assertSame(['jd-5410', 'jd-5510'], $slugs);
+    }
+
+    public function test_la_niveleuse_140_gc_n_est_pas_rangee_comme_groupe(): void
+    {
+        $modele = VehicleModel::where('slug', 'cat-140-gc')->firstOrFail();
+
+        $this->assertSame('Niveleuse', $modele->body_type);
+        $this->assertSame('other', $modele->equipment_category);
     }
 
     public function test_une_machine_desactivee_a_la_main_le_reste(): void
