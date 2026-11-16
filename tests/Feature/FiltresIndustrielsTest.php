@@ -206,7 +206,7 @@ class FiltresIndustrielsTest extends TestCase
         $fs1280 = Part::where('sku', 'FS1280')->firstOrFail();
 
         $this->assertEqualsCanonicalizing(
-            ['3930942', '3890706', '3903410'],
+            ['FS1280', '3930942', '3890706', '3903410'],
             $fs1280->oemNumbers()->pluck('number')->all(),
         );
     }
