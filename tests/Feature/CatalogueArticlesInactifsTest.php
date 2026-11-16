@@ -35,6 +35,13 @@ class CatalogueArticlesInactifsTest extends TestCase
     {
         parent::setUp();
 
+        // La fabrique des pieces cherche une categorie et un fabricant deja
+        // presents : sans ces seeders, chaque test levait ModelNotFoundException.
+        $this->seed([
+            \Database\Seeders\PartCategoriesSeeder::class,
+            \Database\Seeders\ManufacturersSeeder::class,
+        ]);
+
         $this->pieceActive = Part::factory()->create(['name' => 'Filtre actif', 'is_active' => true]);
         $this->pieceInactive = Part::factory()->create(['name' => 'Filtre inactif', 'is_active' => false]);
         $this->accessoireActif = Accessory::factory()->create(['name' => 'Tapis actif', 'is_active' => true, 'is_available' => true, 'stock_quantity' => 2]);
