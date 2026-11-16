@@ -20,6 +20,7 @@ class PartnerAccount extends Model
      */
     protected $fillable = [
         'user_id', 'company_name', 'contact_name', 'phone', 'whatsapp',
+        'city', 'address',
         'status', 'review_reason', 'reviewed_by', 'reviewed_at',
     ];
 

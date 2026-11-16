@@ -20,7 +20,7 @@ class Accessory extends Model
         'sku', 'name', 'description', 'category', 'manufacturer_id',
         'weight_kg', 'dimensions', 'warranty_months', 'cost_price', 'selling_price',
         'currency', 'vat_rate', 'stock_quantity', 'stock_alert_threshold',
-        'storage_location', 'location_id', 'is_active', 'is_available',
+        'storage_location', 'location_id', 'city', 'site', 'is_active', 'is_available',
         'owner_partner_account_id', 'partner_published_at', 'partner_pricing',
         'deal_price', 'deal_starts_at', 'deal_ends_at',
     ];

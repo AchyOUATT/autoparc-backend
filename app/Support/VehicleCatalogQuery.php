@@ -49,7 +49,7 @@ final class VehicleCatalogQuery
             ->when($request->filled('vehicle_type'), fn ($q) => $q->where('vehicle_type', $request->vehicle_type))
             ->when($request->filled('body_style'), fn ($q) => $q->where('body_style', $request->body_style))
             ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
-            ->when($request->filled('city'), fn ($q) => $q->whereHas('location', fn ($l) => $l->where('city', $request->city)))
+            ->when($request->filled('city'), fn ($q) => EmplacementPartenaire::filtrerParVille($q, $request->string('city')->toString()))
             ->when($request->boolean('available_for_rent'), fn ($q) => $q->forRent()->inStock())
             ->when($request->boolean('deal'), fn ($q) => $q->where(fn ($sous) => $sous
                 ->whereNotNull('deal_type')

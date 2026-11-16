@@ -339,14 +339,18 @@ final class PartnerListingPresentation
                 'optional_feature_count', 'is_full_option', 'media', 'description',
                 'published_at', 'created_at', 'share_version', 'seller', 'deal',
             ]);
+            // La ville et le lieu sont publics : l'acheteur filtre et
+            // s'y rend. L'agence AutoParc (`location`, `location_id`)
+            // et le fournisseur interne restent masques.
             $data['commercial'] = Arr::only($data['commercial'], [
                 'condition', 'status', 'status_label', 'availability', 'sale_price',
                 'rental_daily_rate', 'rental_weekly_rate', 'rental_monthly_rate',
                 'rental_deposit', 'currency', 'price_negotiable', 'deal_type', 'deal_label',
+                'city', 'site',
             ]);
         } else {
             $data = Arr::only($data, [
-                'id', 'name', 'description', 'compatibility_assessment', 'type', 'condition',
+                'id', 'name', 'description', 'city', 'site', 'compatibility_assessment', 'type', 'condition',
                 'category', 'category_id', 'manufacturer', 'manufacturer_id',
                 'manufacturer_reference', 'oem_numbers', 'pricing', 'stock', 'media',
                 'warranty_months', 'weight_kg', 'dimensions', 'is_active',

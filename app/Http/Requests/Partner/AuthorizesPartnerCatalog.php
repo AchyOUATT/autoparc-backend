@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Partner;
 
+use App\Models\PartnerAccount;
+use App\Support\EmplacementPartenaire;
 use App\Support\MargePartenaire;
 use App\Support\PartnerOwnership;
 use App\Support\PromotionPartenaire;
@@ -204,6 +206,15 @@ trait AuthorizesPartnerCatalog
         $produit = $this->route($this->partnerRouteParameter());
         $detailExistant = $produit instanceof Model ? $produit->getAttribute('partner_pricing') : null;
         $donnees = MargePartenaire::appliquer(parent::validated(), $this->champsDePrix(), $detailExistant);
+
+        $compte = $this->user()?->partnerAccount;
+        if ($compte instanceof PartnerAccount) {
+            $donnees = EmplacementPartenaire::appliquer(
+                $donnees,
+                $produit instanceof Model ? $produit : null,
+                $compte,
+            );
+        }
 
         // On applique la marge AVANT d'extraire la clef, et non l'inverse :
         // `validated('sale_price')` doit rendre le meme nombre que

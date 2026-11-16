@@ -213,7 +213,8 @@ class ArticleController extends Controller
                 'Boîte'        => $this->boite($vehicle->transmission),
                 'Carburant'    => $vehicle->engineType?->label,
                 'Couleur'      => $vehicle->color?->name,
-                'Ville'        => $vehicle->location?->city,
+                'Ville'        => $vehicle->city ?: $vehicle->location?->city,
+                'Lieu'         => $vehicle->site,
             ]),
         ));
     }
@@ -267,7 +268,8 @@ class ArticleController extends Controller
             'Cabine' => $details['cabin'] ?? null,
             'Attache rapide' => isset($details['quick_coupler']) ? ($details['quick_coupler'] ? 'Oui' : 'Non') : null,
             'Accessoires' => $details['attachments'] ?? null,
-            'Ville' => $vehicle->location?->city,
+            'Ville' => $vehicle->city ?: $vehicle->location?->city,
+            'Lieu' => $vehicle->site,
         ];
 
         return array_filter($precisions, static fn ($value) => $value !== null && $value !== '');
@@ -305,7 +307,8 @@ class ArticleController extends Controller
                 'Référence'  => $part->manufacturer_reference,
                 'État'       => $this->etatPiece($part->condition),
                 'Garantie'   => $part->warranty_months ? $part->warranty_months.' mois' : null,
-                'Ville'      => $part->location?->city,
+                'Ville'      => $part->city ?: $part->location?->city,
+                'Lieu'       => $part->site,
             ]),
         ));
     }
@@ -330,7 +333,8 @@ class ArticleController extends Controller
                 'Catégorie' => $accessory->category?->label(),
                 'Fabricant' => $accessory->manufacturer?->name,
                 'Garantie'  => $accessory->warranty_months ? $accessory->warranty_months.' mois' : null,
-                'Ville'     => $accessory->location?->city,
+                'Ville'     => $accessory->city ?: $accessory->location?->city,
+                'Lieu'      => $accessory->site,
             ]),
         ));
     }

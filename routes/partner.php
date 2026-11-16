@@ -27,6 +27,7 @@ Route::prefix('partner')->name('partner.')->middleware('partner.space')->group(f
 
     Route::middleware(['auth:sanctum', 'partner'])->group(function () {
         Route::get('me', [PartnerAuthController::class, 'me'])->name('me');
+        Route::patch('me', [PartnerAuthController::class, 'update'])->name('me.update');
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
         // ── LA BOITE AUX LETTRES DU PARTENAIRE ────────────────────────────

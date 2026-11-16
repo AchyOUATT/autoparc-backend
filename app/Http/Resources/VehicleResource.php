@@ -133,6 +133,7 @@ class VehicleResource extends JsonResource
                 'deal_type'          => $this->deal_type?->value,
                 'deal_label'         => $this->deal_type?->label(),
                 'site'               => $this->site,
+                'city'               => $this->city,
                 'location'           => $this->whenLoaded('location', fn () => $this->location ? [
                     'id'      => $this->location->id,
                     'name'    => $this->location->name,
