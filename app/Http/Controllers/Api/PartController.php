@@ -18,6 +18,7 @@ use App\Models\Part;
 use App\Services\FcmService;
 use App\Services\StockService;
 use App\Support\EmplacementPartenaire;
+use App\Support\FiltreActivationArticle;
 use App\Support\PrixEffectif;
 use App\Support\TriPublic;
 use Illuminate\Http\JsonResponse;
@@ -62,7 +63,7 @@ class PartController extends Controller
             ->when($request->filled('price_max'), fn ($q) => PrixEffectif::filtrer($q, 'selling_price', '<=', $request->price_max))
             ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
             ->when($request->filled('city'), fn ($q) => EmplacementPartenaire::filtrerParVille($q, $request->string('city')->toString()))
-            ->when($request->boolean('active_only', true), fn ($q) => $q->active())
+            ->tap(fn ($q) => FiltreActivationArticle::appliquer($q, $request))
             ->tap(fn ($q) => TriPublic::appliquer($q, $request, TriPublic::articles(), 'name', 'asc'))
             ->paginate($request->integer('per_page', 20))
             ->withQueryString();
@@ -161,6 +162,9 @@ class PartController extends Controller
     public function show(Part $part): PartResource
     {
         if (! request()->user()?->isStaff()) {
+            // visibleToPublic ne filtre is_active que pour les annonces
+            // partenaires : une piece AutoParc inactive restait lisible.
+            abort_if(! $part->is_active, 404);
             abort_unless(Part::visibleToPublic()->whereKey($part->id)->exists(), 404);
         }
 
