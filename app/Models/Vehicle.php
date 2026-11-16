@@ -202,6 +202,16 @@ class Vehicle extends Model
         return $this->registration_status === RegistrationStatus::Unregistered;
     }
 
+    /**
+     * Un vehicule est dedouane, ou non. Sans dossier d'import, il est
+     * considere comme dedouane : c'est le defaut demande, et on ne cree
+     * pas de faux dossier pour le porter.
+     */
+    public function isCustomsCleared(): bool
+    {
+        return $this->importDetail?->customs_cleared ?? true;
+    }
+
     /** Pays de provenance (import) ou pays d'immatriculation selon le cas. */
     public function getOriginCountryAttribute(): ?Country
     {
