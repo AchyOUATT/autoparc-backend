@@ -311,16 +311,24 @@ class VinDecodeService
      */
     private function resolveModel(int $brandId, string $nhtsaModel, ?int $annee = null): ?array
     {
-        $lower = strtolower($nhtsaModel);
+        $lower = strtolower(trim($nhtsaModel));
 
+        if ($lower === '') {
+            return null;
+        }
+
+        // Le nom du catalogue et celui de NHTSA peuvent differer d'une espace
+        // (« Mazda 3 » contre « Mazda3 ») ou porter un alias commercial.
+        // Le classement preserve l'egalite exacte du nom, puis la forme
+        // normalisee, puis les alias, et enfin le LIKE historique sur le nom.
         $candidats = VehicleModel::where('brand_id', $brandId)
             ->where('is_active', true)
-            ->where(function ($q) use ($lower) {
-                $q->whereRaw('LOWER(name) = ?', [$lower])
-                  ->orWhereRaw('LOWER(name) LIKE ?', ["%{$lower}%"]);
-            })
-            ->orderByRaw("CASE WHEN LOWER(name) = ? THEN 0 ELSE 1 END", [$lower])
-            ->get(['id', 'name', 'slug', 'generation', 'body_type', 'production_start', 'production_end']);
+            ->get(['id', 'name', 'slug', 'generation', 'body_type', 'production_start', 'production_end', 'aliases'])
+            ->map(fn ($modele) => ['score' => $this->scoreNomNhtsa($modele, $lower), 'modele' => $modele])
+            ->filter(fn ($ligne) => $ligne['score'] !== null)
+            ->sortBy('score')
+            ->values()
+            ->map(fn ($ligne) => $ligne['modele']);
 
         if ($candidats->isEmpty()) {
             return null;
@@ -342,6 +350,49 @@ class VinDecodeService
             // l'est pas.
             'covers_year' => $couvre,
         ];
+    }
+
+    /**
+     * Classement d'un modele face au nom renvoye par NHTSA.
+     *
+     * 0 : egalite exacte du nom, insensible a la casse
+     * 1 : meme nom une fois espaces et tirets retires
+     * 2 : egalite exacte d'un alias
+     * 3 : alias normalise
+     * 4 : le nom contient la chaine NHTSA (comportement historique)
+     */
+    private function scoreNomNhtsa(VehicleModel $modele, string $lower): ?int
+    {
+        $nom = strtolower((string) $modele->name);
+        $cible = $this->normaliserNomModele($lower);
+
+        if ($nom === $lower) {
+            return 0;
+        }
+        if ($cible !== '' && $this->normaliserNomModele($nom) === $cible) {
+            return 1;
+        }
+
+        foreach ($modele->aliases ?? [] as $alias) {
+            $alias = strtolower(trim((string) $alias));
+            if ($alias === '') {
+                continue;
+            }
+            if ($alias === $lower) {
+                return 2;
+            }
+            if ($cible !== '' && $this->normaliserNomModele($alias) === $cible) {
+                return 3;
+            }
+        }
+
+        return str_contains($nom, $lower) ? 4 : null;
+    }
+
+    /** Retire espaces et tirets pour comparer « Mazda 3 » et « Mazda3 ». */
+    private function normaliserNomModele(string $nom): string
+    {
+        return strtolower((string) preg_replace('/[\s\-]+/u', '', $nom));
     }
 
     /**
