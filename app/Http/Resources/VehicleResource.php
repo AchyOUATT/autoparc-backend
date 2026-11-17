@@ -54,6 +54,11 @@ class VehicleResource extends JsonResource
                 'label' => $this->registration_status?->label(),
             ],
 
+            // Toujours present pour un vehicule routier, meme sans dossier
+            // d'import : sans dossier, le vehicule est considere dedouane.
+            // On n'invente pas de bloc `import` vide (pays, compteur, etc.).
+            'customs_cleared' => $isEquipment ? null : $this->isCustomsCleared(),
+
             'identity' => [
                 'brand' => $this->when($this->relationLoaded('brand') || $isEquipment,
                     fn () => ($this->relationLoaded('brand') ? $this->brand?->name : null) ?? ($equipment['brand_label'] ?? '')),
