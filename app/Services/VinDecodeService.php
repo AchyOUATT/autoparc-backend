@@ -360,17 +360,24 @@ class VinDecodeService
      * 2 : egalite exacte d'un alias
      * 3 : alias normalise
      * 4 : le nom contient la chaine NHTSA (comportement historique)
+     *
+     * Un libelle double (« Mazda 5 / Premacy ») est aussi compare partie
+     * par partie, pour que NHTSA « Mazda5 » trouve la fiche sans alias colle.
      */
     private function scoreNomNhtsa(VehicleModel $modele, string $lower): ?int
     {
-        $nom = strtolower((string) $modele->name);
         $cible = $this->normaliserNomModele($lower);
+        $meilleur = null;
 
-        if ($nom === $lower) {
-            return 0;
-        }
-        if ($cible !== '' && $this->normaliserNomModele($nom) === $cible) {
-            return 1;
+        foreach ($this->nomsComparables((string) $modele->name) as $nomBrut) {
+            $nom = strtolower($nomBrut);
+            if ($nom === $lower) {
+                $meilleur = $this->meilleurScore($meilleur, 0);
+                continue;
+            }
+            if ($cible !== '' && $this->normaliserNomModele($nom) === $cible) {
+                $meilleur = $this->meilleurScore($meilleur, 1);
+            }
         }
 
         foreach ($modele->aliases ?? [] as $alias) {
@@ -379,14 +386,37 @@ class VinDecodeService
                 continue;
             }
             if ($alias === $lower) {
-                return 2;
+                $meilleur = $this->meilleurScore($meilleur, 2);
+                continue;
             }
             if ($cible !== '' && $this->normaliserNomModele($alias) === $cible) {
-                return 3;
+                $meilleur = $this->meilleurScore($meilleur, 3);
             }
         }
 
-        return str_contains($nom, $lower) ? 4 : null;
+        if ($meilleur === null && str_contains(strtolower((string) $modele->name), $lower)) {
+            return 4;
+        }
+
+        return $meilleur;
+    }
+
+    /**
+     * Le nom complet, puis chaque partie separee par une barre oblique.
+     *
+     * @return list<string>
+     */
+    private function nomsComparables(string $nom): array
+    {
+        $parties = preg_split('/\s*\/\s*/u', $nom) ?: [$nom];
+        $noms = [trim($nom), ...array_map('trim', $parties)];
+
+        return array_values(array_unique(array_filter($noms, fn (string $partie) => $partie !== '')));
+    }
+
+    private function meilleurScore(?int $actuel, int $candidat): int
+    {
+        return $actuel === null || $candidat < $actuel ? $candidat : $actuel;
     }
 
     /** Retire espaces et tirets pour comparer « Mazda 3 » et « Mazda3 ». */

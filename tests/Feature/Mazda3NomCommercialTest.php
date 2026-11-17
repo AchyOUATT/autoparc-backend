@@ -35,11 +35,18 @@ class Mazda3NomCommercialTest extends TestCase
         'mazda6-gj' => ['GJ', 2012, 2024],
     ];
 
-    private const ALIAS_MAZDA_3 = ['Mazda3', '3', 'Axela'];
+    private const ALIAS_MAZDA_3 = ['3', 'Axela'];
 
-    private const ALIAS_MAZDA_2 = ['Mazda2', 'Demio'];
+    private const ALIAS_MAZDA_2 = ['Demio'];
 
-    private const ALIAS_MAZDA_6 = ['Mazda6', 'Atenza'];
+    private const ALIAS_MAZDA_6 = ['Atenza'];
+
+    /** Alias poses par la migration 2026_11_17_171500, avant le retrait des formes collees. */
+    private const ALIAS_INITIAUX_MAZDA_3 = ['Mazda3', '3', 'Axela'];
+
+    private const ALIAS_INITIAUX_MAZDA_2 = ['Mazda2', 'Demio'];
+
+    private const ALIAS_INITIAUX_MAZDA_6 = ['Mazda6', 'Atenza'];
 
     private function semer(): void
     {
@@ -159,13 +166,13 @@ class Mazda3NomCommercialTest extends TestCase
         $this->migration()->up();
 
         $this->assertSame('Mazda 2', VehicleModel::findOrFail($ids['mazda2-dj'])->name);
-        $this->assertSame(self::ALIAS_MAZDA_2, VehicleModel::findOrFail($ids['mazda2-dj'])->aliases);
+        $this->assertSame(self::ALIAS_INITIAUX_MAZDA_2, VehicleModel::findOrFail($ids['mazda2-dj'])->aliases);
 
         foreach (['mazda3-bl', 'mazda3-bm', 'mazda3-bp'] as $slug) {
             $modele = VehicleModel::findOrFail($ids[$slug]);
             $this->assertSame($slug, $modele->slug);
             $this->assertSame('Mazda 3', $modele->name);
-            $this->assertSame(self::ALIAS_MAZDA_3, $modele->aliases);
+            $this->assertSame(self::ALIAS_INITIAUX_MAZDA_3, $modele->aliases);
         }
 
         $bk = VehicleModel::where('brand_id', $marqueId)->where('slug', 'mazda3-bk')->first();
@@ -177,14 +184,14 @@ class Mazda3NomCommercialTest extends TestCase
         $this->assertSame(2003, (int) $bk->production_start);
         $this->assertSame(2008, (int) $bk->production_end);
         $this->assertTrue((bool) $bk->is_active);
-        $this->assertSame(self::ALIAS_MAZDA_3, $bk->aliases);
+        $this->assertSame(self::ALIAS_INITIAUX_MAZDA_3, $bk->aliases);
 
         foreach ($ids as $slug => $id) {
             if (str_starts_with($slug, 'mazda6-')) {
                 $modele = VehicleModel::findOrFail($id);
                 $this->assertSame('Mazda 6', $modele->name);
                 $this->assertSame($slug, $modele->slug);
-                $this->assertSame(self::ALIAS_MAZDA_6, $modele->aliases);
+                $this->assertSame(self::ALIAS_INITIAUX_MAZDA_6, $modele->aliases);
             }
         }
 
@@ -284,12 +291,12 @@ class Mazda3NomCommercialTest extends TestCase
         $this->assertNotNull($ligne, 'Le delta doit renvoyer la fiche dont le nom a change.');
         $this->assertSame($modele->id, $ligne['id']);
         $this->assertSame('Mazda 3', $ligne['name']);
-        $this->assertSame(self::ALIAS_MAZDA_3, $ligne['aliases']);
+        $this->assertSame(self::ALIAS_INITIAUX_MAZDA_3, $ligne['aliases']);
 
         $bk = collect($delta)->firstWhere('slug', 'mazda3-bk');
         $this->assertNotNull($bk, 'Le delta doit aussi exposer la generation BK ajoutee.');
         $this->assertSame('Mazda 3', $bk['name']);
-        $this->assertSame(self::ALIAS_MAZDA_3, $bk['aliases']);
+        $this->assertSame(self::ALIAS_INITIAUX_MAZDA_3, $bk['aliases']);
         $this->assertSame(2003, $bk['production_start']);
         $this->assertSame(2008, $bk['production_end']);
     }
