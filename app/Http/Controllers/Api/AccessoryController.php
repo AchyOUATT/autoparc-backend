@@ -14,6 +14,7 @@ use App\Models\AppNotification;
 use App\Models\ClientFcmToken;
 use App\Models\CustomerNeed;
 use App\Services\FcmService;
+use App\Support\FiltreActivationArticle;
 use App\Support\PrixEffectif;
 use App\Support\TriPublic;
 use Illuminate\Http\JsonResponse;
@@ -93,7 +94,7 @@ class AccessoryController extends Controller
             ->when($request->boolean('low_stock'), fn ($q) => $q->lowStock())
             ->when($request->filled('price_max'), fn ($q) => PrixEffectif::filtrer($q, 'selling_price', '<=', $request->price_max))
             ->when($request->filled('vehicle_model_id'), fn ($q) => $q->compatibleWithModel($request->integer('vehicle_model_id')))
-            ->when($request->boolean('active_only', true), fn ($q) => $q->active())
+            ->tap(fn ($q) => FiltreActivationArticle::appliquer($q, $request))
             ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
             ->when($request->filled('city'), fn ($q) => EmplacementPartenaire::filtrerParVille($q, $request->string('city')->toString()))
             ->tap(fn ($q) => TriPublic::appliquer($q, $request, TriPublic::articles(), 'name', 'asc'))
