@@ -358,6 +358,50 @@ class VehicleModelsSeeder extends Seeder
         'venza',
     ];
 
+    /**
+     * Noms commerciaux dont le slug historique ne doit pas suivre Str::slug().
+     *
+     * « Mazda 3 » produirait mazda-3-bp et creerait, a l'upsert, une nouvelle
+     * fiche a cote de mazda3-bp, deja referencee en production (deux vehicules
+     * de garage portent cet identifiant). Le slug reste donc celui d'origine.
+     * Meme precaution pour Mazda 2 et Mazda 6, et pour la generation BK.
+     *
+     * Cle : marque|nom|generation.
+     *
+     * @var array<string, string>
+     */
+    public const SLUGS_HISTORIQUES = [
+        'mazda|Mazda 2|DJ' => 'mazda2-dj',
+        'mazda|Mazda 3|BK' => 'mazda3-bk',
+        'mazda|Mazda 3|BL' => 'mazda3-bl',
+        'mazda|Mazda 3|BM' => 'mazda3-bm',
+        'mazda|Mazda 3|BP' => 'mazda3-bp',
+        'mazda|Mazda 6|GG' => 'mazda6-gg',
+        'mazda|Mazda 6|GH' => 'mazda6-gh',
+        'mazda|Mazda 6|GJ' => 'mazda6-gj',
+    ];
+
+    /**
+     * Autres ecritures du meme modele, exposees comme alias.
+     *
+     * Mazda stylise ces noms en « Mazda2 », « Mazda3 », « Mazda6 ». Le
+     * catalogue affiche la forme usuelle avec espace, conserve l'ecriture
+     * collee (NHTSA les renvoie ainsi) et les noms de marche japonais
+     * Demio, Axela et Atenza.
+     *
+     * @var array<string, list<string>>
+     */
+    public const ALIAS_COMMERCIAUX = [
+        'mazda2-dj' => ['Mazda2', 'Demio'],
+        'mazda3-bk' => ['Mazda3', '3', 'Axela'],
+        'mazda3-bl' => ['Mazda3', '3', 'Axela'],
+        'mazda3-bm' => ['Mazda3', '3', 'Axela'],
+        'mazda3-bp' => ['Mazda3', '3', 'Axela'],
+        'mazda6-gg' => ['Mazda6', 'Atenza'],
+        'mazda6-gh' => ['Mazda6', 'Atenza'],
+        'mazda6-gj' => ['Mazda6', 'Atenza'],
+    ];
+
     public function run(): void
     {
         $brandMap = DB::table('brands')->pluck('id', 'slug')->toArray();
@@ -695,13 +739,20 @@ class VehicleModelsSeeder extends Seeder
             ['isuzu', 'MU-X',       null,   'suv',       'D', 2013, null],
 
             // ─── MAZDA ─────────────────────────────────────────────────
-            ['mazda', 'Mazda2',     'DJ',   'citadine',  'B', 2014, null],
-            ['mazda', 'Mazda3',     'BP',   'compacte',  'C', 2018, null],
+            ['mazda', 'Mazda 2',    'DJ',   'citadine',  'B', 2014, null],
+            // Le nom commercial usuel est « Mazda 3 ». Les slugs historiques
+            // mazda3-bk (et BL, BM, BP) sont conserves via SLUGS_HISTORIQUES.
+            //
+            // La premiere generation (BK) est produite a partir de 2003. Sa
+            // fin est posee en 2008, annee ou la BL commence deja dans ce
+            // catalogue : les bornes se touchent, comme pour BL/BM et BM/BP.
+            ['mazda', 'Mazda 3',    'BK',   'compacte',  'C', 2003, 2008],
+            ['mazda', 'Mazda 3',    'BL',   'compacte',  'C', 2008, 2013],
             // Seule la BP existait : un Mazda3 de 2014 n'avait donc aucune fiche
             // correcte a choisir, et le decodage VIN le rattachait a la generation
             // suivante faute de mieux — alors que le VIN porte « BM » en clair.
-            ['mazda', 'Mazda3',     'BM',   'compacte',  'C', 2013, 2018],
-            ['mazda', 'Mazda3',     'BL',   'compacte',  'C', 2008, 2013],
+            ['mazda', 'Mazda 3',    'BM',   'compacte',  'C', 2013, 2018],
+            ['mazda', 'Mazda 3',    'BP',   'compacte',  'C', 2018, null],
             ['mazda', 'CX-5',       'KF',   'suv',       'C', 2017, null],
             ['mazda', 'CX-3',       'DK',   'suv',       'B', 2015, null],
             ['mazda', 'BT-50',      null,   'pick-up',   'D', 2011, null],
@@ -725,14 +776,14 @@ class VehicleModelsSeeder extends Seeder
             // vehicule, et deux candidates rendraient ce choix arbitraire.
             //
             // La carrosserie n'est donc pas un element d'identite ici. Un
-            // proprietaire de break choisit « Mazda6 » de son epoque, et la
+            // proprietaire de break choisit « Mazda 6 » de son epoque, et la
             // compatibilite des pieces ne s'en trouve pas changee : berline et
             // break partagent les memes moteurs.
             //
             // Les bornes se touchent sans se recouvrir, comme pour la Mazda3.
-            ['mazda', 'Mazda6',     'GG',   'berline',   'D', 2002, 2008],
-            ['mazda', 'Mazda6',     'GH',   'berline',   'D', 2008, 2012],
-            ['mazda', 'Mazda6',     'GJ',   'berline',   'D', 2012, 2024],
+            ['mazda', 'Mazda 6',    'GG',   'berline',   'D', 2002, 2008],
+            ['mazda', 'Mazda 6',    'GH',   'berline',   'D', 2008, 2012],
+            ['mazda', 'Mazda 6',    'GJ',   'berline',   'D', 2012, 2024],
 
             // Deux noms pour un meme vehicule : Premacy au Japon, Mazda5 a
             // l'export. Les deux figurent sur les cartes grises des vehicules
@@ -884,7 +935,8 @@ class VehicleModelsSeeder extends Seeder
             }
 
             // Un même modèle peut avoir plusieurs générations — slug inclut la génération
-            $slug = Str::slug($name . ($generation ? '-' . $generation : ''));
+            $slug = self::SLUGS_HISTORIQUES[$brandSlug.'|'.$name.'|'.($generation ?? '')]
+                ?? Str::slug($name . ($generation ? '-' . $generation : ''));
 
             // Un slug nu dont les generations ont ete posees sort des listes
             // de selection, et sa ligne reste. Le drapeau est calcule ici et
@@ -914,8 +966,11 @@ class VehicleModelsSeeder extends Seeder
                 'is_active'        => $actif,
                 ...($bodyType === 'truck' ? ['default_vehicle_type' => 'heavy'] : []),
             ];
-            if ($brandSlug === 'kia') {
-                $attributes['aliases'] = json_encode($kiaAliases[$slug], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            $aliases = $brandSlug === 'kia'
+                ? ($kiaAliases[$slug] ?? null)
+                : (self::ALIAS_COMMERCIAUX[$slug] ?? null);
+            if ($aliases !== null) {
+                $attributes['aliases'] = json_encode($aliases, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
             }
 
             ReferenceCatalogWriter::upsert('vehicle_models', [
