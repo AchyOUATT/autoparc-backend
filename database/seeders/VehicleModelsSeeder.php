@@ -376,6 +376,9 @@ class VehicleModelsSeeder extends Seeder
         'mazda|Mazda 3|BL' => 'mazda3-bl',
         'mazda|Mazda 3|BM' => 'mazda3-bm',
         'mazda|Mazda 3|BP' => 'mazda3-bp',
+        'mazda|Mazda 5 / Premacy|CP' => 'mazda5-premacy-cp',
+        'mazda|Mazda 5 / Premacy|CR' => 'mazda5-premacy-cr',
+        'mazda|Mazda 5 / Premacy|CW' => 'mazda5-premacy-cw',
         'mazda|Mazda 6|GG' => 'mazda6-gg',
         'mazda|Mazda 6|GH' => 'mazda6-gh',
         'mazda|Mazda 6|GJ' => 'mazda6-gj',
@@ -384,22 +387,23 @@ class VehicleModelsSeeder extends Seeder
     /**
      * Autres ecritures du meme modele, exposees comme alias.
      *
-     * Mazda stylise ces noms en « Mazda2 », « Mazda3 », « Mazda6 ». Le
-     * catalogue affiche la forme usuelle avec espace, conserve l'ecriture
-     * collee (NHTSA les renvoie ainsi) et les noms de marche japonais
-     * Demio, Axela et Atenza.
+     * Le catalogue affiche la forme avec espace (« Mazda 2 », « Mazda 3 »,
+     * « Mazda 6 »). Les alias conserves sont les noms de marche japonais
+     * Demio, Axela et Atenza. Les ecritures collees Mazda2, Mazda3 et
+     * Mazda6, ainsi que l'alias « 3 », ne figurent plus au selecteur : le
+     * decodage VIN rapproche les formes collees en normalisant les espaces.
      *
      * @var array<string, list<string>>
      */
     public const ALIAS_COMMERCIAUX = [
-        'mazda2-dj' => ['Mazda2', 'Demio'],
-        'mazda3-bk' => ['Mazda3', '3', 'Axela'],
-        'mazda3-bl' => ['Mazda3', '3', 'Axela'],
-        'mazda3-bm' => ['Mazda3', '3', 'Axela'],
-        'mazda3-bp' => ['Mazda3', '3', 'Axela'],
-        'mazda6-gg' => ['Mazda6', 'Atenza'],
-        'mazda6-gh' => ['Mazda6', 'Atenza'],
-        'mazda6-gj' => ['Mazda6', 'Atenza'],
+        'mazda2-dj' => ['Demio'],
+        'mazda3-bk' => ['Axela'],
+        'mazda3-bl' => ['Axela'],
+        'mazda3-bm' => ['Axela'],
+        'mazda3-bp' => ['Axela'],
+        'mazda6-gg' => ['Atenza'],
+        'mazda6-gh' => ['Atenza'],
+        'mazda6-gj' => ['Atenza'],
     ];
 
     public function run(): void
@@ -785,13 +789,13 @@ class VehicleModelsSeeder extends Seeder
             ['mazda', 'Mazda 6',    'GH',   'berline',   'D', 2008, 2012],
             ['mazda', 'Mazda 6',    'GJ',   'berline',   'D', 2012, 2024],
 
-            // Deux noms pour un meme vehicule : Premacy au Japon, Mazda5 a
+            // Deux noms pour un meme vehicule : Premacy au Japon, Mazda 5 a
             // l'export. Les deux figurent sur les cartes grises des vehicules
             // importes, d'ou le libelle double — c'est exactement le detail qui
             // fait dire « je ne trouve pas mon modele ».
-            ['mazda', 'Mazda5 / Premacy', 'CP', 'monospace', 'C', 1999, 2004],
-            ['mazda', 'Mazda5 / Premacy', 'CR', 'monospace', 'C', 2004, 2010],
-            ['mazda', 'Mazda5 / Premacy', 'CW', 'monospace', 'C', 2010, 2018],
+            ['mazda', 'Mazda 5 / Premacy', 'CP', 'monospace', 'C', 1999, 2004],
+            ['mazda', 'Mazda 5 / Premacy', 'CR', 'monospace', 'C', 2004, 2010],
+            ['mazda', 'Mazda 5 / Premacy', 'CW', 'monospace', 'C', 2010, 2018],
 
             // La premiere generation s'arrete en 2006 et non en 2010 : la
             // borne large chevauchait la seconde, et un Tribute de 2008 aurait
