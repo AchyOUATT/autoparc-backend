@@ -35,7 +35,7 @@ class Mazda3NomCommercialTest extends TestCase
         'mazda6-gj' => ['GJ', 2012, 2024],
     ];
 
-    private const ALIAS_MAZDA_3 = ['3', 'Axela'];
+    private const ALIAS_MAZDA_3 = ['Axela'];
 
     private const ALIAS_MAZDA_2 = ['Demio'];
 

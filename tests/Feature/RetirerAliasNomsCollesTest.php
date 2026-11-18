@@ -13,8 +13,9 @@ use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
- * Les formes collees Mazda2, Mazda3 et Mazda6 ne doivent plus apparaitre
- * dans le selecteur. Le decodage VIN les reconnait encore par normalisation.
+ * Les formes collees Mazda2, Mazda3 et Mazda6, ainsi que l'alias « 3 »,
+ * ne doivent plus apparaitre dans le selecteur. Le decodage VIN reconnait
+ * encore les formes collees par normalisation, sans ces alias.
  */
 class RetirerAliasNomsCollesTest extends TestCase
 {
@@ -50,8 +51,9 @@ class RetirerAliasNomsCollesTest extends TestCase
         foreach (['mazda3-bk', 'mazda3-bl', 'mazda3-bm', 'mazda3-bp'] as $slug) {
             $modele = VehicleModel::where('brand_id', $marque->id)->where('slug', $slug)->firstOrFail();
             $this->assertSame('Mazda 3', $modele->name);
-            $this->assertSame(['3', 'Axela'], $modele->aliases);
+            $this->assertSame(['Axela'], $modele->aliases);
             $this->assertNotContains('Mazda3', $modele->aliases);
+            $this->assertNotContains('3', $modele->aliases);
         }
 
         foreach (['mazda6-gg', 'mazda6-gh', 'mazda6-gj'] as $slug) {
@@ -100,7 +102,8 @@ class RetirerAliasNomsCollesTest extends TestCase
         $this->assertSame('Mazda 2', $deux->fresh()->name);
         $this->assertSame($deux->id, $deux->fresh()->id);
 
-        $this->assertSame(['3', 'Axela'], $trois->fresh()->aliases);
+        $this->assertSame(['Axela'], $trois->fresh()->aliases);
+        $this->assertNotContains('3', $trois->fresh()->aliases);
         $this->assertSame('Mazda 3', $trois->fresh()->name);
         $this->assertSame($trois->id, $trois->fresh()->id);
 
@@ -178,8 +181,9 @@ class RetirerAliasNomsCollesTest extends TestCase
         $ligne = collect($delta)->firstWhere('id', $modele->id);
         $this->assertNotNull($ligne);
         $this->assertSame('Mazda 3', $ligne['name']);
-        $this->assertSame(['3', 'Axela'], $ligne['aliases']);
+        $this->assertSame(['Axela'], $ligne['aliases']);
         $this->assertNotContains('Mazda3', $ligne['aliases']);
+        $this->assertNotContains('3', $ligne['aliases']);
 
         $premacy = collect($delta)->firstWhere('id', $cinq->id);
         $this->assertNotNull($premacy);

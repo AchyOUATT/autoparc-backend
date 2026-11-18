@@ -5,21 +5,22 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Les alias Mazda2, Mazda3 et Mazda6 apparaissaient dans le selecteur
- * (« Mazda 3 / Mazda3 / 3 »). Ils sont retires. Les noms de marche japonais
- * et l'alias « 3 » restent. Le libelle « Mazda5 / Premacy » prend la meme
- * espace que Mazda 2, 3 et 6. Le decodage VIN rapproche encore les formes
- * collees en normalisant les espaces, sans ces alias.
+ * Les alias Mazda2, Mazda3, Mazda6 et « 3 » apparaissaient dans le
+ * selecteur (« Mazda 3 / Mazda3 / 3 »). Ils sont retires. Les noms de
+ * marche japonais Demio, Axela et Atenza restent. Le libelle
+ * « Mazda5 / Premacy » prend la meme espace que Mazda 2, 3 et 6. Le
+ * decodage VIN rapproche encore les formes collees en normalisant les
+ * espaces, sans ces alias.
  */
 return new class extends Migration
 {
     /** @var array<string, list<string>> */
     private const ALIAS_COLLES = [
         'mazda2-dj' => ['Mazda2'],
-        'mazda3-bk' => ['Mazda3'],
-        'mazda3-bl' => ['Mazda3'],
-        'mazda3-bm' => ['Mazda3'],
-        'mazda3-bp' => ['Mazda3'],
+        'mazda3-bk' => ['Mazda3', '3'],
+        'mazda3-bl' => ['Mazda3', '3'],
+        'mazda3-bm' => ['Mazda3', '3'],
+        'mazda3-bp' => ['Mazda3', '3'],
         'mazda6-gg' => ['Mazda6'],
         'mazda6-gh' => ['Mazda6'],
         'mazda6-gj' => ['Mazda6'],

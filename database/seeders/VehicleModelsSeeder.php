@@ -389,18 +389,18 @@ class VehicleModelsSeeder extends Seeder
      *
      * Le catalogue affiche la forme avec espace (« Mazda 2 », « Mazda 3 »,
      * « Mazda 6 »). Les alias conserves sont les noms de marche japonais
-     * Demio, Axela et Atenza, ainsi que « 3 ». Les ecritures collees
-     * Mazda2, Mazda3 et Mazda6 ne figurent plus au selecteur : le decodage
-     * VIN les rapproche en normalisant les espaces.
+     * Demio, Axela et Atenza. Les ecritures collees Mazda2, Mazda3 et
+     * Mazda6, ainsi que l'alias « 3 », ne figurent plus au selecteur : le
+     * decodage VIN rapproche les formes collees en normalisant les espaces.
      *
      * @var array<string, list<string>>
      */
     public const ALIAS_COMMERCIAUX = [
         'mazda2-dj' => ['Demio'],
-        'mazda3-bk' => ['3', 'Axela'],
-        'mazda3-bl' => ['3', 'Axela'],
-        'mazda3-bm' => ['3', 'Axela'],
-        'mazda3-bp' => ['3', 'Axela'],
+        'mazda3-bk' => ['Axela'],
+        'mazda3-bl' => ['Axela'],
+        'mazda3-bm' => ['Axela'],
+        'mazda3-bp' => ['Axela'],
         'mazda6-gg' => ['Atenza'],
         'mazda6-gh' => ['Atenza'],
         'mazda6-gj' => ['Atenza'],
