@@ -108,6 +108,7 @@ class AccessoryResource extends JsonResource
                 'trim'             => $f->trim?->name,
                 'engine_type_id'   => $f->engine_type_id,
                 'drivetrain_id'    => $f->drivetrain_id,
+                'chassis_code'     => $f->chassis_code,
                 'year_from'        => $f->year_from,
                 'year_to'          => $f->year_to,
                 'notes'            => $f->notes,

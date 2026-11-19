@@ -94,6 +94,7 @@ class CompatibiliteSaisieTest extends TestCase
             'engine_type_id'   => $this->motorisation->id,
             'drivetrain_id'    => $this->transmission->id,
             'engine_code'      => '1ND-TV',
+            'chassis_code'     => 'ZZE122',
             'year_from'        => 2010,
             'year_to'          => 2014,
             'position'         => 'avant gauche',
@@ -252,6 +253,7 @@ class CompatibiliteSaisieTest extends TestCase
             'trim_id'          => $this->finition->id,
             'engine_type_id'   => $this->motorisation->id,
             'drivetrain_id'    => $this->transmission->id,
+            'chassis_code'     => 'NCP91',
             'year_from'        => 2010,
             'year_to'          => 2014,
             'notes'            => 'pose verifie',
@@ -307,5 +309,50 @@ class CompatibiliteSaisieTest extends TestCase
             FitmentSource::Declared,
             Part::findOrFail($id)->fitments()->first()->source,
         );
+    }
+
+    /**
+     * Une ancienne application qui ignore `chassis_code` ne doit ni etre
+     * rejetee, ni vider un code deja renseigne.
+     */
+    public function test_une_ancienne_application_conserve_le_code_chassis(): void
+    {
+        $id = $this->postJson('/api/parts', $this->corps([
+            'fitments' => [$this->ligneComplete()],
+        ]))->assertCreated()->json('data.id');
+
+        $lues = $this->getJson("/api/parts/{$id}")->assertOk()->json('data.fitments');
+        $this->assertSame('ZZE122', $lues[0]['chassis_code']);
+
+        $sansCle = array_diff_key($lues[0], array_flip([
+            'id', 'vehicle_model', 'brand_id', 'trim', 'engine_type', 'source', 'chassis_code',
+        ]));
+        $this->assertArrayNotHasKey('chassis_code', $sansCle);
+
+        $this->putJson("/api/parts/{$id}", $this->corps(['fitments' => [$sansCle]]))->assertOk();
+
+        $this->assertSame(
+            'ZZE122',
+            Part::findOrFail($id)->fitments()->first()->chassis_code,
+            'Le code châssis a été vidé par une requête qui ne le connaissait pas.',
+        );
+    }
+
+    public function test_un_code_chassis_vide_efface_explicitement_la_colonne(): void
+    {
+        $id = $this->postJson('/api/parts', $this->corps([
+            'fitments' => [$this->ligneComplete()],
+        ]))->assertCreated()->json('data.id');
+
+        $lues = $this->getJson("/api/parts/{$id}")->assertOk()->json('data.fitments');
+        $renvoyees = array_map(
+            fn (array $l) => array_diff_key($l, array_flip(['id', 'vehicle_model', 'brand_id', 'trim', 'engine_type', 'source'])),
+            $lues,
+        );
+        $renvoyees[0]['chassis_code'] = '';
+
+        $this->putJson("/api/parts/{$id}", $this->corps(['fitments' => $renvoyees]))->assertOk();
+
+        $this->assertNull(Part::findOrFail($id)->fitments()->first()->chassis_code);
     }
 }

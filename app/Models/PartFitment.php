@@ -13,7 +13,7 @@ class PartFitment extends Model
 
     protected $fillable = [
         'part_id', 'vehicle_model_id', 'trim_id', 'engine_type_id',
-        'drivetrain_id', 'engine_code', 'year_from', 'year_to', 'position', 'notes',
+        'drivetrain_id', 'engine_code', 'chassis_code', 'year_from', 'year_to', 'position', 'notes',
         // Renseignee par les controleurs, jamais par la requete : aucune regle
         // de validation ne la laisse passer, et `validated()` ecarte le reste.
         'source',

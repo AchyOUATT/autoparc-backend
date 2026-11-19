@@ -45,7 +45,7 @@ class Toyota10001VerifiedImportTest extends TestCase
     {
         $brand = $this->toyota();
         $part = $this->part();
-        $other = $this->part('90915-10003');
+        $other = $this->part('90915-TESTOTH');
         $commerceBefore = $part->getAttributes();
 
         $this->migrateImport();

@@ -6,6 +6,7 @@ use App\Support\PartnerOwnership;
 use Illuminate\Validation\ValidationException;
 
 use App\Enums\FitmentSource;
+use App\Support\ConservationChassisFitment;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePartRequest;
 use App\Http\Resources\PartResource;
@@ -87,7 +88,9 @@ class PartController extends Controller
             $this->syncOemNumbers($part, $data['oem_numbers'] ?? []);
 
             foreach ($data['fitments'] ?? [] as $fitment) {
-                $part->fitments()->create($this->declaree($fitment));
+                $part->fitments()->create($this->declaree(
+                    ConservationChassisFitment::appliquer($fitment, []),
+                ));
             }
 
             return $part;
@@ -192,9 +195,12 @@ class PartController extends Controller
             // chaque ligne qu'il y a laissee. Toute ligne conservee devient
             // une declaration, meme si elle avait ete fabriquee.
             if (array_key_exists('fitments', $data)) {
+                $conserves = ConservationChassisFitment::index($part->fitments()->get());
                 $part->fitments()->delete();
                 foreach ($data['fitments'] as $fitment) {
-                    $part->fitments()->create($this->declaree($fitment));
+                    $part->fitments()->create($this->declaree(
+                        ConservationChassisFitment::appliquer($fitment, $conserves),
+                    ));
                 }
             }
         });

@@ -83,6 +83,7 @@ class StorePartRequest extends FormRequest
             'fitments.*.engine_type_id'    => ['nullable', 'exists:engine_types,id'],
             'fitments.*.drivetrain_id'     => ['nullable', 'exists:drivetrains,id'],
             'fitments.*.engine_code'       => ['nullable', 'string', 'max:50'],
+            'fitments.*.chassis_code'      => ['nullable', 'string', 'max:80'],
             'fitments.*.year_from'         => ['nullable', 'integer', 'min:1950'],
             'fitments.*.year_to'           => ['nullable', 'integer', 'min:1950', 'gte:fitments.*.year_from'],
             'fitments.*.position'          => ['nullable', 'string', 'max:60'],

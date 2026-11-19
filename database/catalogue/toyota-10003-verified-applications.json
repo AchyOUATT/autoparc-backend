@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "sku": "90915-10003",
+  "reviewed_on": "2026-11-19",
+  "reference_date_policy": "Les applications viennent ligne par ligne du catalogue CUSCO (marché Japon). Les années sont des bornes annuelles ; les mois exacts, les codes châssis et le périmètre japonais restent dans les notes. Quand CUSCO laisse la période ouverte et que le tableau HKS donne une date de fin pour le même châssis et le même moteur, cette fin est retenue, et la note le dit. Contrôler le VIN, le châssis et la date de fabrication aux bornes.",
+  "part": {
+    "name": "Filtre a huile visse 90915-10003",
+    "description": "Filtre à huile vissé, référence d'origine Toyota 90915-10003. Distinct du 90915-10001 : Toyota a changé de référence par châssis, pas par moteur. Les applications rattachées viennent du catalogue CUSCO (marché Japon), recoupées par le tableau HKS lorsque celui-ci les confirme. Prix et stock à renseigner avant publication.",
+    "category_slug": "filtre-huile",
+    "type": "aftermarket",
+    "condition": "new"
+  },
+  "fitments": [
+    {
+      "model_slug": "corolla-e120",
+      "engine_code": "1ZZ-FE",
+      "year_from": 2000,
+      "year_to": 2006,
+      "market": "JP",
+      "source_url": "https://www.cusco.co.jp/products/pdf/oilfilter_toyota.pdf",
+      "source_page": 4,
+      "source_period": "08/2000–10/2006",
+      "chassis_codes": [
+        "ZZE122",
+        "ZZE124"
+      ],
+      "source_model_name": "COROLLA",
+      "reviewed_on": "2026-11-19",
+      "hks_url": "https://www.hks-power.co.jp/en/product_search/product/935/media/print",
+      "hks_period": "ZZE122 08/2000–09/2006, ZZE124 12/2003–09/2006",
+      "notes_extra": "CUSCO liste aussi Allex, Corolla Runx, Corolla Spacio, Corolla Fielder et Sprinter pour les mêmes moteurs et une période comparable ; ces variantes ne sont pas des modèles séparés du catalogue."
+    },
+    {
+      "model_slug": "corolla-e120",
+      "engine_code": "1NZ-FE",
+      "year_from": 2000,
+      "year_to": 2006,
+      "market": "JP",
+      "source_url": "https://www.cusco.co.jp/products/pdf/oilfilter_toyota.pdf",
+      "source_page": 4,
+      "source_period": "08/2000–10/2006",
+      "chassis_codes": [
+        "NZE121",
+        "NZE124"
+      ],
+      "source_model_name": "COROLLA",
+      "reviewed_on": "2026-11-19",
+      "hks_url": "https://www.hks-power.co.jp/en/product_search/product/935/media/print",
+      "hks_period": "NZE121/NZE124 08/2000–09/2006"
+    },
+    {
+      "model_slug": "corolla-e120",
+      "engine_code": "2NZ-FE",
+      "year_from": 2000,
+      "year_to": 2006,
+      "market": "JP",
+      "source_url": "https://www.cusco.co.jp/products/pdf/oilfilter_toyota.pdf",
+      "source_page": 4,
+      "source_period": "08/2000–10/2006",
+      "chassis_codes": [
+        "NZE120"
+      ],
+      "source_model_name": "COROLLA",
+      "reviewed_on": "2026-11-19",
+      "engine_code_as_printed": "2NZFE",
+      "hks_url": "https://www.hks-power.co.jp/en/product_search/product/935/media/print",
+      "hks_period": "NZE120 08/2000–09/2006"
+    },
+    {
+      "model_slug": "corolla-e140",
+      "engine_code": "1NZ-FE",
+      "year_from": 2006,
+      "year_to": 2012,
+      "market": "JP",
+      "source_url": "https://www.cusco.co.jp/products/pdf/oilfilter_toyota.pdf",
+      "source_page": 4,
+      "source_period": "10/2006–",
+      "chassis_codes": [
+        "NZE141",
+        "NZE144"
+      ],
+      "source_model_name": "COROLLA AXIO",
+      "reviewed_on": "2026-11-19",
+      "hks_url": "https://www.hks-power.co.jp/en/product_search/product/935/media/print",
+      "hks_period": "NZE141/NZE144 10/2006–04/2012",
+      "notes_extra": "La fin 2012 vient du tableau HKS : CUSCO laisse la période ouverte. CUSCO et HKS listent aussi le Corolla Fielder NZE141G/NZE144G sur la même période. Cette ligne ne concerne que le 1NZ-FE ; la ligne 90915-YZZN1 déjà en base sur la Corolla E140 1ZZ-FE n'est pas modifiée."
+    },
+    {
+      "model_slug": "yaris-xp90",
+      "engine_code": "1NZ-FE",
+      "year_from": 2005,
+      "year_to": 2010,
+      "market": "JP",
+      "source_url": "https://www.cusco.co.jp/products/pdf/oilfilter_toyota.pdf",
+      "source_page": 2,
+      "source_period": "02/2005–",
+      "chassis_codes": [
+        "NCP91"
+      ],
+      "source_model_name": "VITZ",
+      "reviewed_on": "2026-11-19",
+      "hks_url": "https://www.hks-power.co.jp/en/product_search/product/935/media/print",
+      "hks_period": "NCP91 02/2005–12/2010",
+      "notes_extra": "La Vitz NCP91 est la Yaris XP90. La fin 2010 vient du tableau HKS : CUSCO laisse la période ouverte. La Vitz NCP13 (XP10, 10/2000–02/2005, même moteur 1NZ-FE) n'est pas rattachée : cette génération n'est pas au catalogue."
+    },
+    {
+      "model_slug": "yaris-xp90",
+      "engine_code": "2NZ-FE",
+      "year_from": 2005,
+      "year_to": 2010,
+      "market": "JP",
+      "source_url": "https://www.cusco.co.jp/products/pdf/oilfilter_toyota.pdf",
+      "source_page": 2,
+      "source_period": "02/2005–",
+      "chassis_codes": [
+        "NCP95"
+      ],
+      "source_model_name": "VITZ",
+      "reviewed_on": "2026-11-19",
+      "hks_url": "https://www.hks-power.co.jp/en/product_search/product/935/media/print",
+      "hks_period": "NCP95 02/2005–12/2010"
+    },
+    {
+      "model_slug": "yaris-xp90",
+      "engine_code": "2SZ-FE",
+      "year_from": 2005,
+      "year_to": 2010,
+      "market": "JP",
+      "source_url": "https://www.cusco.co.jp/products/pdf/oilfilter_toyota.pdf",
+      "source_page": 2,
+      "source_period": "02/2005–",
+      "chassis_codes": [
+        "SCP90"
+      ],
+      "source_model_name": "VITZ",
+      "reviewed_on": "2026-11-19",
+      "hks_url": "https://www.hks-power.co.jp/en/product_search/product/935/media/print",
+      "hks_period": "SCP90 02/2005–12/2010"
+    }
+  ]
+}

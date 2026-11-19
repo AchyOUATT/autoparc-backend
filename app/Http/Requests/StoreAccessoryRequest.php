@@ -69,6 +69,7 @@ class StoreAccessoryRequest extends FormRequest
             // les omettre ici les ferait disparaitre a chaque modification.
             'fitments.*.engine_type_id'        => ['nullable', 'exists:engine_types,id'],
             'fitments.*.drivetrain_id'         => ['nullable', 'exists:drivetrains,id'],
+            'fitments.*.chassis_code'          => ['nullable', 'string', 'max:80'],
             'fitments.*.notes'                 => ['nullable', 'string', 'max:2000'],
             'fitments.*.year_from'             => ['nullable', 'integer', 'min:1950'],
             'fitments.*.year_to'               => ['nullable', 'integer', 'min:1950', 'gte:fitments.*.year_from'],
