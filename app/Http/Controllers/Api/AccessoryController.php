@@ -6,6 +6,7 @@ use App\Support\EmplacementPartenaire;
 use App\Support\PartnerOwnership;
 
 use App\Enums\FitmentSource;
+use App\Support\ConservationChassisFitment;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAccessoryRequest;
 use App\Http\Resources\AccessoryResource;
@@ -119,7 +120,9 @@ class AccessoryController extends Controller
             $accessory = Accessory::create(collect($data)->except('fitments')->all());
 
             foreach ($data['fitments'] ?? [] as $fitment) {
-                $accessory->fitments()->create($this->declaree($fitment));
+                $accessory->fitments()->create($this->declaree(
+                    ConservationChassisFitment::appliquer($fitment, [], false),
+                ));
             }
 
             return $accessory;
@@ -219,9 +222,12 @@ class AccessoryController extends Controller
             // affiche la liste entiere : ce qui y reste a l'enregistrement
             // devient une declaration, y compris les lignes fabriquees.
             if (array_key_exists('fitments', $data)) {
+                $conserves = ConservationChassisFitment::index($accessory->fitments()->get(), false);
                 $accessory->fitments()->delete();
                 foreach ($data['fitments'] as $fitment) {
-                    $accessory->fitments()->create($this->declaree($fitment));
+                    $accessory->fitments()->create($this->declaree(
+                        ConservationChassisFitment::appliquer($fitment, $conserves, false),
+                    ));
                 }
             }
         });

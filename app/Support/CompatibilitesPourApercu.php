@@ -77,6 +77,11 @@ final class CompatibilitesPourApercu
             $details[] = $code;
         }
 
+        $chassis = trim((string) ($fitment->chassis_code ?? ''));
+        if ($chassis !== '') {
+            $details[] = $chassis;
+        }
+
         return $details === [] ? $nom : $nom.' ('.implode(', ', $details).')';
     }
 

@@ -12,7 +12,7 @@ class AccessoryFitment extends Model
 
     protected $fillable = [
         'accessory_id', 'vehicle_model_id', 'trim_id', 'engine_type_id',
-        'drivetrain_id', 'year_from', 'year_to', 'notes',
+        'drivetrain_id', 'chassis_code', 'year_from', 'year_to', 'notes',
         // Voir PartFitment : renseignee par les controleurs, pas par la requete.
         'source',
     ];

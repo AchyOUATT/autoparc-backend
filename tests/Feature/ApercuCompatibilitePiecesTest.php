@@ -225,4 +225,21 @@ class ApercuCompatibilitePiecesTest extends TestCase
             ],
         );
     }
+
+    public function test_l_apercu_cite_le_code_chassis_quand_il_est_renseigne(): void
+    {
+        $fitment = $this->pieceAvecDescription()->fitments()->create([
+            'vehicle_model_id' => $this->modele('Corolla', 'E120')->id,
+            'engine_code'      => '1ZZ-FE',
+            'chassis_code'     => 'ZZE122/ZZE124',
+            'year_from'        => 2000,
+            'year_to'          => 2006,
+        ]);
+        $fitment->load('vehicleModel.brand');
+
+        $this->assertSame(
+            'Toyota Corolla E120 (2000-2006, 1ZZ-FE, ZZE122/ZZE124)',
+            CompatibilitesPourApercu::formater($fitment),
+        );
+    }
 }

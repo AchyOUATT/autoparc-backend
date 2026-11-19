@@ -121,6 +121,7 @@ class PartResource extends JsonResource
                 'engine_type'      => $f->engineType?->label,
                 'drivetrain_id'    => $f->drivetrain_id,
                 'engine_code'      => $f->engine_code,
+                'chassis_code'     => $f->chassis_code,
                 'year_from'        => $f->year_from,
                 'year_to'          => $f->year_to,
                 'position'         => $f->position,
