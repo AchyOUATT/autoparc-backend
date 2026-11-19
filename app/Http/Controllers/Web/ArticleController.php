@@ -14,6 +14,7 @@ use App\Models\Part;
 use App\Models\Vehicle;
 use App\Services\AutoParcContact;
 use App\Support\ArticlePartage;
+use App\Support\CompatibilitesPourApercu;
 use App\Support\EquipmentDetails;
 use App\Support\PartnerListingPresentation;
 use App\Support\PartnerMedia;
@@ -280,13 +281,20 @@ class ArticleController extends Controller
     {
         abort_unless($this->catalogueMontre($part), 404);
 
-        $part->load(['media', 'category', 'manufacturer', 'location', 'sellerAccount']);
+        $part->load(['media', 'category', 'manufacturer', 'location', 'sellerAccount', 'fitments.vehicleModel.brand']);
 
         return $this->page(chemin: '/p/'.$part->id, source: $part, article: new ArticlePartage(
             titre:       $part->name,
             prix:        $part->selling_price !== null ? (float) $part->selling_price : null,
             description: $this->extrait($part->description),
             photo:       $this->couverture($part),
+            // L'apercu montre les compatibilites, pas la note catalogue.
+            // Sans application, resume() reprend les precisions (categorie,
+            // reference, etat) plutot que la description ou une balise vide.
+            compatibilite: CompatibilitesPourApercu::texte(
+                $part->fitments->sortBy('id')->values(),
+            ),
+            descriptionDansLApercu: false,
             // La piece est le SEUL des trois types que la regle sert en
             // rupture, parce que son catalogue la montre (voir
             // catalogueMontre). Servie, elle doit le dire : un apercu qui
@@ -322,13 +330,17 @@ class ArticleController extends Controller
         // application ou l'article est introuvable.
         abort_unless($this->catalogueMontre($accessory), 404);
 
-        $accessory->load(['media', 'manufacturer', 'location', 'sellerAccount']);
+        $accessory->load(['media', 'manufacturer', 'location', 'sellerAccount', 'fitments.vehicleModel.brand']);
 
         return $this->page(chemin: '/a/'.$accessory->id, source: $accessory, article: new ArticlePartage(
             titre:       $accessory->name,
             prix:        $accessory->selling_price !== null ? (float) $accessory->selling_price : null,
             description: $this->extrait($accessory->description),
             photo:       $this->couverture($accessory),
+            compatibilite: CompatibilitesPourApercu::texte(
+                $accessory->fitments->sortBy('id')->values(),
+            ),
+            descriptionDansLApercu: false,
             precisions:  array_filter([
                 'Catégorie' => $accessory->category?->label(),
                 'Fabricant' => $accessory->manufacturer?->name,

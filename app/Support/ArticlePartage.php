@@ -58,6 +58,26 @@ final class ArticlePartage
         public readonly ?float $tarifLocationMensuel = null,
         /** Tarif hebdomadaire public, indépendant des tarifs journalier et mensuel. */
         public readonly ?float $tarifLocationHebdomadaire = null,
+        /**
+         * Les vehicules compatibles, deja mis en forme pour l'apercu.
+         *
+         * Null veut dire « aucune compatibilite a montrer », pas « on n'a pas
+         * charge la relation ». C'est le controleur qui decide, apres avoir
+         * lu les fitments. Voir CompatibilitesPourApercu.
+         */
+        public readonly ?string $compatibilite = null,
+        /**
+         * Faut-il se rabattre sur la description catalogue dans l'apercu ?
+         *
+         * Oui pour un vehicule : sa description est souvent le vrai resume
+         * de l'annonce. Non pour une piece ou un accessoire : cette
+         * description est typiquement une note interne (« Visse, ancienne
+         * reference remplacee par… »), et c'est elle que le proprietaire a
+         * demande de retirer du texte de partage. En son absence, resume()
+         * reprend les precisions — categorie, reference, etat — qui sont
+         * toujours la, plutot que de laisser og:description vide.
+         */
+        public readonly bool $descriptionDansLApercu = true,
     ) {}
 
     /** L'article est-il servi alors qu'il n'est pas disponible ? */
@@ -197,6 +217,10 @@ final class ArticlePartage
     /**
      * Le texte de l'apercu, qui ne doit jamais etre vide.
      *
+     * Pour une piece ou un accessoire, les compatibilites passent avant la
+     * description catalogue : c'est elles que le destinataire doit lire dans
+     * la vignette WhatsApp. La description reste dans le corps de la page.
+     *
      * La description est facultative dans le catalogue, et la majorite des
      * pieces n'en a pas. Un og:description absent laisse le robot composer
      * lui-meme — il prend alors le premier texte de la page, souvent le nom du
@@ -205,7 +229,13 @@ final class ArticlePartage
      */
     public function resume(): string
     {
-        if ($this->description !== null && trim($this->description) !== '') {
+        if ($this->compatibilite !== null && trim($this->compatibilite) !== '') {
+            return $this->compatibilite;
+        }
+
+        if ($this->descriptionDansLApercu
+            && $this->description !== null
+            && trim($this->description) !== '') {
             return $this->description;
         }
 
