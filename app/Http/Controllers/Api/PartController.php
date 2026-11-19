@@ -19,6 +19,7 @@ use App\Services\FcmService;
 use App\Services\StockService;
 use App\Support\EmplacementPartenaire;
 use App\Support\FiltreActivationArticle;
+use App\Support\FiltreCompatibiliteArticle;
 use App\Support\PrixEffectif;
 use App\Support\TriPublic;
 use Illuminate\Http\JsonResponse;
@@ -64,6 +65,7 @@ class PartController extends Controller
             ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
             ->when($request->filled('city'), fn ($q) => EmplacementPartenaire::filtrerParVille($q, $request->string('city')->toString()))
             ->tap(fn ($q) => FiltreActivationArticle::appliquer($q, $request))
+            ->tap(fn ($q) => FiltreCompatibiliteArticle::appliquer($q, $request))
             ->tap(fn ($q) => TriPublic::appliquer($q, $request, TriPublic::articles(), 'name', 'asc'))
             ->paginate($request->integer('per_page', 20))
             ->withQueryString();
