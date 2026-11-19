@@ -149,14 +149,15 @@ class ApercuCompatibilitePiecesTest extends TestCase
         $accessoire->fitments()->create([
             'vehicle_model_id' => $this->modele('Corolla', 'E210')->id,
             'year_from' => 2019,
-            'engine_code' => '2ZR-FE',
+            // Les compatibilites d'accessoires n'ont pas de colonne
+            // engine_code : on n'en invente pas dans l'apercu.
             'source' => FitmentSource::Declared,
         ]);
 
         $html = $this->get('/a/'.$accessoire->id)->assertOk()->getContent();
 
         $this->assertStringContainsString(
-            '<meta property="og:description" content="Compatible : Toyota Corolla E210 (depuis 2019, 2ZR-FE)">',
+            '<meta property="og:description" content="Compatible : Toyota Corolla E210 (depuis 2019)">',
             $html,
         );
         $this->assertStringNotContainsString(
