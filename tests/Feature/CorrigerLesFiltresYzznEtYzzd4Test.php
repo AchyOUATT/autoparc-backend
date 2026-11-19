@@ -43,7 +43,9 @@ class CorrigerLesFiltresYzznEtYzzd4Test extends TestCase
         $rapport = CorrigerLesFiltresYzznEtYzzd4::run();
 
         $this->assertSame(3, $rapport['removed']);
-        $this->assertSame(24, $rapport['moved']);
+        $this->assertSame(14, $rapport['moved']);
+        $this->assertSame(10, $rapport['flagged']);
+        $this->assertSame(0, $rapport['kept_conflict']);
         $this->assertTrue($rapport['oem_10009_updated']);
         $this->assertSame([], $rapport['skipped_missing_part']);
         $this->assertSame([], $rapport['skipped_missing_model']);
@@ -62,32 +64,100 @@ class CorrigerLesFiltresYzznEtYzzd4Test extends TestCase
 
         $prius = $this->ligne('90915-10003', 'Toyota', 'Prius', 'XW50', '2ZR-FXE');
         $this->assertSame('ZVW50/ZVW51/ZVW55', $prius->chassis_code);
-        $this->assertSame(2018, (int) $prius->year_from);
+        $this->assertSame(2017, (int) $prius->year_from);
         $this->assertSame(2022, (int) $prius->year_to);
+        $this->assertStringContainsString('09/2017', $prius->notes);
 
-        $this->assertSame('ZRE186H', $this->ligne('90915-10003', 'Toyota', 'Corolla', 'E180', '2ZR-FAE')->chassis_code);
-        $this->assertNull($this->ligne('90915-10003', 'Toyota', 'Corolla', 'E180', '2ZR-FE')->chassis_code);
-        $this->assertSame('ZRE212/ZRE212W', $this->ligne('90915-10003', 'Toyota', 'Corolla', 'E210', '2ZR-FAE')->chassis_code);
-        $this->assertSame('ZWE211/ZWE214/ZWE215/ZWE219', $this->ligne('90915-10003', 'Toyota', 'Corolla', 'E210', '2ZR-FXE')->chassis_code);
-        $this->assertNull($this->ligne('90915-10003', 'Toyota', 'Corolla', 'E210', '2ZR-FE')->chassis_code);
+        $e180Fae = $this->ligne('90915-10003', 'Toyota', 'Corolla', 'E180', '2ZR-FAE');
+        $this->assertSame('ZRE186H', $e180Fae->chassis_code);
+        $this->assertSame(2016, (int) $e180Fae->year_from);
+        $this->assertSame(2018, (int) $e180Fae->year_to);
+        $this->assertStringContainsString('09/2016–05/2018', $e180Fae->notes);
+        $this->assertStringContainsString('ancienne note Yaris XP130', $yaris->notes);
+
+        $e180Fe = $this->ligne('90915-YZZN1', 'Toyota', 'Corolla', 'E180', '2ZR-FE');
+        $this->assertNotNull($e180Fe);
+        $this->assertNull($this->ligne('90915-10003', 'Toyota', 'Corolla', 'E180', '2ZR-FE'));
+        $this->assertSame(2017, (int) $e180Fe->year_from);
+        $this->assertSame(2019, (int) $e180Fe->year_to);
+        $this->assertStringContainsString('À vérifier', $e180Fe->notes);
+        $this->assertStringContainsString('note E180 2ZR-FE', $e180Fe->notes);
+
+        $e210Fae = $this->ligne('90915-10003', 'Toyota', 'Corolla', 'E210', '2ZR-FAE');
+        $this->assertSame('ZRE212/ZRE212W', $e210Fae->chassis_code);
+        $this->assertSame(2019, (int) $e210Fae->year_from);
+        $this->assertSame(2022, (int) $e210Fae->year_to);
+
+        $e210Fxe = $this->ligne('90915-10003', 'Toyota', 'Corolla', 'E210', '2ZR-FXE');
+        $this->assertSame('ZWE211/ZWE214/ZWE215/ZWE219', $e210Fxe->chassis_code);
+        $this->assertSame(2019, (int) $e210Fxe->year_from);
+        $this->assertNull($e210Fxe->year_to);
+
+        $e210Fe = $this->ligne('90915-YZZN1', 'Toyota', 'Corolla', 'E210', '2ZR-FE');
+        $this->assertNotNull($e210Fe);
+        $this->assertNull($this->ligne('90915-10003', 'Toyota', 'Corolla', 'E210', '2ZR-FE'));
+        $this->assertStringContainsString('À vérifier', $e210Fe->notes);
 
         $camryHybride = $this->ligne('90915-YZZN2', 'Toyota', 'Camry', 'XV70', 'A25A-FXS');
         $this->assertSame('AXVH70', $camryHybride->chassis_code);
+        $this->assertSame(2017, (int) $camryHybride->year_from);
+        $this->assertSame(2023, (int) $camryHybride->year_to);
         $this->assertStringContainsString(CorrigerLesFiltresYzznEtYzzd4::BOSHOKU_URL, $camryHybride->notes);
-        $this->assertNull($this->ligne('90915-YZZN2', 'Toyota', 'Camry', 'XV70', 'A25A-FKS')->chassis_code);
+        $this->assertStringContainsString('01/2017–12/2023', $camryHybride->notes);
+
+        $camryFks = $this->ligne('90915-YZZN1', 'Toyota', 'Camry', 'XV70', 'A25A-FKS');
+        $this->assertNotNull($camryFks);
+        $this->assertNull($this->ligne('90915-YZZN2', 'Toyota', 'Camry', 'XV70', 'A25A-FKS'));
+        $this->assertStringContainsString('À vérifier', $camryFks->notes);
+        $this->assertSame(2018, (int) $camryFks->year_from);
+
         $this->assertSame('AXAH52/AXAH54/AXAP54', $this->ligne('90915-YZZN2', 'Toyota', 'RAV4', 'XA50', 'A25A-FXS')->chassis_code);
-        $this->assertNull($this->ligne('90915-YZZN2', 'Toyota', 'Avalon', null, 'A25A-FXS')->chassis_code);
-        $this->assertSame('MZEA12H/MZEA12W', $this->ligne('90915-YZZN2', 'Toyota', 'Corolla', 'E210', 'M20A-FKS')->chassis_code);
-        $this->assertSame('AXZH10', $this->ligne('90915-YZZN2', 'Lexus', 'ES', 'XV70', 'A25A-FXS')->chassis_code);
+        $this->assertSame(2025, (int) $this->ligne('90915-YZZN2', 'Toyota', 'RAV4', 'XA50', 'A25A-FXS')->year_to);
+        $this->assertNotNull($this->ligne('90915-YZZN1', 'Toyota', 'RAV4', 'XA50', 'A25A-FKS'));
+        $this->assertNull($this->ligne('90915-YZZN2', 'Toyota', 'RAV4', 'XA50', 'A25A-FKS'));
+
+        $avalon = $this->ligne('90915-YZZN1', 'Toyota', 'Avalon', null, 'A25A-FXS');
+        $this->assertNotNull($avalon);
+        $this->assertNull($this->ligne('90915-YZZN2', 'Toyota', 'Avalon', null, 'A25A-FXS'));
+        $this->assertStringContainsString('À vérifier', $avalon->notes);
+        $this->assertSame(2019, (int) $avalon->year_from);
+        $this->assertSame(2022, (int) $avalon->year_to);
+
+        $this->assertNotNull($this->ligne('90915-YZZN1', 'Toyota', 'Highlander', null, 'A25A-FXS'));
+        $this->assertNotNull($this->ligne('90915-YZZN1', 'Toyota', 'Highlander', null, 'T24A-FTS'));
+        $this->assertNotNull($this->ligne('90915-YZZN1', 'Toyota', 'Sienna', null, 'A25A-FXS'));
+        $this->assertNotNull($this->ligne('90915-YZZN1', 'Toyota', 'Venza', 'XU80', 'A25A-FXS'));
+        $this->assertNull($this->ligne('90915-YZZN2', 'Toyota', 'Highlander', null, 'A25A-FXS'));
+        $this->assertNull($this->ligne('90915-YZZN2', 'Toyota', 'Sienna', null, 'A25A-FXS'));
+        $this->assertNull($this->ligne('90915-YZZN2', 'Toyota', 'Venza', 'XU80', 'A25A-FXS'));
+
+        $m20a = $this->ligne('90915-YZZN2', 'Toyota', 'Corolla', 'E210', 'M20A-FKS');
+        $this->assertSame('MZEA12H/MZEA12W', $m20a->chassis_code);
+        $this->assertSame(2020, (int) $m20a->year_from);
+        $this->assertSame(2025, (int) $m20a->year_to);
+
+        $esFxs = $this->ligne('90915-YZZN2', 'Lexus', 'ES', 'XV70', 'A25A-FXS');
+        $this->assertSame('AXZH10', $esFxs->chassis_code);
+        $this->assertSame(2019, (int) $esFxs->year_from);
+        $this->assertSame(2026, (int) $esFxs->year_to);
+        $this->assertNotNull($this->ligne('90915-YZZN1', 'Lexus', 'ES', 'XV70', 'A25A-FKS'));
+        $this->assertNull($this->ligne('90915-YZZN2', 'Lexus', 'ES', 'XV70', 'A25A-FKS'));
+
         $this->assertSame('AAZA20/AAZA25', $this->ligne('90915-YZZN2', 'Lexus', 'NX', 'AZ20', 'A25A-FKS')->chassis_code);
+        $this->assertSame(2021, (int) $this->ligne('90915-YZZN2', 'Lexus', 'NX', 'AZ20', 'A25A-FKS')->year_from);
         $this->assertSame('AAZH20/AAZH25/AAZH26', $this->ligne('90915-YZZN2', 'Lexus', 'NX', 'AZ20', 'A25A-FXS')->chassis_code);
         $this->assertSame('AALH10/AALH15/AALH16', $this->ligne('90915-YZZN2', 'Lexus', 'RX', 'AL30', 'A25A-FXS')->chassis_code);
-        $this->assertSame('MZAA10', $this->ligne('90915-YZZN2', 'Lexus', 'UX', 'ZA10', 'M20A-FKS')->chassis_code);
+        $this->assertSame(2022, (int) $this->ligne('90915-YZZN2', 'Lexus', 'RX', 'AL30', 'A25A-FXS')->year_from);
+
+        $uxFks = $this->ligne('90915-YZZN2', 'Lexus', 'UX', 'ZA10', 'M20A-FKS');
+        $this->assertSame('MZAA10', $uxFks->chassis_code);
+        $this->assertSame(2018, (int) $uxFks->year_from);
+        $this->assertSame(2023, (int) $uxFks->year_to);
         $this->assertSame('MZAH10/MZAH15/MZAH11/MZAH16', $this->ligne('90915-YZZN2', 'Lexus', 'UX', 'ZA10', 'M20A-FXS')->chassis_code);
 
-        $this->assertSame(0, $catalogue['yzzn1']->fresh()->fitments()->count());
-        $this->assertSame(17, $catalogue['yzzn2']->fresh()->fitments()->count());
-        $this->assertSame(8, $catalogue['sku10003']->fresh()->fitments()->count());
+        $this->assertSame(10, $catalogue['yzzn1']->fresh()->fitments()->count());
+        $this->assertSame(9, $catalogue['yzzn2']->fresh()->fitments()->count());
+        $this->assertSame(6, $catalogue['sku10003']->fresh()->fitments()->count());
 
         $this->assertNull($this->ligne('90915-YZZD4', 'Toyota', 'Land Cruiser Prado', 'J120', '5L-E'));
         $this->assertNull($this->ligne('90915-30002', 'Toyota', 'Land Cruiser Prado', 'J120', '5L-E'));
@@ -120,6 +190,56 @@ class CorrigerLesFiltresYzznEtYzzd4Test extends TestCase
         $this->assertFalse($catalogue['yzzn1']->fresh()->oemNumbers->contains('id', $numero->id));
     }
 
+    public function test_un_doublon_compatible_fusionne_les_notes_avant_suppression(): void
+    {
+        $yzzn1 = $this->piece('90915-YZZN1', 15, true, 2500);
+        $sku10003 = $this->piece('90915-10003', 0, false, 0);
+        $this->modele($this->toyota, 'yaris-xp130', 'Yaris', 'XP130');
+        $this->poser($yzzn1, 'Toyota', 'Yaris', 'XP130', '1NZ-FE', 2011, 2019, 'restriction YZZN1 : filtre court');
+        $this->poser($sku10003, 'Toyota', 'Yaris', 'XP130', '1NZ-FE', 2010, 2018, 'note deja presente sur le 10003');
+
+        $rapport = CorrigerLesFiltresYzznEtYzzd4::run();
+
+        $this->assertSame(1, $rapport['merged']);
+        $this->assertSame(1, $rapport['moved']);
+        $this->assertSame(0, $rapport['kept_conflict']);
+        $this->assertNull($this->ligne('90915-YZZN1', 'Toyota', 'Yaris', 'XP130', '1NZ-FE'));
+        $cible = $this->ligne('90915-10003', 'Toyota', 'Yaris', 'XP130', '1NZ-FE');
+        $this->assertSame('NCP131', $cible->chassis_code);
+        $this->assertSame(2010, (int) $cible->year_from);
+        $this->assertSame(2020, (int) $cible->year_to);
+        $this->assertStringContainsString('note deja presente sur le 10003', $cible->notes);
+        $this->assertStringContainsString('restriction YZZN1 : filtre court', $cible->notes);
+        $this->assertStringContainsString(CorrigerLesFiltresYzznEtYzzd4::HKS_URL, $cible->notes);
+        $this->assertSame(1, substr_count($cible->notes, '[audit filtres 2026-11-19]'));
+    }
+
+    public function test_un_doublon_en_conflit_conserve_les_deux_lignes(): void
+    {
+        $yzzn1 = $this->piece('90915-YZZN1', 15, true, 2500);
+        $sku10003 = $this->piece('90915-10003', 0, false, 0);
+        $this->modele($this->toyota, 'yaris-xp130', 'Yaris', 'XP130');
+        $this->poser($yzzn1, 'Toyota', 'Yaris', 'XP130', '1NZ-FE', 2011, 2019, 'note source XP130');
+        $this->poser($sku10003, 'Toyota', 'Yaris', 'XP130', '1NZ-FE', 2005, 2008, 'note cible autre periode', 'NCP91');
+
+        $rapport = CorrigerLesFiltresYzznEtYzzd4::run();
+
+        $this->assertSame(0, $rapport['merged']);
+        $this->assertSame(1, $rapport['kept_conflict']);
+        $source = $this->ligne('90915-YZZN1', 'Toyota', 'Yaris', 'XP130', '1NZ-FE');
+        $cible = $this->ligne('90915-10003', 'Toyota', 'Yaris', 'XP130', '1NZ-FE');
+        $this->assertNotNull($source);
+        $this->assertNotNull($cible);
+        $this->assertSame(2011, (int) $source->year_from);
+        $this->assertSame(2019, (int) $source->year_to);
+        $this->assertStringContainsString('note source XP130', $source->notes);
+        $this->assertStringContainsString('12/2010–01/2020', $source->notes);
+        $this->assertSame('NCP91', $cible->chassis_code);
+        $this->assertSame(2005, (int) $cible->year_from);
+        $this->assertSame(2008, (int) $cible->year_to);
+        $this->assertSame('note cible autre periode', $cible->notes);
+    }
+
     public function test_la_migration_est_idempotente(): void
     {
         $this->catalogueComplet();
@@ -132,10 +252,14 @@ class CorrigerLesFiltresYzznEtYzzd4Test extends TestCase
 
         $this->assertSame(0, $rapport['removed']);
         $this->assertSame(0, $rapport['moved']);
+        $this->assertSame(0, $rapport['flagged']);
+        $this->assertSame(0, $rapport['kept_conflict']);
         $this->assertFalse($rapport['oem_10009_updated']);
         $this->assertSame($apresPremier, $this->empreinteCatalogue());
         $this->assertSame($notesYaris, $this->ligne('90915-10003', 'Toyota', 'Yaris', 'XP130', '1NZ-FE')->notes);
         $this->assertSame(1, substr_count($notesYaris, '[audit filtres 2026-11-19]'));
+        $notesE180 = $this->ligne('90915-YZZN1', 'Toyota', 'Corolla', 'E180', '2ZR-FE')->notes;
+        $this->assertSame(1, substr_count($notesE180, '[audit filtres 2026-11-19]'));
     }
 
     public function test_sans_piece_cible_les_lignes_restent_en_place(): void
