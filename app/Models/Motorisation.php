@@ -20,6 +20,7 @@ class Motorisation extends Model
         'brand_id', 'vehicle_model_id', 'trim_id', 'trim_application_id', 'engine_code',
         'cle_source', 'identity_key', 'is_current', 'power_kw', 'displacement_cc',
         'market', 'year_kind', 'method', 'hybrid_type', 'reference_status', 'provenance', 'verified_at',
+        'drivetrain_code', 'aspiration', 'cylinder_deactivation',
     ];
 
     protected function casts(): array
@@ -32,6 +33,7 @@ class Motorisation extends Model
             'provenance' => 'array',
             'verified_at' => 'datetime',
             'cylinders' => 'integer',
+            'cylinder_deactivation' => 'boolean',
             'co2_g_km' => 'integer',
             'engine_l' => 'decimal:1',
             'consumption_city' => 'decimal:1',
@@ -83,7 +85,37 @@ class Motorisation extends Model
             $parties[] = self::libelleBoite($this->transmission_code);
         }
 
+        // Ce que la source écrit de la version dans son nom : c'est ce qui
+        // départage deux CX-5 2,5 l automatiques. Rien quand le nom se tait.
+        $variante = array_filter([
+            match ($this->aspiration) {
+                'turbo' => __('turbo'),
+                'supercharged' => __('compresseur'),
+                default => null,
+            },
+            $this->source_drivetrain_code,
+            match ($this->cylinder_deactivation) {
+                true => __('désactivation de cylindres'),
+                false => __('sans désactivation de cylindres'),
+                default => null,
+            },
+        ]);
+        if ($variante !== []) {
+            $parties[] = '· '.implode(', ', $variante);
+        }
+
         return implode(' ', array_filter($parties));
+    }
+
+    /**
+     * La motricité écrite par la source : la colonne lue dans le nom, ou à
+     * défaut celle d'une provenance qui la porte. Null quand rien ne la dit.
+     */
+    public function getSourceDrivetrainCodeAttribute(): ?string
+    {
+        $code = $this->drivetrain_code ?? ($this->provenance['drivetrain_code'] ?? null);
+
+        return $code === null || trim((string) $code) === '' ? null : strtoupper(trim((string) $code));
     }
 
     /**

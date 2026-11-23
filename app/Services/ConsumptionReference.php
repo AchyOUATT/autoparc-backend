@@ -6,6 +6,7 @@ use App\Models\Drivetrain;
 use App\Models\EngineType;
 use App\Models\Motorisation;
 use App\Models\OwnedVehicle;
+use App\Support\VarianteNomNrcan;
 
 /**
  * A selected source record is a comparison, not proof of the vehicle's version.
@@ -91,13 +92,14 @@ class ConsumptionReference
             }
         }
 
-        // A drivetrain stored as source provenance is only compared when both
-        // sides have an explicit code; unknown never becomes a contradiction.
-        $drivetrainCode = $reference->provenance['drivetrain_code'] ?? null;
-        if ($drivetrainCode !== null && ! empty($context['drivetrain_code'])) {
-            if (strtoupper($context['drivetrain_code']) !== strtoupper($drivetrainCode)) {
-                $reasons[] = 'drivetrain_mismatch';
-            }
+        // A drivetrain written by the source (column read from the model name,
+        // or provenance) is only compared when both sides have an explicit
+        // code; unknown never becomes a contradiction. 4WD and AWD are one
+        // family: NRCan writes « 4WD » for Mazda's i-Activ AWD.
+        $drivetrainCode = $reference->source_drivetrain_code;
+        if ($drivetrainCode !== null && ! empty($context['drivetrain_code'])
+            && ! VarianteNomNrcan::motricitesCompatibles($context['drivetrain_code'], $drivetrainCode)) {
+            $reasons[] = 'drivetrain_mismatch';
         }
 
         $transmissionCode = strtoupper(trim((string) $reference->transmission_code));
@@ -219,6 +221,10 @@ class ConsumptionReference
             'trim_application_id' => $reference->trim_application_id,
             'engine_code' => $reference->engine_code,
             'transmission_code' => $reference->transmission_code,
+            // Read from the source's model name; null when the name is silent.
+            'drivetrain_code' => $reference->source_drivetrain_code,
+            'aspiration' => $reference->aspiration,
+            'cylinder_deactivation' => $reference->cylinder_deactivation,
             'cycle_code' => $reference->cycle,
         ];
     }

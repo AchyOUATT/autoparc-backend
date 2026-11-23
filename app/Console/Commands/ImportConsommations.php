@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Motorisation;
 use App\Models\VehicleModel;
 use App\Services\ConsumptionSourceArchive;
+use App\Support\VarianteNomNrcan;
 use Illuminate\Console\Command;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
@@ -871,6 +872,10 @@ class ImportConsommations extends Command
                 'consumption_highway' => null,
                 'consumption_combined' => round($mediane, 1),
                 'co2_g_km' => null,
+                // Noms commerciaux européens : vocabulaire non lu.
+                'drivetrain_code' => null,
+                'aspiration' => null,
+                'cylinder_deactivation' => null,
                 'created_at' => $maintenant,
                 'updated_at' => $maintenant,
             ];
@@ -998,6 +1003,10 @@ class ImportConsommations extends Command
                 'created_at' => $maintenant,
                 'updated_at' => $maintenant,
             ];
+            // La source n'a de colonne ni pour la motricité, ni pour la
+            // suralimentation, ni pour la désactivation de cylindres : elle les
+            // écrit dans le nom. Hors empreinte — le nom y est déjà.
+            $ligne += VarianteNomNrcan::lire($ligne['model_raw'], $ligne['fuel_code']);
             $details = array_merge($provenance, [
                 'source_record' => $rowNumber, 'original_headers' => $entete,
                 'original_values' => $l, 'original_unit' => 'L/100 km',
