@@ -1095,7 +1095,7 @@ class ImportConsommations extends Command
                 }
                 $marquesVues[$marque->id] = true;
 
-                $modeleId = $this->modeleLePlusProche(
+                $modeleId = self::modeleLePlusProche(
                     $cote->model_raw,
                     $cote->year_kind === 'registration_year' ? null : $cote->model_year,
                     $modelesParMarque->get($marque->id) ?? collect(),
@@ -1153,7 +1153,7 @@ class ImportConsommations extends Command
      *
      * @param  Collection<int, VehicleModel>  $modeles
      */
-    private function modeleLePlusProche(string $libelle, ?int $annee, $modeles, string $marque = ''): ?int
+    public static function modeleLePlusProche(string $libelle, ?int $annee, $modeles, string $marque = ''): ?int
     {
         $cible = Str::slug($libelle);
         $brut = mb_strtoupper(trim($libelle));
@@ -1173,6 +1173,17 @@ class ImportConsommations extends Command
             $score = null;
 
             if ($cible === $nom || str_starts_with($cible, $nom.'-')) {
+                $score = strlen($nom);
+            }
+
+            // Le catalogue ecrit « Mazda 3 », la source « Mazda3 4-Door ».
+            // Depuis que les fiches portent le nom avec espace, le slug
+            // « mazda-3 » ne prefixait plus « mazda3-4-door » : un nouveau
+            // rattachement aurait detache toutes les Mazda 2, 3 et 6. La forme
+            // collee n'enleve que le tiret entre lettres et chiffres, et garde
+            // la frontiere : « cx5 » ne prefixe pas « cx-50-4wd ».
+            $colle = preg_replace('/(?<=[a-z])-(?=\d)/', '', $nom);
+            if ($score === null && $colle !== $nom && ($cible === $colle || str_starts_with($cible, $colle.'-'))) {
                 $score = strlen($nom);
             }
 
