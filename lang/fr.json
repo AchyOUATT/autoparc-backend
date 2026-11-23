@@ -418,5 +418,9 @@
   "Trop de photos envoyees en meme temps. Patientez une minute avant de reessayer.": "Trop de photos envoyees en meme temps. Patientez une minute avant de reessayer.",
   "Trop de photos en cours de depot. Patientez une minute avant de reessayer.": "Trop de photos en cours de depot. Patientez une minute avant de reessayer.",
   "Trop de declenchements. Une tache planifiee ne se lance pas en rafale.": "Trop de declenchements. Une tache planifiee ne se lance pas en rafale.",
-  "Trop de requetes. Patientez un instant.": "Trop de requetes. Patientez un instant."
+  "Trop de requetes. Patientez un instant.": "Trop de requetes. Patientez un instant.",
+  "turbo": "turbo",
+  "compresseur": "compresseur",
+  "désactivation de cylindres": "désactivation de cylindres",
+  "sans désactivation de cylindres": "sans désactivation de cylindres"
 }

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Motorisation;
+use App\Support\VarianteNomNrcan;
 use Illuminate\Support\Collection;
 
 /** Presentation relevance, independent of the reference's applicability level. */
@@ -142,7 +143,8 @@ class ConsumptionReferenceRecommendation
         }) {
             $matched[] = 'engine_type';
         }
-        $compare('drivetrain', $context['drivetrain_code'] ?? null, $rating->provenance['drivetrain_code'] ?? null, $sameText);
+        $compare('drivetrain', $context['drivetrain_code'] ?? null, $rating->source_drivetrain_code,
+            static fn ($a, $b) => VarianteNomNrcan::motricitesCompatibles((string) $a, (string) $b));
         $eligible = $conflicting === [];
 
         return [

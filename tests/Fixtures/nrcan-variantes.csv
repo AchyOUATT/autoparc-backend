@@ -1,0 +1,14 @@
+Model year,Make,Model,Vehicle class,Engine size (L),Cylinders,Transmission,Fuel type,City (L/100 km),Highway (L/100 km),Combined (L/100 km),Combined (mpg),CO2 emissions (g/km),CO2 rating,Smog rating
+2019,Mazda,CX-5,Sport utility vehicle: Small,2.0,4,M6,X,9.7,7.7,8.8,32,206,6,3
+2019,Mazda,CX-5,Sport utility vehicle: Small,2.5,4,AS6,X,9.7,7.8,8.8,32,206,6,7
+2019,Mazda,CX-5 4WD,Sport utility vehicle: Small,2.5,4,AS6,X,10.2,8.2,9.3,30,217,5,7
+2019,Mazda,CX-5 (Cylinder Deactivation),Sport utility vehicle: Small,2.5,4,AS6,X,9.3,7.6,8.5,33,201,6,7
+2019,Mazda,CX-5 4WD (Cylinder Deactivation),Sport utility vehicle: Small,2.5,4,AS6,X,9.8,7.9,9.0,31,209,5,7
+2019,Mazda,CX-5 Turbo 4WD,Sport utility vehicle: Small,2.5,4,AS6,X,10.8,8.7,9.8,29,230,5,3
+2019,Mazda,CX-5 Diesel 4WD,Sport utility vehicle: Small,2.2,4,AS6,D,8.9,7.9,8.4,34,227,5,1
+2019,BMW,X5 xDrive40i,Sport utility vehicle: Standard,3.0,6,AS8,Z,11.7,9.1,10.5,27,245,5,3
+2019,Audi,A4 quattro,Compact,2.0,4,AM7,Z,10.0,7.0,8.7,32,204,6,5
+2021,Chevrolet,Silverado 4WD (Without DFM),Pickup truck: Standard,5.3,8,A8,X,16.8,11.4,14.4,20,339,2,5
+2010,Dodge,Ram 1500 4X4 (MDS),Pickup truck: Standard,5.7,8,A5,X,18.0,12.7,15.6,18,359,n/a,n/a
+2020,Land Rover,Range Rover 5.0 Supercharged,Sport utility vehicle: Standard,5.0,8,AS8,Z,14.4,11.2,12.9,22,305,3,3
+2019,Volkswagen,Golf,Compact,1.4,4,AS8,X,8.1,6.4,7.4,38,172,7,7

@@ -420,5 +420,9 @@
   "Trop de photos envoyees en meme temps. Patientez une minute avant de reessayer.": "Too many photos sent at once. Wait a minute before trying again.",
   "Trop de photos en cours de depot. Patientez une minute avant de reessayer.": "Too many photos being uploaded. Wait a minute before trying again.",
   "Trop de declenchements. Une tache planifiee ne se lance pas en rafale.": "Too many triggers. A scheduled task is not launched in bursts.",
-  "Trop de requetes. Patientez un instant.": "Too many requests. Please wait a moment."
+  "Trop de requetes. Patientez un instant.": "Too many requests. Please wait a moment.",
+  "turbo": "turbo",
+  "compresseur": "supercharged",
+  "désactivation de cylindres": "cylinder deactivation",
+  "sans désactivation de cylindres": "without cylinder deactivation"
 }
