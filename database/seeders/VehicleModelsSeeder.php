@@ -284,6 +284,34 @@ class VehicleModelsSeeder extends Seeder
      *
      * @var list<array{0: string, 1: ?string, 2: string, 3: string, 4: int, 5: ?int}>
      */
+    /**
+     * Deux SUV Mazda dont Ressources naturelles Canada publie les cotes, et que
+     * le catalogue n'avait pas : leurs cotes restaient sans modele.
+     *
+     * - CX-5 KE, premiere generation. Production 2012 (millesimes 2013 a 2016
+     *   au Canada). La fin est posee en 2016 et non en 2017 : la KF commence
+     *   en 2017 dans ce catalogue, et le rattachement des cotes rend AMBIGU un
+     *   millesime couvert par deux generations (il le laisse sans modele). Le
+     *   millesime 2017 canadien est une KF ; des bornes jointives en 2017 lui
+     *   auraient fait perdre ses cotes.
+     * - CX-50 VA : code « VA » des notes de mise a jour Mazda (citees par
+     *   Wikipedia, « Mazda CX-50 », consulte le 23/11/2026) ; production
+     *   lancee en janvier 2022 a Huntsville (Mazda Newsroom, 27/01/2022,
+     *   https://newsroom.mazda.com/en/publicity/release/2022/202201/220127a.html),
+     *   millesimes 2023 et suivants.
+     *
+     * Carrosserie et segment : ceux du CX-5 KF, SUV compact.
+     *
+     * La migration `2026_11_23_200000_ajouter_les_mazda_cx5_ke_et_cx50` lit
+     * cette constante : il n'y a qu'une definition.
+     *
+     * @var list<array{0: string, 1: ?string, 2: string, 3: string, 4: int, 5: ?int}>
+     */
+    public const GENERATIONS_MAZDA_CX = [
+        ['CX-5',  'KE', 'suv', 'C', 2012, 2016],
+        ['CX-50', 'VA', 'suv', 'C', 2022, null],
+    ];
+
     public const GENERATIONS_VENZA = [
         // La carrosserie et le segment sont ceux que portait la ligne nue, et
         // ils ne sont pas re-decides ici : ce lot pose une structure, il ne
@@ -922,6 +950,10 @@ class VehicleModelsSeeder extends Seeder
         // production lit cette constante, et il n'y a donc qu'une definition.
         foreach (self::GENERATIONS_VENZA as [$nom, $gen, $carrosserie, $segment, $de, $a]) {
             $models[] = ['toyota', $nom, $gen, $carrosserie, $segment, $de, $a];
+        }
+
+        foreach (self::GENERATIONS_MAZDA_CX as [$nom, $gen, $carrosserie, $segment, $de, $a]) {
+            $models[] = ['mazda', $nom, $gen, $carrosserie, $segment, $de, $a];
         }
 
         $kiaModels = json_decode(file_get_contents(database_path('catalogue/kia-models.json')), true, flags: JSON_THROW_ON_ERROR)['models'];
