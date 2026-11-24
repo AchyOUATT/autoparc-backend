@@ -82,9 +82,26 @@ class TrimsSeeder extends Seeder
             ['toyota', 'hilux-an120', 'GR-S',      'GRS',  4, $petrol, $dwa, 278, 3456, 6, 'automatic'],
 
             // ── TOYOTA LAND CRUISER J200 ─────────────────────────────────
+            // Gamme du Golfe : GX < GX-R < VX < VX-R. Le GX-R manquait, alors
+            // que c'est une des finitions les plus courantes de cette
+            // generation sur le parc local.
+            //
+            // Motricite 4WD pour les quatre : le J200 n'existe qu'en quatre
+            // roues motrices.
+            //
+            // Moteur par defaut du GX-R : NUL. Au Golfe, cette finition a ete
+            // vendue en essence (4,0 V6 1GR-FE ; 4,7 V8 2UZ-FE jusqu'en 2011 ;
+            // 4,6 V8 1UR-FE a partir de 2012 — DriveArabia, 24/02/2012,
+            // lancement EAU 2012, GX-R en 4,0 ou 4,6 essence) et, sur les
+            // millesimes plus tardifs et a l'export, en diesel 4,5 V8
+            // 1VD-FTV. `Trim` prevoit de laisser le client preciser le
+            // moteur quand une finition en admet plusieurs. Les chiffres
+            // 304 ch / 4608 cm3 ci-dessous documentent le 4,6 1UR-FE, le plus
+            // souvent cite a partir de 2012 ; ils ne sont pas stockes.
             ['toyota', 'land-cruiser-j200', 'GX',  'GX',   1, $diesel, $dwa, 204, 4461, 8, 'automatic'],
-            ['toyota', 'land-cruiser-j200', 'VX',  'VX',   2, $diesel, $dwa, 204, 4461, 8, 'automatic'],
-            ['toyota', 'land-cruiser-j200', 'VX-R','VXR',  3, $petrol, $dwa, 318, 4608, 8, 'automatic'],
+            ['toyota', 'land-cruiser-j200', 'GX-R','GXR',  2, null,    $dwa, 304, 4608, 8, 'automatic'],
+            ['toyota', 'land-cruiser-j200', 'VX',  'VX',   3, $diesel, $dwa, 204, 4461, 8, 'automatic'],
+            ['toyota', 'land-cruiser-j200', 'VX-R','VXR',  4, $petrol, $dwa, 318, 4608, 8, 'automatic'],
 
             // ── TOYOTA LAND CRUISER PRADO J150 ───────────────────────────
             ['toyota', 'land-cruiser-prado-j150', 'GX',   'GX',  1, $diesel, $dwa, 177, 2755, 4, 'manual'],

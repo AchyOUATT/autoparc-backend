@@ -570,7 +570,7 @@ class FinitionsToyotaSecondeMoitieTest extends TestCase
             'bmw' => 67, 'ford' => 4, 'hyundai' => 40, 'isuzu' => 4, 'jeep' => 3,
             'kia' => 4, 'land-rover' => 3, 'lexus' => 68, 'mercedes-benz' => 4,
             'mitsubishi' => 7, 'nissan' => 10, 'peugeot' => 4, 'renault' => 4,
-            'volkswagen' => 4, 'toyota' => 88,
+            'volkswagen' => 4, 'toyota' => 89,
         ];
 
         $mesures = DB::table('trims')
@@ -585,7 +585,7 @@ class FinitionsToyotaSecondeMoitieTest extends TestCase
 
         ksort($attendus);
         $this->assertSame($attendus, $mesures, 'Les autres marques gardent leurs références après les ajouts Toyota et Hyundai.');
-        $this->assertSame(314, DB::table('trims')->count(), '281 finitions historiques et Toyota, puis 33 appellations Hyundai provisoires.');
+        $this->assertSame(315, DB::table('trims')->count(), '282 finitions historiques et Toyota, puis 33 appellations Hyundai provisoires.');
     }
 
     public function test_les_generations_toyota_encore_vides_sont_exactement_vingt_cinq(): void
