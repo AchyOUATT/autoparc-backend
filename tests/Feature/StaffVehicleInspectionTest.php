@@ -37,6 +37,20 @@ class StaffVehicleInspectionTest extends TestCase
         $this->mechanic = User::factory()->create(['name' => 'INSPECTOR-PRIVATE-NAME', 'role' => 'mechanic']);
     }
 
+    /**
+     * Les identifiants des deux sources doivent COÏNCIDER pour ce test. Sous
+     * SQLite en mémoire, chaque table repart de 1 et ils coïncident d'eux-mêmes.
+     * Sous PostgreSQL (la production), une séquence n'est pas remise à zéro par
+     * l'annulation de la transaction de RefreshDatabase : on la cale.
+     */
+    private function aligneLaSequenceDesAnnoncesSur(int $id): void
+    {
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'pgsql') {
+            \Illuminate\Support\Facades\DB::select(
+                "select setval(pg_get_serial_sequence('private_vehicle_listings', 'id'), ?, false)", [$id]);
+        }
+    }
+
     private function vehicle(array $extra = []): Vehicle
     {
         return Vehicle::create(array_replace([
@@ -154,6 +168,7 @@ class StaffVehicleInspectionTest extends TestCase
     public function test_same_numeric_source_ids_have_independent_active_inspections_on_all_catalogue_paths(): void
     {
         $vehicle = $this->vehicle();
+        $this->aligneLaSequenceDesAnnoncesSur($vehicle->id);
         $listing = $this->listing();
         $this->assertSame($vehicle->id, $listing->id);
         $stock = $this->inspect($vehicle);

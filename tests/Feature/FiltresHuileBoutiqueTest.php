@@ -771,6 +771,11 @@ class FiltresHuileBoutiqueTest extends TestCase
                 ->groupBy(fn ($f) => $f->part->sku)
                 ->map->count()
                 ->all();
+            // Sans ORDER BY, l'ordre des lignes n'est pas garanti (PostgreSQL
+            // ne rend pas l'ordre d'insertion) : on compare les comptes, pas
+            // l'ordre des clés.
+            ksort($lignes);
+            ksort($parReference);
 
             $this->assertSame($parReference, $lignes, "Le compte de {$slug} a change.");
 
