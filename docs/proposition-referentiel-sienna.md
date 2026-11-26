@@ -46,7 +46,7 @@ Aucune ligne n'est supprimée et rien n'est renommé. Seuls changent
 | Slug | Production | Châssis | Catalogue EPC |
 | --- | --- | --- | --- |
 | `sienna-xl10` (PR #41) | 1997–2002 | MCL10 | 622410 |
-| `sienna-xl20` | 2003–2009 | MCL20/23/25 (3MZ-FE, 01/2003–12/2006), GSL20/23/25 (2GR-FE, 12/2006–12/2009) | [622420](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622420/info) |
+| `sienna-xl20` | 2003–2010 | MCL20/23/25 (3MZ-FE, 01/2003–12/2006), GSL20/23/25 (2GR-FE, 12/2006–01/2010). Le bandeau du catalogue 622420 indique 12/2009, mais les variantes GSL2# vont jusqu'en 01/2010, mois aussi de démarrage de la XL30. | [622420](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622420/info) |
 | `sienna-xl30` | 2010–2020 | ASL30 (1AR-FE), GSL30/33/35 (2GR-FE puis 2GR-FKS) | [622430](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622430/info) |
 | `sienna-xl40` | 2020– | AXLH40/45 (A25A-FXS hybride) | [622440](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622440/info) |
 
@@ -61,7 +61,7 @@ fabrication.
 
 | Ligne nue (conservée) | Décision | Nouvelle(s) ligne(s) | Preuve |
 | --- | --- | --- | --- |
-| 04152-YZZA1, 2GR-FE, 2007–2016 | à cheval sur XL20 et XL30 : **non dupliquée**, découpée selon l'EPC | XL20 GSL20/23/25 **2006–2009** ; XL30 GSL30/33/35 **2010–2016** | PDF « 2007-2010 » et « 2011-2016 V6 (2GRFE) → 04152-YZZA1 » ; EPC [622420 g/04152](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622420/g/04152) (dès 12/2006), [622430 f/151714B](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622430/f/151714B?pnc=04152) (01/2010–08/2016) ; schéma [GSL20L-PRADKK](https://www.toyodiy.com/parts/p_U_200612_TOYOTA_SIENNA_GSL20L-PRADKK_1502.html) |
+| 04152-YZZA1, 2GR-FE, 2007–2016 | à cheval sur XL20 et XL30 : **non dupliquée**, découpée selon l'EPC | XL20 GSL20/23/25 **2006–2010** ; XL30 GSL30/33/35 **2010–2016** | PDF « 2007-2010 » et « 2011-2016 V6 (2GRFE) → 04152-YZZA1 » ; EPC [622420](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622420/info) variantes GSL2# 12/2006–01/2010, [622430](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622430/info) GSL3# dès 01/2010 (chevauchement en janvier 2010) ; schéma [GSL20L-PRADKK](https://www.toyodiy.com/parts/p_U_200612_TOYOTA_SIENNA_GSL20L-PRADKK_1502.html) |
 | 04152-YZZA1, 1AR-FE, 2011–2013 | rattachée à XL30, période EPC | XL30 ASL30 **2010–2013** | PDF « 2011-2013 L4 (1ARFE) » ; EPC 622430 : 05/2010–08/2013 |
 | 04152-YZZA1, 2GR-FKS, 2017–2020 | rattachée à XL30, période EPC | XL30 GSL3# **2016–2020** | PDF « 2017-2020 V6 (2GRFKS) » ; EPC 622430 : 08/2016–09/2020 ; schéma [GSL30L-PRZEHA](https://www.toyodiy.com/parts/p_U_201608_TOYOTA_SIENNA_GSL30L-PRZEHA_1502.html) |
 | 90915-YZZN1, A25A-FXS, 2021– | rattachée à XL40, période EPC | XL40 AXLH40/45 **2020–** | PDF « 2021- L4 (A25AFXS) → 90915-YZZN1 » ; EPC [622440 g/15601](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622440/g/15601) (90915-10009 dès 11/2020) |

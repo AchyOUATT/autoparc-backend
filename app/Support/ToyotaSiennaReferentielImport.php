@@ -219,7 +219,7 @@ final class ToyotaSiennaReferentielImport
      *
      * Réévaluation des 4 lignes de la ligne nue (qui restent en place) :
      *  - 04152-YZZA1 2GR-FE 2007-2016 : à cheval sur XL20 et XL30 ; l'EPC
-     *    sépare GSL2# (12/2006-12/2009) et GSL3# (01/2010-08/2016) : deux
+     *    sépare GSL2# (12/2006-01/2010) et GSL3# (01/2010-08/2016) : deux
      *    lignes, chacune sourcée par son catalogue ;
      *  - 04152-YZZA1 1AR-FE 2011-2013 : XL30, ASL30 05/2010-08/2013 → 2010-2013 ;
      *  - 04152-YZZA1 2GR-FKS 2017-2020 : XL30, GSL3# 08/2016-09/2020 → 2016-2020 ;
@@ -247,10 +247,10 @@ final class ToyotaSiennaReferentielImport
             ],
             [
                 'sku' => '04152-YZZA1', 'model_slug' => 'sienna-xl20', 'engine_code' => '2GR-FE',
-                'year_from' => 2006, 'year_to' => 2009, 'chassis_codes' => ['GSL20', 'GSL23', 'GSL25'],
+                'year_from' => 2006, 'year_to' => 2010, 'chassis_codes' => ['GSL20', 'GSL23', 'GSL25'],
                 'notes' => 'Sienna XL20 3.5 V6 2GR-FE, châssis GSL20/GSL23/GSL25, marché USA.'
                     .$pdf('2007-2010 V6 (2GRFE) → 04152-YZZA1')
-                    .$epc('622420', '04152, '.self::SRC_EPC.'/622420/g/04152', 'GSL2# de 12/2006 à la fin du catalogue (12/2009)')
+                    .$epc('622420', '04152, '.self::SRC_EPC.'/622420/g/04152', 'GSL2# de 12/2006 à 01/2010 (variantes EPC ; le bandeau du catalogue 622420 indique 12/2009)')
                     .' Schéma 15-02 du GSL20L-PRADKK (https://www.toyodiy.com/parts/p_U_200612_TOYOTA_SIENNA_GSL20L-PRADKK_1502.html).'
                     .$yzza1.' Première partie de la ligne « Sienna 2GR-FE 2007-2016 » de la ligne nue, à cheval sur XL20 et XL30.'
                     .self::BORNES,
