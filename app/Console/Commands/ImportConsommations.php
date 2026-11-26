@@ -13,6 +13,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
@@ -1077,11 +1078,24 @@ class ImportConsommations extends Command
         $rattachees = 0;
         $marquesVues = [];
 
+        // Cotes dont la generation a ete decidee et journalisee par une
+        // restructuration documentee (ex. Sienna, 26/11/2026) : la regle
+        // d'annees ci-dessous ne doit pas defaire cette decision (une
+        // annee-modele 2010 en boite 5 rapports est une XL20, pas la XL30
+        // que donnerait la seule annee), ni rattacher une cote mise de cote
+        // pour validation manuelle.
+        $decidees = Schema::hasTable('motorisation_generation_assignments')
+            ? DB::table('motorisation_generation_assignments')->pluck('motorisation_id')->flip()
+            : collect();
+
         Motorisation::query()->orderBy('id')->chunkById(1000, function ($lot) use (
-            $marques, $modelesParMarque, &$rattachees, &$marquesVues
+            $marques, $modelesParMarque, &$rattachees, &$marquesVues, $decidees
         ) {
             foreach ($lot as $cote) {
                 if ($cote->verified_at !== null || $cote->trim_id !== null || $cote->trim_application_id !== null) {
+                    continue;
+                }
+                if ($decidees->has($cote->id)) {
                     continue;
                 }
                 $marque = null;

@@ -5,16 +5,9 @@ namespace Tests\Feature;
 use App\Models\Brand;
 use App\Models\Part;
 use App\Models\PartFitment;
-use App\Models\Vehicle;
 use App\Models\VehicleModel;
 use App\Services\CompatibilityService;
-use Database\Seeders\BrandsSeeder;
-use Database\Seeders\ColorsSeeder;
-use Database\Seeders\DrivetrainsSeeder;
-use Database\Seeders\EngineTypesSeeder;
 use Database\Seeders\FiltresHuileBoutiqueSeeder;
-use Database\Seeders\ManufacturersSeeder;
-use Database\Seeders\PartCategoriesSeeder;
 use Database\Seeders\VehicleModelsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -82,7 +75,7 @@ class GenerationsVenzaTest extends TestCase
         ],
         'sienna' => [
             ['XL10', 1997, 2002],
-            ['XL20', 2003, 2010],
+            ['XL20', 2003, 2009],
             ['XL30', 2010, 2020],
             ['XL40', 2020, null],
         ],
@@ -100,15 +93,15 @@ class GenerationsVenzaTest extends TestCase
         parent::setUp();
 
         $this->seed([
-            PartCategoriesSeeder::class,
-            ManufacturersSeeder::class,
-            BrandsSeeder::class,
-            VehicleModelsSeeder::class,
+            \Database\Seeders\PartCategoriesSeeder::class,
+            \Database\Seeders\ManufacturersSeeder::class,
+            \Database\Seeders\BrandsSeeder::class,
+            \Database\Seeders\VehicleModelsSeeder::class,
             // Les trois tables dont `VehicleFactory` a besoin pour fabriquer le
             // vehicule du test de garde : sans elles, elle lit `null->id`.
-            ColorsSeeder::class,
-            EngineTypesSeeder::class,
-            DrivetrainsSeeder::class,
+            \Database\Seeders\ColorsSeeder::class,
+            \Database\Seeders\EngineTypesSeeder::class,
+            \Database\Seeders\DrivetrainsSeeder::class,
         ]);
     }
 
@@ -309,7 +302,7 @@ class GenerationsVenzaTest extends TestCase
 
         foreach ($deplacees as [$slug, $sku, $moteur, $de, $a]) {
             $modele = VehicleModel::where('brand_id', $this->toyota())->where('slug', $slug)->firstOrFail();
-            $piece = Part::where('sku', $sku)->firstOrFail();
+            $piece  = Part::where('sku', $sku)->firstOrFail();
 
             $ligne = PartFitment::where('vehicle_model_id', $modele->id)
                 ->where('part_id', $piece->id)
@@ -362,12 +355,19 @@ class GenerationsVenzaTest extends TestCase
         $this->seed(FiltresHuileBoutiqueSeeder::class);
 
         $attendus = [
-            'avalon' => 4,
-            'highlander' => 7,
-            'sienna' => 4,
-            'tacoma-iii' => 1,
-            'venza-av10' => 2,
-            'venza-xu80' => 1,
+            'avalon'      => 4,
+            'highlander'  => 7,
+            // La ligne nue `sienna` ne porte plus rien depuis le 26/11/2026 :
+            // ses 4 lignes sont devenues 5 lignes de generation (la 2GR-FE
+            // 2007-2016 est coupee en XL20 2006-2009 et XL30 2010-2016 par
+            // l'EPC), posees par `ToyotaSiennaReferentielImport`.
+            'sienna'      => 0,
+            'sienna-xl20' => 1,
+            'sienna-xl30' => 3,
+            'sienna-xl40' => 1,
+            'tacoma-iii'  => 1,
+            'venza-av10'  => 2,
+            'venza-xu80'  => 1,
         ];
 
         $mesures = [];
@@ -379,10 +379,12 @@ class GenerationsVenzaTest extends TestCase
         }
 
         $this->assertSame($attendus, $mesures, 'La repartition des dix-neuf lignes a bouge.');
-        $this->assertSame(19, array_sum($mesures), 'Les dix-neuf compatibilites confirmees ne sont plus dix-neuf.');
+        // 19 avant le 26/11/2026 ; 20 depuis, par la seule coupe de la
+        // Sienna 2GR-FE 2007-2016 en deux generations.
+        $this->assertSame(20, array_sum($mesures), 'Les compatibilites confirmees ne sont plus vingt.');
 
         // Et rien ne pend plus aux deux slugs nus vides.
-        foreach (['tacoma', 'venza'] as $slug) {
+        foreach (['tacoma', 'venza', 'sienna'] as $slug) {
             $id = VehicleModel::where('brand_id', $this->toyota())->where('slug', $slug)->value('id');
 
             $this->assertSame(0, PartFitment::where('vehicle_model_id', $id)->count(), $slug);
@@ -407,7 +409,7 @@ class GenerationsVenzaTest extends TestCase
         $xu80 = VehicleModel::where('brand_id', $this->toyota())->where('slug', 'venza-xu80')->firstOrFail();
 
         $cartouche = Part::where('sku', '04152-YZZA1')->firstOrFail();
-        $visse = Part::where('sku', '90915-YZZN1')->firstOrFail();
+        $visse     = Part::where('sku', '90915-YZZN1')->firstOrFail();
 
         // Un Venza 3.5 de 2012 : la cartouche, et pas le filtre visse.
         $pieces2012 = $service->partsForCriteria($av10->id, 2012, null, null, null, '2GR-FE')->pluck('id')->all();
@@ -483,7 +485,7 @@ class GenerationsVenzaTest extends TestCase
      */
     public function test_les_sept_lignes_a_cheval_sont_exactement_sept_et_nommees(): void
     {
-        $aCheval = [];
+        $aCheval  = [];
         $tiennent = [];
 
         foreach ($this->lignesDesSlugsNus() as [$slug, $de, $a, $moteur]) {
@@ -541,8 +543,11 @@ class GenerationsVenzaTest extends TestCase
             'highlander 2GR-FE 2008-2016 : XU40 + XU50',
             'highlander 2GR-FKS 2017-2022 : XU50 + XU70',
             'highlander 2GR-FXE 2011-2016 : XU40 + XU50',
-            'sienna 2GR-FE 2007-2016 : XL20 + XL30',
-        ], $aCheval, 'Les lignes a cheval ne sont plus les sept connues.');
+            // `sienna 2GR-FE 2007-2016 : XL20 + XL30` a quitte cette liste le
+            // 26/11/2026 : la ligne nue `sienna` ne porte plus aucune
+            // compatibilite (migration 2026_11_26_180100), ses generations
+            // portent les lignes reevaluees sur l'EPC.
+        ], $aCheval, 'Les lignes a cheval ne sont plus les six connues.');
 
         // ── ET LES HUIT QUI TIENNENT, DONT TROIS SUR UNE ANNEE DE BASCULE ───
         //
@@ -565,9 +570,9 @@ class GenerationsVenzaTest extends TestCase
             'highlander 2GR-FXS 2017-2019 : XU50 (touche XU70)',
             'highlander A25A-FXS 2020-ouvert : XU70',
             'highlander T24A-FTS 2023-ouvert : XU70',
-            'sienna 1AR-FE 2011-2013 : XL30',
-            'sienna 2GR-FKS 2017-2020 : XL30 (touche XL40)',
-            'sienna A25A-FXS 2021-ouvert : XL40',
+            // Les trois lignes Sienna (1AR-FE, 2GR-FKS, A25A-FXS) ont quitte
+            // le slug nu le 26/11/2026, remplacees par leurs lignes de
+            // generation (`ToyotaSiennaReferentielImport`).
         ], $tiennent,
             'Les huit lignes qui tiennent dans une seule generation ont change. '
             .'Elles ne bougent pas pour autant : deplacer les unes en laissant les sept '
@@ -586,7 +591,7 @@ class GenerationsVenzaTest extends TestCase
      */
     private function lignesDesSlugsNus(): array
     {
-        $reflet = new \ReflectionClass(FiltresHuileBoutiqueSeeder::class);
+        $reflet  = new \ReflectionClass(FiltresHuileBoutiqueSeeder::class);
         $filtres = $reflet->getConstant('FILTRES');
 
         $lignes = [];
@@ -599,10 +604,13 @@ class GenerationsVenzaTest extends TestCase
             }
         }
 
+        // 15 jusqu'au 26/11/2026, 11 depuis : les 4 lignes de la ligne nue
+        // `sienna` sont retirees du seeder (et de la base par la migration
+        // 2026_11_26_180100), remplacees par celles de ses generations.
         $this->assertCount(
-            15,
+            11,
             $lignes,
-            'Les trois slugs nus ne portent plus quinze lignes : une a bouge sans que ce fichier le dise.',
+            'Les slugs nus ne portent plus onze lignes : une a bouge sans que ce fichier le dise.',
         );
 
         return $lignes;
@@ -684,13 +692,13 @@ class GenerationsVenzaTest extends TestCase
         // On remet l'etat d'AVANT ce lot — active, bornee 2009-ouvert — pour
         // que le garde ait quelque chose a proteger.
         DB::table('vehicle_models')->where('id', $nue->id)->update([
-            'is_active' => true,
+            'is_active'        => true,
             'production_start' => 2009,
-            'production_end' => null,
+            'production_end'   => null,
         ]);
 
-        Vehicle::factory()->create([
-            'brand_id' => $this->toyota(),
+        \App\Models\Vehicle::factory()->create([
+            'brand_id'         => $this->toyota(),
             'vehicle_model_id' => $nue->id,
         ]);
 
@@ -714,9 +722,9 @@ class GenerationsVenzaTest extends TestCase
         $nue = VehicleModel::where('brand_id', $this->toyota())->where('slug', 'venza')->firstOrFail();
 
         DB::table('vehicle_models')->where('id', $nue->id)->update([
-            'is_active' => true,
+            'is_active'        => true,
             'production_start' => 2009,
-            'production_end' => null,
+            'production_end'   => null,
         ]);
 
         $this->jouerLaMigration();
@@ -741,9 +749,9 @@ class GenerationsVenzaTest extends TestCase
         $tacoma = VehicleModel::where('brand_id', $this->toyota())->where('slug', 'tacoma')->firstOrFail();
 
         DB::table('vehicle_models')->where('id', $tacoma->id)->update([
-            'is_active' => true,
+            'is_active'        => true,
             'production_start' => 1995,
-            'production_end' => null,
+            'production_end'   => null,
         ]);
 
         $this->jouerLaMigration();
