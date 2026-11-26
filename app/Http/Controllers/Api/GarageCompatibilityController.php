@@ -40,13 +40,19 @@ class GarageCompatibilityController extends Controller
             ->with(['brand', 'vehicleModel', 'trim', 'engineType', 'drivetrain'])
             ->get();
 
-        $part->loadMissing(['fitments', 'oemNumbers.fitments']);
+        $part->loadMissing(PartCompatibilityAssessment::EAGER);
+        $includeInactive = $request->boolean('include_inactive');
 
         $results = $vehicles->map(fn (OwnedVehicle $vehicle) => array_merge([
             'vehicle_id'          => $vehicle->id,
             'display_name'        => $vehicle->nickname ?: $vehicle->designation,
             'year'                => $vehicle->manufacturing_year,
-        ], $this->assessment->assess($part, $this->svc->ownedVehicleCriteria($vehicle))));
+        ], $this->assessment->assess(
+            $part,
+            $this->assessment->withModelState(
+                $this->svc->ownedVehicleCriteria($vehicle) + ['include_inactive' => $includeInactive],
+            ),
+        )));
 
         return response()->json(['data' => $results]);
     }

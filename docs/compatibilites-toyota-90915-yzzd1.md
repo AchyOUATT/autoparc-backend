@@ -51,19 +51,27 @@ au VIN.
 ### Niveau de preuve des remplacements
 
 Les schémas EPC des châssis anciens portent 90915-20001 ou 90915-20003, pas
-90915-YZZD1. Les remplacements sont rangés dans `oem_numbers`
-(`is_superseded`, `superseded_by_id`), avec un niveau de preuve dans la
-colonne nullable `supersession_evidence` et les URL consultées dans
-`supersession_sources` (migration de la PR #40) :
+90915-YZZD1. Chaque remplacement est qualifié dans la table unique
+`oem_number_relations` (PR #42, alimentée par l'import de la PR #40) : nature
+du lien (`kind`), niveau de preuve (`evidence_level`), URL consultées
+(`sources`), date (`verified_on`). Le drapeau historique `oem_numbers`
+(`is_superseded`, `superseded_by_id`) reste posé, sans niveau de preuve.
+L'API les expose dans `replaced_by` / `replaces` :
 
-| Ancien numéro | Niveau de preuve | Sources |
+| Ancien numéro | `kind` / `evidence_level` | Sources |
 | --- | --- | --- |
-| 90915-YZZB1, 90915-YZZB9, 90915-YZZG2 | `documentation_constructeur` | [fiche officielle Toyota](https://autoparts.toyota.com/products/product/filter-oil-90915yzzd1) (« Previous Version(s) »), parts.lexus.com |
-| 90915-20001, 90915-20003 | `catalogues_distribution` | [ToyotaPartsDeal 20001](https://www.toyotapartsdeal.com/oem/toyota~filter~sub~assy~oil~90915-20001.html), [ToyotaPartsDeal 20003](https://www.toyotapartsdeal.com/parts-list/2006-toyota-highlander-jpp_hybrid/engine_fuel_tool/oil_filter.html), [ToyotaPartsNow](https://www.toyotapartsnow.com/oem/toyota~filter-oil~90915-yzzd1), [Frontier Toyota](https://parts.frontiertoyota.com/oem-parts/toyota-oil-filter-90915yzzd1), [Nucar Toyota](https://toyotaparts.nucar.com/parts/toyota-oil-filter-90915yzzd1) |
+| 90915-YZZB1, 90915-YZZB9, 90915-YZZG2 | `manufacturer_supersession` / `manufacturer_official` | [fiche officielle Toyota](https://autoparts.toyota.com/products/product/filter-oil-90915yzzd1) (« Previous Version(s) »), parts.lexus.com |
+| 90915-20001, 90915-20003 | `distributor_replacement` / `dealer_catalog` | [ToyotaPartsDeal 20001](https://www.toyotapartsdeal.com/oem/toyota~filter~sub~assy~oil~90915-20001.html), [ToyotaPartsDeal 20003](https://www.toyotapartsdeal.com/parts-list/2006-toyota-highlander-jpp_hybrid/engine_fuel_tool/oil_filter.html), [ToyotaPartsNow](https://www.toyotapartsnow.com/oem/toyota~filter-oil~90915-yzzd1), [Frontier Toyota](https://parts.frontiertoyota.com/oem-parts/toyota-oil-filter-90915yzzd1), [Nucar Toyota](https://toyotaparts.nucar.com/parts/toyota-oil-filter-90915yzzd1) |
+
+Cette preuve de REMPLACEMENT est distincte de la preuve de COMPATIBILITÉ
+(`evidence_level` / `evidence_sources` des lignes de compatibilité, et
+`notes`).
 
 Le second remplacement a été accepté par le propriétaire le 26/11/2026.
-Rattacher un ancien numéro ne transfère aucune compatibilité : chaque ligne
-reste justifiée par le schéma EPC de son châssis.
+Rattacher un ancien numéro ne transfère aucune compatibilité : un numéro
+remplacé (drapeau ou lien qualifié) ne transmet jamais ses lignes à la pièce
+qui le porte, sauf s'il en est le numéro principal ; chaque ligne reste
+justifiée par le schéma EPC de son châssis.
 
 Les revendeurs utilisés auparavant pour les Lexus (autohausaz, mugen-24) ne
 servent plus de preuve : chaque ligne Lexus cite désormais un schéma EPC.
