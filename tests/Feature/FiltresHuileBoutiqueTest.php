@@ -252,8 +252,11 @@ class FiltresHuileBoutiqueTest extends TestCase
         // XL30 / XL40 (4 YZZA1, 1 YZZN1), reposees par
         // `ToyotaSiennaReferentielImport` a la fin du seeder (26/11/2026).
         // Moins les 4 lignes de la ligne nue `sienna`, retirees du seeder le
-        // meme jour (migration 2026_11_26_180100) : 99 - 4 = 95.
-        $this->assertCount(95, $lignes,
+        // meme jour (migration 2026_11_26_180100) : 99 - 4 = 95. Plus les
+        // 8 couples generation x moteur de la 90915-YZZD2 documentes par
+        // Toyota Boshoku et reposes par `Toyota90915Yzzd2PreuvesBoshoku`
+        // (migration 2026_11_26_230000) : 95 + 8 = 103.
+        $this->assertCount(103, $lignes,
             'Des compatibilites ont ete perdues : un slug ne se resout plus.');
 
         foreach ($lignes as $ligne) {

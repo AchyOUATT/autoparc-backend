@@ -211,7 +211,12 @@ class FiltresHuileBoutiqueSeeder extends Seeder
         [
             "sku"           => "90915-YZZD2",
             "nom"           => "Filtre a huile visse 90915-YZZD2",
-            "description"   => "Visse, moteurs diesel 2KD-FTV 2.5, 1KD-FTV 3.0, 2GD-FTV 2.4, 1GD-FTV 2.8 et certains 2TR-FE 2.7.",
+            // Texte repris de `Toyota90915Yzzd2PreuvesBoshoku::DESCRIPTION_APRES`
+            // (26/11/2026) : l'ancien limitait la YZZD2 aux diesels, alors que
+            // Toyota Boshoku la donne aussi en essence 2TR-FE / 1TR-FE / 1MZ-FE.
+            // Les preuves de ces lignes, et huit couples generation x moteur
+            // de plus, sont reposes a la fin de `run()`.
+            "description"   => \App\Support\Toyota90915Yzzd2PreuvesBoshoku::DESCRIPTION_APRES,
             "compatibilites" => [
                 ["hilux-an10", 2005, 2015, "1KD-FTV", "Premier document fournisseur, ligne retenue par l'audit du commercant sur source constructeur."],
                 ["hilux-an120", 2015, 2020, "2GD-FTV", "Premier document fournisseur, ligne retenue par l'audit du commercant sur source constructeur."],
@@ -879,6 +884,14 @@ class FiltresHuileBoutiqueSeeder extends Seeder
         // XL20 n'a pas besoin de l'etre : la YZZD1 est conservee, voir son
         // drapeau `compatibilites_a_verifier`.)
         \App\Support\ToyotaSiennaReferentielImport::reposerLesCompatibilites(['04152-YZZA1', '90915-YZZN1']);
+
+        // Meme raison pour la 90915-YZZD2 : le `fitments()->delete()` vient
+        // d'effacer les preuves Toyota Boshoku de ses lignes Hilux / Fortuner
+        // et les huit couples ajoutes le 26/11/2026 (migration
+        // 2026_11_26_230000). Ils sont reposes depuis leur seule definition.
+        // Sans effet tant que les colonnes de preuve n'existent pas encore
+        // (migrations anterieures qui appellent ce seeder).
+        \App\Support\Toyota90915Yzzd2PreuvesBoshoku::run();
     }
 
     /**
