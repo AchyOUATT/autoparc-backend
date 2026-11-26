@@ -12,6 +12,7 @@ use App\Services\PartCompatibilityAssessment;
 use App\Support\FitmentEvidence;
 use App\Support\Toyota10001PreuvesAftermarket;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class Toyota10001PreuvesAftermarketTest extends TestCase
@@ -189,6 +190,68 @@ class Toyota10001PreuvesAftermarketTest extends TestCase
             ->assertJsonPath('data.0.id', $this->piece->id)
             ->assertJsonPath('data.0.compatibility_assessment.status', 'candidate')
             ->assertJsonPath('data.0.compatibility_assessment.reason', 'insufficient_evidence');
+    }
+
+    /**
+     * Le down() est « tout ou rien » par ligne : dès qu'un seul champ posé par
+     * up() a été modifié ou enrichi à la main, la ligne n'est pas touchée du
+     * tout (jamais à moitié défaite). Les autres lignes sont rétablies.
+     *
+     * @return array<string, array{0: array<string, mixed>}>
+     */
+    public static function editionsManuelles(): array
+    {
+        return [
+            'E110 : une source ajoutée, niveau inchangé' => [[
+                'evidence_sources' => [Toyota10001PreuvesAftermarket::SOURCE_URL, 'https://exemple.test/autre-page'],
+            ]],
+            'source remplacée' => [['evidence_sources' => ['https://exemple.test/epc']]],
+            'niveau promu à la main' => [['evidence_level' => FitmentEvidence::MANUFACTURER_OFFICIAL]],
+            'marché élargi' => [['market_codes' => ['JP', 'AFR']]],
+            'marché remplacé' => [['market_codes' => ['USA']]],
+            'mois de début modifié' => [['month_from' => 1]],
+            'mois de fin modifié' => [['month_to' => 12]],
+        ];
+    }
+
+    /** @param  array<string, mixed>  $edition */
+    #[DataProvider('editionsManuelles')]
+    public function test_down_laisse_une_ligne_intacte_si_un_champ_a_ete_edite_a_la_main(array $edition): void
+    {
+        $migration = $this->migration();
+        $migration->up();
+        $cibles = Toyota10001PreuvesAftermarket::cibles();
+        $editee = $cibles[1]; // Corolla E110, le cas de la revue
+
+        $this->ligne($editee)->update($edition);
+        $champs = ['evidence_level', 'evidence_sources', 'market_codes', 'month_from', 'month_to', 'notes'];
+        $avant = $this->ligne($editee)->fresh()->only($champs);
+
+        $migration->down();
+
+        $this->assertSame($avant, $this->ligne($editee)->fresh()->only($champs), 'ligne éditée : aucun champ touché');
+        foreach ($cibles as $cible) {
+            if ($cible === $editee) {
+                continue;
+            }
+            $ligne = $this->ligne($cible)->fresh();
+            $this->assertNull($ligne->evidence_level, $cible['model_slug']);
+            $this->assertNull($ligne->evidence_sources);
+            $this->assertNull($ligne->market_codes);
+            $this->assertNull($ligne->month_from);
+            $this->assertNull($ligne->month_to);
+        }
+    }
+
+    public function test_down_ne_reecrit_pas_une_description_modifiee_apres_le_deploiement(): void
+    {
+        $migration = $this->migration();
+        $migration->up();
+        $this->piece->update(['description' => 'Description enrichie à la main après le déploiement.']);
+
+        $migration->down();
+
+        $this->assertSame('Description enrichie à la main après le déploiement.', $this->piece->fresh()->description);
     }
 
     private function migration(): object

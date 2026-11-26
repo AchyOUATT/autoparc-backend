@@ -13,7 +13,11 @@ use RuntimeException;
  *
  * Cible par clés stables (SKU, slug, moteur, années), jamais par id.
  * N'écrit que les champs vides ; ne pose jamais un niveau confirmable.
- * Le `down()` ne rétablit un champ que s'il vaut encore la valeur posée ici.
+ * Le `down()` ne rétablit une ligne que si TOUS les champs posés ici valent
+ * encore leur valeur d'origine ; sinon la ligne n'est pas touchée du tout.
+ *
+ * Le marché JP et les mois posés ici sont retirés par la migration suivante
+ * (Toyota10001RetraitMarcheMois) : ils excluaient des véhicules sans preuve.
  */
 final class Toyota10001PreuvesAftermarket
 {
@@ -82,7 +86,8 @@ final class Toyota10001PreuvesAftermarket
         });
     }
 
-    private static function piecePlateforme(): ?object
+    /** @internal Réutilisé par Toyota10001RetraitMarcheMois. */
+    public static function piecePlateforme(): ?object
     {
         $pieces = DB::table('parts')->where('sku', self::SKU)
             ->whereNull('owner_partner_account_id')
@@ -170,29 +175,33 @@ final class Toyota10001PreuvesAftermarket
     }
 
     /**
+     * Tout ou rien : la ligne n'est rétablie que si CHAQUE champ posé par
+     * `up()` vaut encore sa valeur d'origine (niveau, sources, marché, deux
+     * mois). Dès qu'un seul a été modifié ou enrichi à la main, la ligne n'est
+     * pas touchée du tout : on ne laisse jamais une ligne à moitié défaite.
+     *
      * @param  array{month_from: int, month_to: int}  $cible
      * @return array<string, mixed>
      */
     private static function patchRetablissement(object $ligne, array $cible): array
     {
-        $patch = [];
-        if (($ligne->evidence_level ?? null) === FitmentEvidence::AFTERMARKET_CROSSREF) {
-            $patch['evidence_level'] = null;
-        }
-        if (self::codesEgaux($ligne->evidence_sources ?? null, [self::SOURCE_URL])) {
-            $patch['evidence_sources'] = null;
-        }
-        if (self::codesEgaux($ligne->market_codes ?? null, ['JP'])) {
-            $patch['market_codes'] = null;
-        }
-        if ($ligne->month_from !== null && (int) $ligne->month_from === $cible['month_from']) {
-            $patch['month_from'] = null;
-        }
-        if ($ligne->month_to !== null && (int) $ligne->month_to === $cible['month_to']) {
-            $patch['month_to'] = null;
+        $intacte = ($ligne->evidence_level ?? null) === FitmentEvidence::AFTERMARKET_CROSSREF
+            && self::codesEgaux($ligne->evidence_sources ?? null, [self::SOURCE_URL])
+            && self::codesEgaux($ligne->market_codes ?? null, ['JP'])
+            && $ligne->month_from !== null && (int) $ligne->month_from === $cible['month_from']
+            && $ligne->month_to !== null && (int) $ligne->month_to === $cible['month_to'];
+
+        if (! $intacte) {
+            return [];
         }
 
-        return $patch;
+        return [
+            'evidence_level' => null,
+            'evidence_sources' => null,
+            'market_codes' => null,
+            'month_from' => null,
+            'month_to' => null,
+        ];
     }
 
     private static function estVide(mixed $valeur): bool
@@ -208,13 +217,15 @@ final class Toyota10001PreuvesAftermarket
     /**
      * @param  list<string>  $attendu
      */
-    private static function codesEgaux(mixed $valeur, array $attendu): bool
+    /** @internal Réutilisé par Toyota10001RetraitMarcheMois. */
+    public static function codesEgaux(mixed $valeur, array $attendu): bool
     {
         return self::liste($valeur) === $attendu;
     }
 
     /** @return list<string> */
-    private static function liste(mixed $valeur): array
+    /** @internal Réutilisé par Toyota10001RetraitMarcheMois. */
+    public static function liste(mixed $valeur): array
     {
         if ($valeur === null || $valeur === '' || $valeur === 'null') {
             return [];
