@@ -490,7 +490,7 @@ class FiltresHuileBoutiqueSeeder extends Seeder
         [
             "sku"           => "90915-10001",
             "nom"           => "Filtre a huile visse 90915-10001",
-            "description"   => "Visse, ancienne reference. Compatibilite a verifier selon le marche, le code moteur et le VIN ; le remplacement commercial par le 90915-YZZN1 ne confirme pas a lui seul une application.",
+            "description"   => "Visse, ancienne reference. Les catalogues de concessionnaires americains indiquent un remplacement par le 90915-YZZN1 ; ce n'est pas un fait officiel Toyota, et ce remplacement ne confirme pas a lui seul une application.",
             "remplace"      => [],
             // Les propositions du patch toyota_10001_compat.patch attendent
             // une preuve par marche, moteur et millesime. Elles sont conservees
