@@ -272,7 +272,12 @@ class FiltresHuileBoutiqueSeeder extends Seeder
                 // pour le Highlander 2023+).
                 ["highlander", 2020, null, "A25A-FXS", "Catalogue de correspondance du 18/10/2026, tableau YZZN1 Toyota, statut « Confirme » : Highlander hybride 2.5 A25A-FXS 2020+. Le tableau YZZA1 prescrit la meme reference pour ce vehicule, et la table par code moteur la confirme."],
                 ["highlander", 2023, null, "T24A-FTS", "Catalogue de correspondance du 18/10/2026, tableau YZZN1 Toyota, statut « Confirme » : Highlander / Grand Highlander 2.4 turbo T24A-FTS 2023+. La table par code moteur la confirme (T24A-FTS -> YZZN1, « Highlander 2023+ »). Le Grand Highlander est un modele distinct, absent du referentiel."],
-                ["sienna", 2021, null, "A25A-FXS", "Catalogue de correspondance du 18/10/2026, tableau YZZN1 Toyota, statut « Confirme » : Sienna hybride 2.5 A25A-FXS 2021+. Le tableau YZZA1 prescrit la meme reference pour ce vehicule."],
+                // Sienna hybride 2.5 A25A-FXS 2021+ : retiree de la ligne nue
+                // `sienna` le 26/11/2026 (decision du proprietaire), remplacee
+                // par la ligne XL40 2020- (AXLH40/45, EPC 622440) que pose
+                // `ToyotaSiennaReferentielImport`. Ancienne ligne archivee
+                // dans `part_fitment_archives` par la migration
+                // 2026_11_26_180100.
                 // Deplacee du slug nu `venza` vers la seconde generation : la
                 // periode 2021-2024 tient entierement dans la XU80, qui est
                 // ouverte depuis 2020, donc le rattachement ne perd ni
@@ -341,9 +346,14 @@ class FiltresHuileBoutiqueSeeder extends Seeder
                 ["highlander", 2011, 2016, "2GR-FXE", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Highlander hybride 3.5 2GR-FXE 2011-2016 AWD."],
                 ["highlander", 2017, 2022, "2GR-FKS", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Highlander 3.5 2GR-FKS 2017-2022 FWD / AWD."],
                 ["highlander", 2017, 2019, "2GR-FXS", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Highlander hybride 3.5 2GR-FXS 2017-2019 AWD."],
-                ["sienna", 2007, 2016, "2GR-FE", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Sienna 3.5 2GR-FE 2007-2016 FWD / AWD."],
-                ["sienna", 2011, 2013, "1AR-FE", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Sienna 2.7 1AR-FE 2011-2013 FWD."],
-                ["sienna", 2017, 2020, "2GR-FKS", "Catalogue de correspondance du 18/10/2026, tableau YZZA1 Toyota, statut « Confirme » : Sienna 3.5 2GR-FKS 2017-2020 FWD / AWD."],
+                // Sienna 2GR-FE 2007-2016, 1AR-FE 2011-2013 et 2GR-FKS
+                // 2017-2020 : retirees de la ligne nue `sienna` le 26/11/2026
+                // (decision du proprietaire), remplacees par les lignes de
+                // generation que pose `ToyotaSiennaReferentielImport` (XL20
+                // 2GR-FE 2006-2009, XL30 2GR-FE 2010-2016, XL30 1AR-FE
+                // 2010-2013, XL30 2GR-FKS 2016-2020, dates EPC). Anciennes
+                // lignes archivees dans `part_fitment_archives` par la
+                // migration 2026_11_26_180100.
                 // Les deux lignes du Venza, deplacees du slug nu vers sa
                 // premiere generation. 2009-2016 tient dans l'AV10, dont la
                 // production va de 2008 a 2017 : la ligne ne perd aucune
