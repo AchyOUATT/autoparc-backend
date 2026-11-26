@@ -192,7 +192,7 @@ final class Toyota90915Yzzd1AnciensModelesImport
         $pdf = fn (string $ligne): string => ' Moteur : '.self::SRC_PDF.' (catalogue Toyota des filtres 2025-2026, années-modèle US, '.$ligne.' → 90915-YZZD1).';
         $epc = fn (string $marche, string $catalogue, string $periode): string => ' Période EPC Toyota '.$marche.' (catalogue '.$catalogue.', '.self::SRC_EPC.'/vehicle/'.$marche.'/'.$catalogue.'/info) : '.$periode.'.';
         $schema = fn (string $preuve): string => ' Filtre au schéma 15-02 de l\'EPC : '.$preuve.'.';
-        $remplace = ' 90915-20001 / 90915-20003 sont remplacés par 90915-YZZD1 ('.self::SRC_REMPLACEMENT.').';
+        $remplace = ' 90915-20001 / 90915-20003 sont remplacés par 90915-YZZD1 — remplacement attesté par les catalogues de distribution Toyota ('.self::SRC_REMPLACEMENT.'), non par la fiche officielle Toyota.';
 
         return [
             ['model_slug' => 'camry-xv30', 'engine_code' => '1MZ-FE', 'year_from' => 2001, 'year_to' => 2006,

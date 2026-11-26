@@ -7,6 +7,9 @@ use App\Models\Part;
 use App\Models\PartCategory;
 use App\Models\VehicleModel;
 use App\Support\Toyota90915Yzzd1AnciensModelesImport;
+use Database\Seeders\FiltresHuileBoutiqueSeeder;
+use Database\Seeders\ManufacturersSeeder;
+use Database\Seeders\PartCategoriesSeeder;
 use Database\Seeders\VehicleModelsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -54,6 +57,24 @@ class Toyota90915Yzzd1AnciensModelesImportTest extends TestCase
         );
         $this->assertSame(self::NOUVEAUX, $slugs);
         $this->assertNotContains('sienna-xl20', $slugs);
+    }
+
+    public function test_rejouer_le_seeder_des_filtres_n_efface_pas_les_compatibilites(): void
+    {
+        $this->seed([
+            PartCategoriesSeeder::class,
+            ManufacturersSeeder::class,
+        ]);
+        $this->marques();
+        $piece = $this->filtre();
+        Toyota90915Yzzd1AnciensModelesImport::run();
+        $this->assertSame(21, $piece->fitments()->count());
+
+        // `FiltresHuileBoutiqueSeeder` fait `fitments()->delete()` sur ses
+        // références ; la YZZD1 y est marquée `compatibilites_a_verifier`.
+        $this->seed(FiltresHuileBoutiqueSeeder::class);
+
+        $this->assertSame(21, $piece->fresh()->fitments()->count());
     }
 
     public function test_sans_marques_l_import_est_inerte(): void
