@@ -18,8 +18,15 @@ return new class extends Migration
         Toyota90915Yzzd1AnciensModelesImport::run();
     }
 
+    /**
+     * Retour arrière : retire les lignes posées par up() (même empreinte) et
+     * les générations créées, sauf celles que quelque chose référence
+     * désormais (véhicule, finition, motorisation…), qui restent. Vérifié sur
+     * une copie de la production : part_fitments et vehicle_models reviennent
+     * à l'identique.
+     */
     public function down(): void
     {
-        // Non destructif : des véhicules peuvent déjà pointer vers ces fiches.
+        Toyota90915Yzzd1AnciensModelesImport::retirer();
     }
 };
