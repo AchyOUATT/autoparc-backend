@@ -65,6 +65,42 @@ class OemNumber extends Model
         return $this->hasMany(OemNumber::class, 'superseded_by_id');
     }
 
+    /** Liens qualifies sortants : cette reference est remplacee par... */
+    public function replacementRelations()
+    {
+        return $this->hasMany(OemNumberRelation::class, 'from_oem_number_id');
+    }
+
+    /** Liens qualifies entrants : cette reference remplace... */
+    public function replacedRelations()
+    {
+        return $this->hasMany(OemNumberRelation::class, 'to_oem_number_id');
+    }
+
+    /**
+     * Reference courante en ne suivant QUE les supersessions constructeur
+     * qualifiees. Un remplacement atteste par un distributeur n'est pas suivi.
+     */
+    public function currentManufacturerReference(): self
+    {
+        $ref = $this;
+        $vues = [$ref->id => true];
+
+        for ($guard = 0; $guard < 10; $guard++) {
+            $lien = $ref->replacementRelations()
+                ->where('kind', OemNumberRelation::KIND_MANUFACTURER_SUPERSESSION)
+                ->with('to')
+                ->first();
+            if (! $lien || ! $lien->to || isset($vues[$lien->to->id])) {
+                break;
+            }
+            $ref = $lien->to;
+            $vues[$ref->id] = true;
+        }
+
+        return $ref;
+    }
+
     /** Suit la chaine de remplacement jusqu'a la reference courante. */
     public function currentReference(): self
     {

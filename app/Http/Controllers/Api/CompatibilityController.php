@@ -64,10 +64,15 @@ class CompatibilityController extends Controller
             // le lui demandait pas. Mesure avant correction, Camry XV70 de
             // 2019 : les DEUX filtres rendus, la cartouche du 2GR-FKS et le
             // visse de l'A25A. Voir CompatiblePartsCriteriaRequest.
-            $data['engine_code'] ?? null
+            $data['engine_code'] ?? null,
+            $data['chassis_code'] ?? null,
+            $data['specification_market'] ?? null,
+            isset($data['manufacturing_month']) ? (int) $data['manufacturing_month'] : null,
         );
 
-        return $this->paginateAssessed($parts, $data, $request);
+        $criteria = $data + ['month' => $data['manufacturing_month'] ?? null];
+
+        return $this->paginateAssessed($parts, $criteria, $request);
     }
 
     private function paginateAssessed(Builder $parts, array $criteria, CompatiblePartsRequest $request)

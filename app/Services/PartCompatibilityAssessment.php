@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Builder;
 /** Qualifies a match against the catalogue; it does not certify a manufacturer. */
 class PartCompatibilityAssessment
 {
+    public function __construct(private readonly FitmentRestrictions $restrictions = new FitmentRestrictions()) {}
+
     /** Filter before pagination: legacy clients use returned IDs as confirmation. */
     public function constrainConfirmed(Builder $parts, array $criteria): Builder
     {
@@ -20,6 +22,14 @@ class PartCompatibilityAssessment
         }
 
         $engineCode = EngineCode::forCompatibility($criteria['engine_code'] ?? null);
+
+        // Chassis, marche, mois : juges en PHP par FitmentRestrictions. Les
+        // lignes restrictives qui ne seraient pas confirmees sont ecartees
+        // par identifiant, avant la pagination.
+        $modelId = (int) $criteria['vehicle_model_id'];
+        $dropPart = $this->restrictions->idsToDrop(PartFitment::class, $modelId, $criteria, 'not_confirmed');
+        $dropOem = $this->restrictions->idsToDrop(OemNumberFitment::class, $modelId, $criteria, 'not_confirmed');
+
         $apply = function (Builder $fitment) use ($criteria, $engineCode): void {
             $fitment->where('vehicle_model_id', $criteria['vehicle_model_id']);
             $year = $criteria['year'] ?? null;
@@ -48,11 +58,19 @@ class PartCompatibilityAssessment
             }
         };
 
-        return $parts->where(function (Builder $query) use ($apply) {
-            $query->whereHas('fitments', function (Builder $fitment) use ($apply) {
+        return $parts->where(function (Builder $query) use ($apply, $dropPart, $dropOem) {
+            $query->whereHas('fitments', function (Builder $fitment) use ($apply, $dropPart) {
                 $fitment->where('source', FitmentSource::Declared->value);
                 $apply($fitment);
-            })->orWhereHas('oemNumbers.fitments', $apply);
+                if ($dropPart !== []) {
+                    $fitment->whereNotIn('part_fitments.id', $dropPart);
+                }
+            })->orWhereHas('oemNumbers.fitments', function (Builder $fitment) use ($apply, $dropOem) {
+                $apply($fitment);
+                if ($dropOem !== []) {
+                    $fitment->whereNotIn('oem_number_fitments.id', $dropOem);
+                }
+            });
         });
     }
 
@@ -162,7 +180,14 @@ class PartCompatibilityAssessment
             }
         }
 
-        return $missing;
+        // Criteres restrictifs : chassis, marche de destination, mois aux
+        // bornes. Une colonne vide ne change rien.
+        $restrictions = $this->restrictions->evaluate($fitment, $criteria);
+        if ($restrictions === null) {
+            return null;
+        }
+
+        return array_values(array_unique(array_merge($missing, $restrictions)));
     }
 
     private function result(string $status, array $missing, string $reason): array
