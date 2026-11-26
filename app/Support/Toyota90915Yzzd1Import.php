@@ -9,8 +9,9 @@ use RuntimeException;
 
 /**
  * Pose les compatibilités sourcées du filtre à huile vissé Toyota 90915-YZZD1
- * (article déjà au catalogue, sans aucune application) et rattache les
- * anciens numéros que Toyota déclare remplacés.
+ * (article déjà au catalogue, sans aucune application) et rattache ses
+ * anciens numéros, chacun avec son niveau de preuve (`supersession_evidence`).
+ * Le rattachement d'un ancien numéro ne transfère aucune compatibilité.
  *
  * Règles suivies :
  *  - l'article est retrouvé par SKU ; s'il manque ou est supprimé, rien n'est
@@ -34,6 +35,32 @@ final class Toyota90915Yzzd1Import
      * @var list<string>
      */
     public const NUMEROS_REMPLACES = ['90915-YZZB1', '90915-YZZB9', '90915-YZZG2'];
+
+    /**
+     * Anciens numéros que la fiche officielle Toyota ne nomme PAS, mais que
+     * les catalogues de distribution Toyota déclarent remplacés par
+     * 90915-YZZD1 (niveau de preuve `catalogues_distribution`, distinct du
+     * remplacement documenté par le constructeur). Accepté par le
+     * propriétaire le 26/11/2026. Aucune compatibilité n'est transférée.
+     *
+     * @var list<string>
+     */
+    public const NUMEROS_REMPLACES_DISTRIBUTION = ['90915-20001', '90915-20003'];
+
+    /** @var list<string> */
+    public const SOURCES_REMPLACEMENT_CONSTRUCTEUR = [
+        'https://autoparts.toyota.com/products/product/filter-oil-90915yzzd1',
+        'https://parts.lexus.com/p/Lexus_2007_RX-400h/Engine-Oil-Filter/69396229/90915YZZD1.html',
+    ];
+
+    /** @var list<string> */
+    public const SOURCES_REMPLACEMENT_DISTRIBUTION = [
+        'https://www.toyotapartsdeal.com/oem/toyota~filter~sub~assy~oil~90915-20001.html',
+        'https://www.toyotapartsdeal.com/parts-list/2006-toyota-highlander-jpp_hybrid/engine_fuel_tool/oil_filter.html',
+        'https://www.toyotapartsnow.com/oem/toyota~filter-oil~90915-yzzd1',
+        'https://parts.frontiertoyota.com/oem-parts/toyota-oil-filter-90915yzzd1',
+        'https://toyotaparts.nucar.com/parts/toyota-oil-filter-90915yzzd1',
+    ];
 
     private const SRC_PDF = 'https://www.toyotapartsandservice.com/wp-content/uploads/2024/10/06_OilFilters2025_hi.pdf';
 
@@ -169,11 +196,22 @@ final class Toyota90915Yzzd1Import
             ['number' => self::SKU, 'label' => (string) $part->name, 'is_superseded' => false],
         );
 
-        $touche = false;
+        $preuves = [];
         foreach (self::NUMEROS_REMPLACES as $ancien) {
+            $preuves[$ancien] = [OemNumber::PREUVE_CONSTRUCTEUR, self::SOURCES_REMPLACEMENT_CONSTRUCTEUR];
+        }
+        foreach (self::NUMEROS_REMPLACES_DISTRIBUTION as $ancien) {
+            $preuves[$ancien] = [OemNumber::PREUVE_DISTRIBUTION, self::SOURCES_REMPLACEMENT_DISTRIBUTION];
+        }
+
+        $touche = false;
+        foreach ($preuves as $ancien => [$preuve, $sources]) {
             $perime = OemNumber::firstOrCreate(
                 ['normalized_number' => OemNumber::normalize($ancien), 'brand_id' => null],
-                ['number' => $ancien, 'label' => (string) $part->name, 'is_superseded' => true, 'superseded_by_id' => $actuel->id],
+                [
+                    'number' => $ancien, 'label' => (string) $part->name, 'is_superseded' => true, 'superseded_by_id' => $actuel->id,
+                    'supersession_evidence' => $preuve, 'supersession_sources' => $sources,
+                ],
             );
 
             if ($perime->superseded_by_id !== null && (int) $perime->superseded_by_id !== (int) $actuel->id) {
@@ -181,6 +219,10 @@ final class Toyota90915Yzzd1Import
             }
             if (! $perime->is_superseded || $perime->superseded_by_id === null) {
                 $perime->update(['is_superseded' => true, 'superseded_by_id' => $actuel->id]);
+            }
+            // Un niveau de preuve déjà renseigné n'est jamais réécrit.
+            if ($perime->supersession_evidence === null) {
+                $perime->update(['supersession_evidence' => $preuve, 'supersession_sources' => $sources]);
             }
 
             $deja = DB::table('oem_number_part')
@@ -224,7 +266,7 @@ final class Toyota90915Yzzd1Import
     {
         $epc = fn (string $catalogue, string $periode): string => ' Période EPC Toyota (catalogue '.$catalogue.', '.self::SRC_EPC.'/vehicle/US/'.$catalogue.'/info) : '.$periode.'.';
         $pdf = fn (string $ligne): string => ' Source constructeur : '.self::SRC_PDF.' (catalogue Toyota des filtres 2025-2026, années-modèle US, '.$ligne.' → 90915-YZZD1).';
-        $remplace = ' 90915-20001 / 90915-20003 / 90915-03002 sont remplacés par 90915-YZZD1 ('.self::SRC_REMPLACEMENT.').';
+        $remplace = ' Le schéma EPC porte l\'ancien numéro : 90915-20001 / 90915-20003 (et 90915-03002) sont remplacés par 90915-YZZD1 — remplacement attesté par les catalogues de distribution Toyota ('.self::SRC_REMPLACEMENT.'), non par la fiche officielle Toyota.';
 
         return [
             [

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Brand;
 use App\Models\OemNumber;
+use App\Models\OemNumberFitment;
 use App\Models\Part;
 use App\Models\PartCategory;
 use App\Models\Trim;
@@ -161,7 +162,7 @@ class Toyota90915Yzzd1ImportTest extends TestCase
 
         $rapport = Toyota90915Yzzd1Import::run();
 
-        $this->assertSame(3, $rapport['oem_superseded_linked']);
+        $this->assertSame(5, $rapport['oem_superseded_linked']);
         $actuel = OemNumber::where('normalized_number', '90915YZZD1')->firstOrFail();
         $this->assertFalse((bool) $actuel->is_superseded);
         foreach (Toyota90915Yzzd1Import::NUMEROS_REMPLACES as $ancien) {
@@ -172,6 +173,90 @@ class Toyota90915Yzzd1ImportTest extends TestCase
             $this->assertFalse((bool) $piece->oemNumbers()->where('oem_numbers.id', $numero->id)->first()->pivot->is_primary);
         }
         $this->assertSame(['90915-YZZB1', '90915-YZZB9', '90915-YZZG2'], Toyota90915Yzzd1Import::NUMEROS_REMPLACES);
+    }
+
+    public function test_le_niveau_de_preuve_distingue_constructeur_et_catalogues_de_distribution(): void
+    {
+        $this->catalogue();
+        $piece = $this->filtre();
+
+        Toyota90915Yzzd1Import::run();
+
+        $actuel = OemNumber::where('normalized_number', '90915YZZD1')->firstOrFail();
+        $this->assertNull($actuel->supersession_evidence);
+        foreach (['90915-YZZB1', '90915-YZZB9', '90915-YZZG2'] as $ancien) {
+            $numero = OemNumber::where('normalized_number', OemNumber::normalize($ancien))->firstOrFail();
+            $this->assertSame(OemNumber::PREUVE_CONSTRUCTEUR, $numero->supersession_evidence, $ancien);
+            $this->assertContains('https://autoparts.toyota.com/products/product/filter-oil-90915yzzd1', $numero->supersession_sources);
+        }
+        $this->assertSame(['90915-20001', '90915-20003'], Toyota90915Yzzd1Import::NUMEROS_REMPLACES_DISTRIBUTION);
+        foreach (Toyota90915Yzzd1Import::NUMEROS_REMPLACES_DISTRIBUTION as $ancien) {
+            $numero = OemNumber::where('normalized_number', OemNumber::normalize($ancien))->firstOrFail();
+            $this->assertTrue((bool) $numero->is_superseded, $ancien);
+            $this->assertSame($actuel->id, (int) $numero->superseded_by_id, $ancien);
+            $this->assertSame(OemNumber::PREUVE_DISTRIBUTION, $numero->supersession_evidence, $ancien);
+            $this->assertCount(5, $numero->supersession_sources);
+            foreach (['toyotapartsdeal.com', 'toyotapartsnow.com', 'frontiertoyota.com', 'nucar.com'] as $site) {
+                $this->assertNotEmpty(array_filter($numero->supersession_sources, fn (string $url) => str_contains($url, $site)), $site);
+            }
+            $this->assertTrue($piece->oemNumbers()->where('oem_numbers.id', $numero->id)->exists(), $ancien);
+        }
+    }
+
+    public function test_un_ancien_numero_ne_transfere_aucune_compatibilite(): void
+    {
+        $this->catalogue();
+        $piece = $this->filtre();
+
+        Toyota90915Yzzd1Import::run();
+
+        // Les anciens numéros n'ont aucune ligne propre : le rattachement ne
+        // crée ni oem_number_fitments ni part_fitments supplémentaires.
+        $anciens = OemNumber::whereIn('normalized_number', array_map(
+            fn (string $n) => OemNumber::normalize($n),
+            [...Toyota90915Yzzd1Import::NUMEROS_REMPLACES, ...Toyota90915Yzzd1Import::NUMEROS_REMPLACES_DISTRIBUTION],
+        ))->pluck('id');
+        $this->assertCount(5, $anciens);
+        $this->assertSame(0, OemNumberFitment::whereIn('oem_number_id', $anciens)->count());
+        $this->assertSame(count(Toyota90915Yzzd1Import::applications()), $piece->fitments()->count());
+    }
+
+    public function test_l_api_oem_expose_le_niveau_de_preuve_sans_inventer_de_modeles(): void
+    {
+        $this->catalogue();
+        $piece = $this->filtre();
+        // Comme en production : le numéro principal est déjà rattaché à l'article.
+        $principal = OemNumber::create(['number' => '90915-YZZD1', 'brand_id' => null, 'label' => 'x', 'is_superseded' => false]);
+        $piece->oemNumbers()->attach($principal->id, ['is_primary' => true]);
+        Toyota90915Yzzd1Import::run();
+
+        $croisees = $this->getJson('/api/oem/90915-20003/cross-references')->assertOk()->json('data');
+        $parNumero = collect($croisees)->keyBy('number');
+        $this->assertArrayHasKey('90915-YZZD1', $parNumero->all());
+        $this->assertSame(OemNumber::PREUVE_DISTRIBUTION, $parNumero['90915-20001']['supersession_evidence']);
+        $this->assertSame(OemNumber::PREUVE_CONSTRUCTEUR, $parNumero['90915-YZZB1']['supersession_evidence']);
+
+        // Les compatibilités du filtre sont des part_fitments ; aucune ligne
+        // OEM n'est posée, donc la recherche par ancien numéro ne renvoie
+        // aucun modèle déduit du remplacement.
+        $this->assertSame([], $this->getJson('/api/oem/90915-20003/models')->assertOk()->json('data'));
+    }
+
+    public function test_un_niveau_de_preuve_deja_renseigne_n_est_pas_reecrit(): void
+    {
+        $this->catalogue();
+        $this->filtre();
+        $actuel = OemNumber::create(['number' => '90915-YZZD1', 'brand_id' => null, 'label' => 'x', 'is_superseded' => false]);
+        $ancien = OemNumber::create([
+            'number' => '90915-20003', 'brand_id' => null, 'label' => 'x',
+            'is_superseded' => true, 'superseded_by_id' => $actuel->id,
+            'supersession_evidence' => OemNumber::PREUVE_CONSTRUCTEUR, 'supersession_sources' => ['https://exemple.test'],
+        ]);
+
+        Toyota90915Yzzd1Import::run();
+
+        $this->assertSame(OemNumber::PREUVE_CONSTRUCTEUR, $ancien->fresh()->supersession_evidence);
+        $this->assertSame(['https://exemple.test'], $ancien->fresh()->supersession_sources);
     }
 
     public function test_un_numero_deja_remplace_par_une_autre_reference_n_est_pas_modifie(): void
