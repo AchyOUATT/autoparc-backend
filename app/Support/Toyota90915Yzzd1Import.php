@@ -37,21 +37,20 @@ final class Toyota90915Yzzd1Import
 
     private const SRC_PDF = 'https://www.toyotapartsandservice.com/wp-content/uploads/2024/10/06_OilFilters2025_hi.pdf';
 
-    private const SRC_TOYOTA = 'https://autoparts.toyota.com/products/product/filter-oil-90915yzzd1';
-
-    private const SRC_PARTSADVISORY = 'https://www.partsadvisory.com/make-model/toyota-camry-1992-1996-3rd-generation-xv10-parts-fitment-guide';
-
-    private const SRC_MUGEN = 'https://store.mugen-24.com/product/toyota-lexus-genuine-oil-filter-90915-yzzd1-oem/';
-
-    private const SRC_AUTOHAUS = 'https://www.autohausaz.com/pn/90915YZZD1OE';
-
-    private const SRC_YOTASHOP = 'https://www.yotashop.com/oil-filter-toyota-genuine-oil-filter-90915-yzzd1/';
-
     private const SRC_LEXUS = 'https://parts.lexus.com/p/Lexus_2007_RX-400h/Engine-Oil-Filter/69396229/90915YZZD1.html';
 
     private const SRC_LEXUSPARTSNOW = 'https://www.lexuspartsnow.com/oem-lexus-rx330-oil_filter.html';
 
-    private const SRC_CAMELBACK = 'https://parts.camelbacktoyota.com/oem-parts/toyota-oil-filter-90915yzzd1?c=az0x';
+    /** EPC Toyota (catalogues constructeur, périodes de production par châssis). */
+    private const SRC_EPC = 'https://toyota-epc.aftermarketcatalog.com';
+
+    /** EPC Toyota, recherche inverse par numéro, marché Amérique du Nord. */
+    private const SRC_XREF_US_20001 = 'https://www.toyodiy.com/parts/xref?mU=on&s=90915-20001';
+
+    private const SRC_XREF_US_20003 = 'https://www.toyodiy.com/parts/xref?mU=on&s=90915-20003';
+
+    /** Remplacement 90915-20003 → 90915-YZZD1 (catalogue concessionnaire Toyota). */
+    private const SRC_REMPLACEMENT = 'https://www.toyotapartsdeal.com/oem-toyota-4runner-oil_filter.html';
 
     private const BORNES = ' Bornes annuelles : contrôler le VIN, le code moteur et la date de fabrication aux bornes.';
 
@@ -145,7 +144,7 @@ final class Toyota90915Yzzd1Import
                 'position' => null,
                 'notes' => $application['notes'],
                 'source' => FitmentSource::Declared->value,
-                'chassis_code' => null,
+                'chassis_code' => implode('/', $application['chassis_codes']),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -206,111 +205,117 @@ final class Toyota90915Yzzd1Import
     }
 
     /**
-     * @return list<array{model_slug: string, trim_code: ?string, engine_code: string, year_from: int, year_to: int, notes: string}>
+     * Applications documentées.
+     *
+     * CONVENTION DES ANNÉES (revue du 26/11/2026) : `year_from` / `year_to`
+     * sont des années civiles de FABRICATION, car l'API compare ces bornes à
+     * `manufacturing_year` (« Année de fabrication » dans l'application),
+     * jamais à `model_year`. Elles sont tirées des dates de production du
+     * catalogue constructeur (EPC Toyota) pour le châssis et le moteur, et
+     * restent dans les bornes de la génération ; quand une génération déjà
+     * au référentiel porte des bornes plus étroites que l'EPC (Tacoma II
+     * dès 2005, Highlander nu dès 2008), la ligne s'arrête à ces bornes et la
+     * note donne les mois exacts. Le châssis va dans `chassis_code` ; le
+     * marché, qui n'a pas de colonne, va dans la note.
+     *
+     * @return list<array{model_slug: string, trim_code: ?string, engine_code: string, year_from: int, year_to: int, chassis_codes: list<string>, notes: string}>
      */
     public static function applications(): array
     {
-        $tacomaI = ' Source officielle : '.self::SRC_PDF.' (catalogue Toyota des filtres 2025-2026, Tacoma 1995-2004 : V6 5VZFE et L4 2RZFE / 3RZFE → 90915-YZZD1) ; recoupé par '
-            .self::SRC_MUGEN.' et '.self::SRC_AUTOHAUS.'.';
-        $tacoma2Tr = ' Source officielle : '.self::SRC_PDF.' (catalogue Toyota des filtres 2025-2026, Tacoma L4 2TRFE 2005-2006, 2007-2010 et 2011- → 90915-YZZD1) ; '
-            .'le V6 1GRFE (YZZD3) et le V6 2GRFKS (04152-YZZA1) sont exclus.';
+        $epc = fn (string $catalogue, string $periode): string => ' Période EPC Toyota (catalogue '.$catalogue.', '.self::SRC_EPC.'/vehicle/US/'.$catalogue.'/info) : '.$periode.'.';
+        $pdf = fn (string $ligne): string => ' Source constructeur : '.self::SRC_PDF.' (catalogue Toyota des filtres 2025-2026, années-modèle US, '.$ligne.' → 90915-YZZD1).';
+        $remplace = ' 90915-20001 / 90915-20003 / 90915-03002 sont remplacés par 90915-YZZD1 ('.self::SRC_REMPLACEMENT.').';
 
         return [
             [
-                'model_slug' => 'camry-xv10',
-                'trim_code' => null,
-                'engine_code' => '3VZ-FE',
-                'year_from' => 1992,
-                'year_to' => 1993,
-                'notes' => 'Camry V6 3.0 l 3VZ-FE, 1992-1993 (XV10, Amérique du Nord). Sources : '.self::SRC_MUGEN.' ; '.self::SRC_YOTASHOP.' ; '
-                    .'moteur et années : '.self::SRC_PARTSADVISORY.'. Le catalogue officiel Toyota ne remonte pas avant 1997 : application documentée par des revendeurs seulement. '
-                    .'Le 3VZ-FE 1994-1996 des autres marchés (Japon, Australie, Europe) n\'est pas posé faute de source pour ce filtre. Le Camry 4 cylindres (5S-FE) est exclu.'.self::BORNES,
+                'model_slug' => 'camry-xv10', 'trim_code' => null, 'engine_code' => '3VZ-FE',
+                'year_from' => 1991, 'year_to' => 1993, 'chassis_codes' => ['VCV10'],
+                'notes' => 'Camry V6 3.0 l 3VZ-FE, châssis VCV10, marché Amérique du Nord (USA).'
+                    .$epc('283450', 'VCV10L NAP 09/1991-09/1993 ; catalogue 281450 JPP 06/1991-08/1993')
+                    .' EPC Amérique du Nord : filtre 90915-20001 / 90915-03002 au schéma 15-02 des SXV10/VCV10/MCV10 ('.self::SRC_XREF_US_20001.').'.$remplace
+                    .' Le catalogue PDF Toyota ne remonte pas avant 1997. Les 3VZ-FE des autres marchés ne sont pas posés. Le 4 cylindres 5S-FE (SXV10) est exclu.'.self::BORNES,
             ],
             [
-                'model_slug' => 'camry-xv10',
-                'trim_code' => null,
-                'engine_code' => '1MZ-FE',
-                'year_from' => 1994,
-                'year_to' => 1996,
-                'notes' => 'Camry V6 3.0 l 1MZ-FE, 1994-1996 (XV10, Amérique du Nord ; le 1MZ-FE remplace le 3VZ-FE dès l\'année-modèle 1994). Sources : '.self::SRC_MUGEN.' ; '
-                    .self::SRC_YOTASHOP.' ; moteur et années : '.self::SRC_PARTSADVISORY.'. Le catalogue officiel Toyota ne remonte pas avant 1997 : application documentée par des revendeurs seulement. '
-                    .'Le Camry 4 cylindres (5S-FE) est exclu.'.self::BORNES,
+                'model_slug' => 'camry-xv10', 'trim_code' => null, 'engine_code' => '1MZ-FE',
+                'year_from' => 1993, 'year_to' => 1996, 'chassis_codes' => ['MCV10'],
+                'notes' => 'Camry V6 3.0 l 1MZ-FE, châssis MCV10, marché Amérique du Nord (USA).'
+                    .$epc('283450', 'MCV10L NAP 09/1993-07/1996 ; catalogue 281450 JPP 08/1993-08/1996')
+                    .' EPC Amérique du Nord : filtre 90915-20001 / 90915-03002 au schéma 15-02 ('.self::SRC_XREF_US_20001.').'.$remplace
+                    .' Le 4 cylindres 5S-FE (SXV10) est exclu.'.self::BORNES,
             ],
             [
-                'model_slug' => 'camry-xv20',
-                'trim_code' => null,
-                'engine_code' => '1MZ-FE',
-                'year_from' => 1997,
-                'year_to' => 2001,
-                'notes' => 'Camry V6 3.0 l 1MZ-FE, 1997-2001 (XV20). Source officielle : '.self::SRC_PDF.' (catalogue Toyota des filtres 2025-2026, Camry 1997-2006 V6 1MZFE / 3MZFE → 90915-YZZD1) ; '
-                    .'recoupé par '.self::SRC_MUGEN.' et '.self::SRC_AUTOHAUS.'. Le Camry 4 cylindres (5S-FE) prend la YZZN1 : exclu.'.self::BORNES,
+                'model_slug' => 'camry-xv20', 'trim_code' => null, 'engine_code' => '1MZ-FE',
+                'year_from' => 1996, 'year_to' => 2001, 'chassis_codes' => ['MCV20'],
+                'notes' => 'Camry V6 3.0 l 1MZ-FE, châssis MCV20, marché Amérique du Nord (USA).'.$pdf('Camry 1997-2006 V6 1MZFE / 3MZFE')
+                    .$epc('283460', 'MCV20L NAP 07/1996-07/2001 ; catalogue 281460 JPP 08/1996-07/2001')
+                    .' EPC Amérique du Nord : 90915-20001 puis 90915-20003 au schéma 15-02 ('.self::SRC_XREF_US_20003.').'.$remplace
+                    .' Le 4 cylindres 5S-FE (SXV20) prend la YZZN1 : exclu.'.self::BORNES,
             ],
             [
-                'model_slug' => 'tacoma-i',
-                'trim_code' => null,
-                'engine_code' => '2RZ-FE',
-                'year_from' => 1995,
-                'year_to' => 2004,
-                'notes' => 'Tacoma 2.4 l 2RZ-FE, 1995-2004.'.$tacomaI.self::BORNES,
+                'model_slug' => 'tacoma-i', 'trim_code' => null, 'engine_code' => '2RZ-FE',
+                'year_from' => 1995, 'year_to' => 2004, 'chassis_codes' => ['RZN140', 'RZN150', 'RZN161', 'RZN171', 'RZN191', 'RZN196'],
+                'notes' => 'Tacoma 2.4 l 2RZ-FE, marché USA.'.$pdf('Tacoma 1995-2004 L4 2RZFE / 3RZFE')
+                    .$epc('675460 et 674460', 'RZN140/150/161/171 01/1995-09/2004, RZN191 08/1998-09/2004, RZN196 02/1998-09/2004')
+                    .' Ces listes EPC ne séparent pas 2RZ-FE et 3RZ-FE par châssis : contrôler le moteur.'
+                    .' EPC Amérique du Nord : 90915-20001 / 90915-20003 au schéma 15-02 ('.self::SRC_XREF_US_20003.').'.$remplace.self::BORNES,
             ],
             [
-                'model_slug' => 'tacoma-i',
-                'trim_code' => null,
-                'engine_code' => '3RZ-FE',
-                'year_from' => 1995,
-                'year_to' => 2004,
-                'notes' => 'Tacoma 2.7 l 3RZ-FE, 1995-2004.'.$tacomaI.self::BORNES,
+                'model_slug' => 'tacoma-i', 'trim_code' => null, 'engine_code' => '3RZ-FE',
+                'year_from' => 1995, 'year_to' => 2004, 'chassis_codes' => ['RZN140', 'RZN150', 'RZN161', 'RZN171', 'RZN191', 'RZN196'],
+                'notes' => 'Tacoma 2.7 l 3RZ-FE, marché USA.'.$pdf('Tacoma 1995-2004 L4 2RZFE / 3RZFE')
+                    .$epc('675460 et 674460', 'RZN140/150/161/171 01/1995-09/2004, RZN191 08/1998-09/2004, RZN196 02/1998-09/2004')
+                    .' Ces listes EPC ne séparent pas 2RZ-FE et 3RZ-FE par châssis : contrôler le moteur.'
+                    .' EPC Amérique du Nord : 90915-20001 / 90915-20003 au schéma 15-02 ('.self::SRC_XREF_US_20003.').'.$remplace.self::BORNES,
             ],
             [
-                'model_slug' => 'tacoma-i',
-                'trim_code' => null,
-                'engine_code' => '5VZ-FE',
-                'year_from' => 1995,
-                'year_to' => 2004,
-                'notes' => 'Tacoma V6 3.4 l 5VZ-FE, 1995-2004.'.$tacomaI.self::BORNES,
+                'model_slug' => 'tacoma-i', 'trim_code' => null, 'engine_code' => '5VZ-FE',
+                'year_from' => 1995, 'year_to' => 2004, 'chassis_codes' => ['VZN150', 'VZN160', 'VZN170', 'VZN195'],
+                'notes' => 'Tacoma V6 3.4 l 5VZ-FE, marché USA.'.$pdf('Tacoma 1995-2004 V6 5VZFE')
+                    .$epc('675460 et 674460', 'VZN150/170 01/1995-09/2004, VZN160 01/1995-06/1997, VZN195 02/1998-09/2004')
+                    .' EPC Amérique du Nord : 90915-20001 / 90915-20003 au schéma 15-02 ('.self::SRC_XREF_US_20003.').'.$remplace.self::BORNES,
             ],
             [
-                'model_slug' => 'tacoma-ii',
-                'trim_code' => null,
-                'engine_code' => '2TR-FE',
-                'year_from' => 2005,
-                'year_to' => 2015,
-                'notes' => 'Tacoma 2.7 l 2TR-FE, 2005-2015 (génération II).'.$tacoma2Tr.self::BORNES,
+                'model_slug' => 'tacoma-ii', 'trim_code' => null, 'engine_code' => '2TR-FE',
+                'year_from' => 2005, 'year_to' => 2015, 'chassis_codes' => ['TRN220', 'TRN225', 'TRN240', 'TRN245', 'TRN260', 'TRN265'],
+                'notes' => 'Tacoma 2.7 l 2TR-FE, génération II, marché USA.'.$pdf('Tacoma L4 2TRFE 2005-2006, 2007-2010 et 2011-')
+                    .$epc('674470', 'TRN2## à partir de 09/2004, génération III à partir de 08/2015')
+                    .' Bornes arrêtées à celles de la génération au référentiel (2005-2015) : un Tacoma II fabriqué de 09 à 12/2004 reste à vérifier au VIN.'
+                    .' EPC Amérique du Nord : 90915-20003 au schéma 15-02 ('.self::SRC_XREF_US_20003.').'.$remplace
+                    .' Les V6 1GR-FE (YZZD3) et 2GR-FKS (04152-YZZA1) sont exclus.'.self::BORNES,
             ],
             [
-                'model_slug' => 'tacoma-iii',
-                'trim_code' => null,
-                'engine_code' => '2TR-FE',
-                'year_from' => 2016,
-                'year_to' => 2023,
-                'notes' => 'Tacoma 2.7 l 2TR-FE, 2016-2023 (génération III).'.$tacoma2Tr.self::BORNES,
+                'model_slug' => 'tacoma-iii', 'trim_code' => null, 'engine_code' => '2TR-FE',
+                'year_from' => 2016, 'year_to' => 2023, 'chassis_codes' => ['TRN245', 'TRN265'],
+                'notes' => 'Tacoma 2.7 l 2TR-FE, génération III, marché USA.'.$pdf('Tacoma L4 2TRFE 2011-')
+                    .$epc('674470', 'génération III à partir de 08/2015 ; Tacoma IV (TZNA4#) à partir de 12/2023')
+                    .' Bornes arrêtées à celles de la génération au référentiel (2016-2023) : un Tacoma III fabriqué de 08 à 12/2015 reste à vérifier au VIN.'
+                    .' EPC Amérique du Nord : 90915-20003 au schéma 15-02 ('.self::SRC_XREF_US_20003.').'.$remplace
+                    .' Le V6 2GR-FKS (04152-YZZA1) est exclu.'.self::BORNES,
             ],
             [
-                'model_slug' => 'rx-xu30',
-                'trim_code' => '330',
-                'engine_code' => '3MZ-FE',
-                'year_from' => 2004,
-                'year_to' => 2006,
-                'notes' => 'Lexus RX 330, 3.3 l V6 3MZ-FE, 2004-2006. Sources : '.self::SRC_LEXUSPARTSNOW.' (RX 330 2004-2006 3MZFE : 90915-20003 remplacé par 90915-YZZD1) ; '
-                    .self::SRC_AUTOHAUS.' ; '.self::SRC_MUGEN.'. Le catalogue officiel Toyota ne couvre pas Lexus. La RX 350 (2GR-FE) est exclue.'.self::BORNES,
+                'model_slug' => 'rx-xu30', 'trim_code' => '330', 'engine_code' => '3MZ-FE',
+                'year_from' => 2003, 'year_to' => 2006, 'chassis_codes' => ['MCU33', 'MCU38'],
+                'notes' => 'Lexus RX 330, 3.3 l V6 3MZ-FE, châssis MCU33/MCU38, marché USA.'
+                    .$epc('521420', 'MCU33L/MCU38L 02/2003-01/2006 ; catalogue 523410 09/2003-02/2006')
+                    .' EPC Amérique du Nord : 90915-20003 au schéma 15-02 des RX330/350 MCU3# ('.self::SRC_XREF_US_20003.') ; '
+                    .self::SRC_LEXUSPARTSNOW.' (90915-20003 remplacé par 90915-YZZD1). Le catalogue PDF Toyota ne couvre pas Lexus. La RX 350 (2GR-FE, GSU3#) est exclue.'.self::BORNES,
             ],
             [
-                'model_slug' => 'rx-xu30',
-                'trim_code' => '400h',
-                'engine_code' => '3MZ-FE',
-                'year_from' => 2006,
-                'year_to' => 2008,
-                'notes' => 'Lexus RX 400h, 3.3 l V6 hybride 3MZ-FE, 2006-2008. Sources : '.self::SRC_LEXUS.' (parts.lexus.com, RX 400h 2007) ; '
-                    .self::SRC_AUTOHAUS.' (RX400h 2006-2008) ; '.self::SRC_MUGEN.'. Le catalogue officiel Toyota ne couvre pas Lexus.'.self::BORNES,
+                'model_slug' => 'rx-xu30', 'trim_code' => '400h', 'engine_code' => '3MZ-FE',
+                'year_from' => 2005, 'year_to' => 2008, 'chassis_codes' => ['MHU33', 'MHU38'],
+                'notes' => 'Lexus RX 400h, 3.3 l V6 hybride 3MZ-FE, châssis MHU33/MHU38, marché USA.'
+                    .$epc('524410', 'MHU33L/MHU38L 03/2005-12/2008')
+                    .' EPC Amérique du Nord : 90915-20003 au schéma 15-02 des RX400H MHU3# 03/2005-11/2008 ('.self::SRC_XREF_US_20003.') ; '
+                    .self::SRC_LEXUS.' (parts.lexus.com, RX 400h 2007 : 90915-YZZD1). Le catalogue PDF Toyota ne couvre pas Lexus.'.self::BORNES,
             ],
             [
-                'model_slug' => 'highlander',
-                'trim_code' => null,
-                'engine_code' => '3MZ-FE',
-                'year_from' => 2008,
-                'year_to' => 2010,
-                'notes' => 'Highlander Hybrid 3.3 l V6 3MZ-FE, 2008-2010. Source officielle : '.self::SRC_PDF.' (catalogue Toyota des filtres 2025-2026, Highlander/HV 2008-2010 V6 3MZFE HV → 90915-YZZD1) ; '
-                    .'recoupé par '.self::SRC_CAMELBACK.'. Le Highlander V6 2GR-FE de ces années prend la cartouche 04152-YZZA1 : exclu.'.self::BORNES,
+                'model_slug' => 'highlander', 'trim_code' => null, 'engine_code' => '3MZ-FE',
+                'year_from' => 2008, 'year_to' => 2010, 'chassis_codes' => ['MHU48'],
+                'notes' => 'Highlander Hybrid 3.3 l V6 3MZ-FE, châssis MHU48, marché USA.'.$pdf('Highlander/HV 2008-2010 V6 3MZFE HV')
+                    .$epc('522420', 'MHU48L 08/2007-08/2010')
+                    .' Bornes arrêtées au début de la ligne `highlander` du référentiel (2008) : un MHU48 fabriqué de 08 à 12/2007 reste à vérifier au VIN.'
+                    .' EPC Amérique du Nord : 90915-20003 au schéma 15-02 ('.self::SRC_XREF_US_20003.').'.$remplace
+                    .' Le Highlander V6 2GR-FE (GSU4#) prend la cartouche 04152-YZZA1 : exclu.'.self::BORNES,
             ],
         ];
     }

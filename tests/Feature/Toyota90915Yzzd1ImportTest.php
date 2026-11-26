@@ -104,12 +104,12 @@ class Toyota90915Yzzd1ImportTest extends TestCase
             ->map(fn ($f) => $f->vehicleModel->slug.'|'.($f->trim?->code ?? '-').'|'.$f->engine_code.'|'.$f->year_from.'|'.$f->year_to)
             ->sort()->values()->all();
         $this->assertSame([
-            'camry-xv10|-|1MZ-FE|1994|1996',
-            'camry-xv10|-|3VZ-FE|1992|1993',
-            'camry-xv20|-|1MZ-FE|1997|2001',
+            'camry-xv10|-|1MZ-FE|1993|1996',
+            'camry-xv10|-|3VZ-FE|1991|1993',
+            'camry-xv20|-|1MZ-FE|1996|2001',
             'highlander|-|3MZ-FE|2008|2010',
-            'rx-xu30|330|3MZ-FE|2004|2006',
-            'rx-xu30|400h|3MZ-FE|2006|2008',
+            'rx-xu30|330|3MZ-FE|2003|2006',
+            'rx-xu30|400h|3MZ-FE|2005|2008',
             'tacoma-iii|-|2TR-FE|2016|2023',
             'tacoma-ii|-|2TR-FE|2005|2015',
             'tacoma-i|-|2RZ-FE|1995|2004',
@@ -120,7 +120,11 @@ class Toyota90915Yzzd1ImportTest extends TestCase
         foreach ($piece->fitments as $ligne) {
             $this->assertSame('declared', $ligne->source->value ?? $ligne->source);
             $this->assertNotNull($ligne->engine_code);
-            $this->assertNull($ligne->chassis_code);
+            // Châssis documenté par l'EPC Toyota pour chaque ligne ; le marché,
+            // sans colonne dédiée, est écrit dans la note.
+            $this->assertNotEmpty($ligne->chassis_code);
+            $this->assertStringContainsString('marché', (string) $ligne->notes);
+            $this->assertStringContainsString('Période EPC Toyota', (string) $ligne->notes);
             $this->assertStringContainsString('https://', (string) $ligne->notes);
             $this->assertStringNotContainsString('@', (string) $ligne->notes);
         }
