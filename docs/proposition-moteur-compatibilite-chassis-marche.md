@@ -245,6 +245,9 @@ La #40 se fonde maintenant sur cette PR (elle en est la suite) :
 
 - sa migration `2026_11_26_135000` (colonnes `supersession_*`) est retirée ;
 - `Toyota90915Yzzd1Import` crée, de façon idempotente, une ligne `oem_number_relations` par ancien numéro : YZZB1, YZZB9, YZZG2 → `manufacturer_supersession` / `manufacturer_official` avec les 2 URL de la fiche officielle Toyota / Lexus ; 20001, 20003 → `distributor_replacement` / `dealer_catalog` avec les 5 URL des catalogues de concession. Un lien existant n'est jamais réécrit ;
+- la table étant créée par la migration `200000`, postérieure à la `140000` qui lance l'import, une migration `2026_11_26_201000_qualifier_les_remplacements_du_filtre_90915_yzzd1` rejoue l'import (idempotent) pour poser les liens ; avant cela, l'import saute l'étape si la table n'existe pas ;
+- `verified_on` = 2026-11-26 (date de la revue des sources de la #40) ; `source_note` résume la nature de la source ;
+- l'API expose ces liens dans `replaced_by` / `replaces` (fiche OEM et `GET /api/oem/{n}/cross-references`) à la place de `supersession_evidence / supersession_sources` ;
 - le drapeau historique `is_superseded / superseded_by_id` reste posé comme avant ;
 - ses compatibilités gardent leur preuve dans `notes` ; leur `evidence_level` n'est pas renseigné (lignes déclarées, donc confirmables) — à qualifier ligne par ligne dans une PR de données.
 

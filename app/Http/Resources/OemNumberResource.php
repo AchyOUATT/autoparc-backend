@@ -17,8 +17,6 @@ class OemNumberResource extends JsonResource
             'brand'             => $this->whenLoaded('brand', fn () => $this->brand?->name),
             'is_superseded'     => $this->is_superseded,
             'superseded_by'     => $this->whenLoaded('supersededBy', fn () => $this->supersededBy?->number),
-            'supersession_evidence' => $this->supersession_evidence,
-            'supersession_sources'  => $this->supersession_sources,
             // Liens qualifies (oem_number_relations) : nature et preuve du
             // REMPLACEMENT, distinctes de la preuve des compatibilites.
             'replaced_by'       => $this->whenLoaded('replacementRelations', fn () => $this->replacementRelations->map(fn ($r) => [

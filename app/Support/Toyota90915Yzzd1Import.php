@@ -4,13 +4,17 @@ namespace App\Support;
 
 use App\Enums\FitmentSource;
 use App\Models\OemNumber;
+use App\Models\OemNumberRelation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 /**
  * Pose les compatibilités sourcées du filtre à huile vissé Toyota 90915-YZZD1
  * (article déjà au catalogue, sans aucune application) et rattache ses
- * anciens numéros, chacun avec son niveau de preuve (`supersession_evidence`).
+ * anciens numéros, chacun par un lien qualifié dans `oem_number_relations`
+ * (nature + niveau de preuve + URL sources), table unique des preuves de
+ * REMPLACEMENT, distincte des preuves de compatibilité.
  * Le rattachement d'un ancien numéro ne transfère aucune compatibilité.
  *
  * Règles suivies :
@@ -39,8 +43,8 @@ final class Toyota90915Yzzd1Import
     /**
      * Anciens numéros que la fiche officielle Toyota ne nomme PAS, mais que
      * les catalogues de distribution Toyota déclarent remplacés par
-     * 90915-YZZD1 (niveau de preuve `catalogues_distribution`, distinct du
-     * remplacement documenté par le constructeur). Accepté par le
+     * 90915-YZZD1 (lien `distributor_replacement` / `dealer_catalog`, distinct
+     * du remplacement documenté par le constructeur). Accepté par le
      * propriétaire le 26/11/2026. Aucune compatibilité n'est transférée.
      *
      * @var list<string>
@@ -92,6 +96,7 @@ final class Toyota90915Yzzd1Import
                 'fitments_skipped_missing_model' => [],
                 'fitments_skipped_missing_trim' => [],
                 'oem_superseded_linked' => 0,
+                'oem_relations_created' => 0,
             ];
 
             $parts = DB::table('parts')->where('sku', self::SKU)
@@ -182,10 +187,22 @@ final class Toyota90915Yzzd1Import
         return $touche;
     }
 
+    /** Date de consultation des sources de remplacement (revue du 26/11/2026). */
+    public const SOURCES_CONSULTEES_LE = '2026-11-26';
+
     /**
      * Rattache les numéros périmés : ils partent en `is_superseded` et
-     * pointent sur le numéro actuel, comme le fait le seeder des filtres.
-     * Un numéro déjà déclaré remplacé par une AUTRE référence n'est pas touché.
+     * pointent sur le numéro actuel, comme le fait le seeder des filtres
+     * (drapeau historique), et chaque remplacement est qualifié dans
+     * `oem_number_relations` :
+     *  - YZZB1 / YZZB9 / YZZG2 : `manufacturer_supersession` /
+     *    `manufacturer_official` (fiche officielle Toyota + Lexus) ;
+     *  - 20001 / 20003 : `distributor_replacement` / `dealer_catalog`
+     *    (catalogues de distribution Toyota).
+     * Un numéro déjà déclaré remplacé par une AUTRE référence n'est pas touché ;
+     * un lien déjà présent entre les deux références n'est jamais réécrit.
+     * Aucune compatibilité n'est copiée : un numéro remplacé ne transmet pas
+     * ses compatibilités (voir OemFitmentInheritance).
      *
      * @param  array<string, mixed>  $rapport
      */
@@ -196,22 +213,27 @@ final class Toyota90915Yzzd1Import
             ['number' => self::SKU, 'label' => (string) $part->name, 'is_superseded' => false],
         );
 
-        $preuves = [];
+        $liens = [];
         foreach (self::NUMEROS_REMPLACES as $ancien) {
-            $preuves[$ancien] = [OemNumber::PREUVE_CONSTRUCTEUR, self::SOURCES_REMPLACEMENT_CONSTRUCTEUR];
+            $liens[$ancien] = [
+                OemNumberRelation::KIND_MANUFACTURER_SUPERSESSION, 'manufacturer_official',
+                self::SOURCES_REMPLACEMENT_CONSTRUCTEUR,
+                'Nommé « Previous Version » par la fiche officielle Toyota et par parts.lexus.com.',
+            ];
         }
         foreach (self::NUMEROS_REMPLACES_DISTRIBUTION as $ancien) {
-            $preuves[$ancien] = [OemNumber::PREUVE_DISTRIBUTION, self::SOURCES_REMPLACEMENT_DISTRIBUTION];
+            $liens[$ancien] = [
+                OemNumberRelation::KIND_DISTRIBUTOR_REPLACEMENT, 'dealer_catalog',
+                self::SOURCES_REMPLACEMENT_DISTRIBUTION,
+                'Absent de la fiche officielle Toyota ; remplacement déclaré par les catalogues de distribution Toyota.',
+            ];
         }
 
         $touche = false;
-        foreach ($preuves as $ancien => [$preuve, $sources]) {
+        foreach ($liens as $ancien => [$nature, $preuve, $sources, $note]) {
             $perime = OemNumber::firstOrCreate(
                 ['normalized_number' => OemNumber::normalize($ancien), 'brand_id' => null],
-                [
-                    'number' => $ancien, 'label' => (string) $part->name, 'is_superseded' => true, 'superseded_by_id' => $actuel->id,
-                    'supersession_evidence' => $preuve, 'supersession_sources' => $sources,
-                ],
+                ['number' => $ancien, 'label' => (string) $part->name, 'is_superseded' => true, 'superseded_by_id' => $actuel->id],
             );
 
             if ($perime->superseded_by_id !== null && (int) $perime->superseded_by_id !== (int) $actuel->id) {
@@ -220,9 +242,32 @@ final class Toyota90915Yzzd1Import
             if (! $perime->is_superseded || $perime->superseded_by_id === null) {
                 $perime->update(['is_superseded' => true, 'superseded_by_id' => $actuel->id]);
             }
-            // Un niveau de preuve déjà renseigné n'est jamais réécrit.
-            if ($perime->supersession_evidence === null) {
-                $perime->update(['supersession_evidence' => $preuve, 'supersession_sources' => $sources]);
+
+            // Un lien déjà qualifié entre ces deux références (quelle que soit
+            // sa nature) n'est jamais réécrit ni doublé.
+            // La table des liens qualifiés est créée par la migration 200000 :
+            // lors d'un `migrate` à vide, la migration 140000 passe avant elle,
+            // et c'est la migration 201000 qui rejoue l'import pour poser les liens.
+            if (! Schema::hasTable('oem_number_relations')) {
+                $lienExiste = true;
+            } else {
+                $lienExiste = OemNumberRelation::query()
+                    ->where('from_oem_number_id', $perime->id)
+                    ->where('to_oem_number_id', $actuel->id)
+                    ->exists();
+            }
+            if (! $lienExiste) {
+                OemNumberRelation::create([
+                    'from_oem_number_id' => $perime->id,
+                    'to_oem_number_id' => $actuel->id,
+                    'kind' => $nature,
+                    'evidence_level' => $preuve,
+                    'sources' => $sources,
+                    'source_note' => $note,
+                    'verified_on' => self::SOURCES_CONSULTEES_LE,
+                ]);
+                $rapport['oem_relations_created']++;
+                $touche = true;
             }
 
             $deja = DB::table('oem_number_part')

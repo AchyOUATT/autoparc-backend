@@ -380,7 +380,9 @@ class CompatibilityService
 
         $partIds = $oem->parts()->pluck('parts.id');
 
-        return OemNumber::with('brand')
+        // Les liens qualifiés (nature + preuve du REMPLACEMENT) accompagnent
+        // chaque référence croisée ; ils ne valent jamais compatibilité.
+        return OemNumber::with(['brand', 'replacementRelations.to'])
             ->whereHas('parts', fn ($p) => $p->whereIn('parts.id', $partIds))
             ->where('id', '!=', $oem->id)
             ->get();

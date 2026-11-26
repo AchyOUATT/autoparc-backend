@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Brand;
+use App\Models\OemNumber;
+use App\Models\OemNumberFitment;
 use App\Models\OwnedVehicle;
 use App\Models\Part;
 use App\Models\PartCategory;
@@ -175,9 +177,10 @@ class Toyota90915Yzzd1CompatibiliteApiTest extends TestCase
 
         $vehicule->update(['engine_code' => '2AZ-FE']);
         $this->actingAsClient($client)->getJson($url)->assertOk()
-            ->assertJsonPath('data.0.status', 'unknown')
+            ->assertJsonPath('data.0.status', 'excluded')
             ->assertJsonPath('data.0.compatible', false)
-            ->assertJsonPath('data.0.reason', 'no_matching_fitment');
+            ->assertJsonPath('data.0.reason', 'incompatible_vehicle_criteria')
+            ->assertJsonPath('data.0.excluded_criteria', ['engine_code']);
     }
 
     public function test_le_chassis_et_le_marche_documentent_sans_filtrer(): void
@@ -198,5 +201,40 @@ class Toyota90915Yzzd1CompatibiliteApiTest extends TestCase
         $this->assertSame('MCV20', $this->filtre->fitments()->where('vehicle_model_id', $this->modele('camry-xv20'))->value('chassis_code'));
         $this->actingAsClient($client)->getJson("/api/my/parts/{$this->filtre->id}/garage-compatibility")->assertOk()
             ->assertJsonPath('data.0.status', 'confirmed');
+    }
+
+    public function test_les_compatibilites_des_anciens_numeros_ne_passent_pas_au_90915_yzzd1(): void
+    {
+        // Jeu d'essai (pas une donnée réelle) : les anciens numéros 90915-20001
+        // (lien distributeur) et 90915-YZZB1 (supersession constructeur)
+        // portent chacun une ligne OEM déclarée, sur un moteur que la YZZD1
+        // ne couvre pas.
+        $camry = $this->modele('camry-xv20');
+        foreach (['90915-20001', '90915-YZZB1'] as $numero) {
+            $ancien = OemNumber::where('normalized_number', OemNumber::normalize($numero))->firstOrFail();
+            $this->assertTrue($ancien->isReplaced(), $numero);
+            OemNumberFitment::create([
+                'oem_number_id' => $ancien->id, 'vehicle_model_id' => $camry,
+                'engine_code' => '5S-FE', 'year_from' => 1996, 'year_to' => 2001, 'source' => 'declared',
+            ]);
+        }
+        // Les deux anciens numéros restent rattachés (non principaux) à l'article.
+        $this->assertSame(5, $this->filtre->oemNumbers()->wherePivot('is_primary', false)->count());
+
+        $criteres = ['vehicle_model_id' => $camry, 'year' => 1999, 'engine_code' => '5S-FE'];
+        $this->assertSame([], $this->recherche($criteres));
+        $this->assertNull($this->statut($criteres), 'Les lignes d\'un numéro remplacé ne rendent pas la pièce même candidate.');
+
+        // La fiche de la pièce ne les affiche pas non plus comme compatibles.
+        // Au garage, seule la ligne propre de la YZZD1 (1MZ-FE) est évaluée :
+        // le 5S-FE la contredit, la pièce est exclue, jamais confirmée.
+        $client = User::factory()->create(['role' => 'client', 'firebase_uid' => 'yzzd1-anciens-numeros']);
+        OwnedVehicle::create([
+            'user_id' => $client->id, 'brand_id' => Brand::where('slug', 'toyota')->value('id'),
+            'vehicle_model_id' => $camry, 'manufacturing_year' => 1999, 'engine_code' => '5S-FE',
+        ]);
+        $this->actingAsClient($client)->getJson("/api/my/parts/{$this->filtre->id}/garage-compatibility")->assertOk()
+            ->assertJsonPath('data.0.status', 'excluded')
+            ->assertJsonPath('data.0.compatible', false);
     }
 }
