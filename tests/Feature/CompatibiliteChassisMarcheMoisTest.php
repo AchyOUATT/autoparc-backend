@@ -55,6 +55,7 @@ class CompatibiliteChassisMarcheMoisTest extends TestCase
             $part->fitments()->create([
                 'vehicle_model_id' => $this->model->id,
                 'source' => FitmentSource::Declared,
+                ...self::PREUVE_DOCUMENTEE,
                 ...$fitment,
             ]);
         }
@@ -140,14 +141,38 @@ class CompatibiliteChassisMarcheMoisTest extends TestCase
         $this->assertSame(['specification_market'], $inconnu['missing_criteria']);
     }
 
-    public function test_hierarchie_du_catalogue_general(): void
+    public function test_aucune_hierarchie_entre_marches(): void
     {
+        // Sans documentation constructeur, GEN ne couvre ni AFR, ni MDE, ni AUS.
         $general = $this->part(['market_codes' => ['GEN']]);
-        $this->assertSame('confirmed', $this->assess($general, ['specification_market' => 'AFR'])['status']);
+        foreach (['AFR', 'MDE', 'AUS'] as $marche) {
+            $this->assertSame('excluded', $this->assess($general, ['specification_market' => $marche])['status'], $marche);
+        }
+        $this->assertSame('confirmed', $this->assess($general, ['specification_market' => 'GEN'])['status']);
 
         $afrique = $this->part(['market_codes' => ['AFR']]);
-        $this->assertSame('candidate', $this->assess($afrique, ['specification_market' => 'GEN'])['status']);
+        $this->assertSame('excluded', $this->assess($afrique, ['specification_market' => 'GEN'])['status']);
         $this->assertSame('excluded', $this->assess($afrique, ['specification_market' => 'MDE'])['status']);
+        $this->assertSame('confirmed', $this->assess($afrique, ['specification_market' => 'AFR'])['status']);
+
+        // USA ne couvre pas le Canada : une ligne qui vaut pour les deux les énumère.
+        $usa = $this->part(['market_codes' => ['USA']]);
+        $this->assertSame('excluded', $this->assess($usa, ['specification_market' => 'CAN'])['status']);
+        $this->assertSame('confirmed', $this->assess($usa, ['specification_market' => 'USA'])['status']);
+    }
+
+    public function test_le_mois_reste_facultatif_hors_annee_borne(): void
+    {
+        $part = $this->part(['year_from' => 2009, 'month_from' => 11, 'year_to' => 2011, 'month_to' => 8]);
+
+        // Année intérieure : le mois ne sert à rien, son absence ne bloque pas.
+        $this->assertSame('confirmed', $this->assess($part, ['year' => 2010])['status']);
+        // Année-borne sans mois : à vérifier, jamais confirmée ni exclue.
+        foreach ([2009, 2011] as $annee) {
+            $resultat = $this->assess($part, ['year' => $annee]);
+            $this->assertSame('candidate', $resultat['status'], (string) $annee);
+            $this->assertSame(['manufacturing_month'], $resultat['missing_criteria']);
+        }
     }
 
     public function test_une_liste_de_marches_vide_est_stockee_nulle(): void
@@ -201,7 +226,7 @@ class CompatibiliteChassisMarcheMoisTest extends TestCase
     {
         $part = $this->part(
             ['chassis_code' => 'TRN285', 'chassis_restricted' => true, 'market_codes' => ['USA']],
-            ['chassis_code' => 'TRN285', 'chassis_restricted' => true, 'market_codes' => ['GEN']],
+            ['chassis_code' => 'TRN285', 'chassis_restricted' => true, 'market_codes' => ['AFR']],
         );
 
         $this->assertSame('confirmed', $this->assess($part, ['chassis_code' => 'TRN285', 'specification_market' => 'AFR'])['status']);
@@ -215,6 +240,7 @@ class CompatibiliteChassisMarcheMoisTest extends TestCase
         $part->oemNumbers()->attach($oem->id, ['is_primary' => true]);
         $oem->fitments()->create([
             'vehicle_model_id' => $this->model->id, 'chassis_code' => 'TRN285', 'chassis_restricted' => true,
+            ...self::PREUVE_DOCUMENTEE,
         ]);
         $part = $part->fresh();
 
@@ -324,6 +350,32 @@ class CompatibiliteChassisMarcheMoisTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors('manufacturing_month');
     }
 
+    public function test_le_pays_de_circulation_est_distinct_du_marche_d_origine_et_jamais_compare(): void
+    {
+        $part = $this->part(['market_codes' => ['USA']]);
+        $owner = User::factory()->create(['role' => 'client', 'firebase_uid' => 'circulation-test']);
+
+        // Véhicule importé des États-Unis, qui circule au Burkina Faso.
+        $id = $this->actingAsClient($owner)->postJson('/api/my/vehicles', [
+            'brand_id' => $this->brand->id, 'vehicle_model_id' => $this->model->id,
+            'manufacturing_year' => 2010, 'specification_market' => 'USA', 'circulation_country' => ' bf ',
+        ])->assertCreated()
+            ->assertJsonPath('data.specification_market', 'USA')
+            ->assertJsonPath('data.circulation_country', 'BF')
+            ->json('data.id');
+        $this->actingAsClient($owner)->getJson("/api/my/vehicles/{$id}/compatible-parts")
+            ->assertOk()->assertJsonPath('data.0.compatibility_assessment.status', 'confirmed');
+
+        // Le pays de circulation seul ne renseigne pas le marché d'origine.
+        $this->actingAsClient($owner)->patchJson("/api/my/vehicles/{$id}", ['specification_market' => null, 'circulation_country' => 'US'])->assertOk();
+        $this->actingAsClient($owner)->getJson("/api/my/vehicles/{$id}/compatible-parts?include_candidates=1")
+            ->assertOk()->assertJsonPath('data.0.compatibility_assessment.status', 'candidate')
+            ->assertJsonPath('data.0.compatibility_assessment.missing_criteria', ['specification_market']);
+
+        $this->actingAsClient($owner)->patchJson("/api/my/vehicles/{$id}", ['circulation_country' => 'BFA'])
+            ->assertUnprocessable()->assertJsonValidationErrors('circulation_country');
+    }
+
     // ── Écriture ───────────────────────────────────────────────────────
 
     private function corps(array $fitments): array
@@ -391,7 +443,10 @@ class CompatibiliteChassisMarcheMoisTest extends TestCase
         $this->assertEqualsCanonicalizing(Market::codes(), $table->keys()->all());
         foreach (Market::ALL as $code => $marche) {
             $this->assertSame($marche['epc_region'], $table[$code]->epc_region);
-            $this->assertSame($marche['parent'], $table[$code]->parent_code);
+        }
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('markets', 'parent_code'), 'Aucune hiérarchie de marchés.');
+        foreach (['CAN', 'MDE', 'AFR', 'AUS'] as $code) {
+            $this->assertNull($table[$code]->epc_region, $code);
         }
     }
 

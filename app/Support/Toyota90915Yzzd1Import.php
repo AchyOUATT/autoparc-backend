@@ -97,6 +97,7 @@ final class Toyota90915Yzzd1Import
                 'fitments_skipped_missing_trim' => [],
                 'oem_superseded_linked' => 0,
                 'oem_relations_created' => 0,
+                'fitments_evidence_qualified' => 0,
             ];
 
             $parts = DB::table('parts')->where('sku', self::SKU)
@@ -165,8 +166,21 @@ final class Toyota90915Yzzd1Import
                 'year_to' => $application['year_to'],
             ];
 
+            $preuve = self::avecColonnesDePreuve() ? self::preuve($application) : [];
+
             if (DB::table('part_fitments')->where($identite)->lockForUpdate()->exists()) {
                 $rapport['fitments_already_present']++;
+                // Preuve structurée posée sur SA propre ligne (même identité,
+                // même note), seulement si elle n'en a encore aucune : la
+                // migration 140000 insère avant que la 200000 crée ces colonnes.
+                if ($preuve !== []) {
+                    $qualifiees = DB::table('part_fitments')->where($identite)
+                        ->where('notes', $application['notes'])
+                        ->whereNull('evidence_level')->whereNull('evidence_sources')
+                        ->update(['evidence_level' => $preuve['evidence_level'], 'evidence_sources' => json_encode($preuve['evidence_sources'])]);
+                    $rapport['fitments_evidence_qualified'] += $qualifiees;
+                    $touche = $touche || $qualifiees > 0;
+                }
 
                 continue;
             }
@@ -177,6 +191,10 @@ final class Toyota90915Yzzd1Import
                 'notes' => $application['notes'],
                 'source' => FitmentSource::Declared->value,
                 'chassis_code' => implode('/', $application['chassis_codes']),
+                ...($preuve === [] ? [] : [
+                    'evidence_level' => $preuve['evidence_level'],
+                    'evidence_sources' => json_encode($preuve['evidence_sources']),
+                ]),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -185,6 +203,36 @@ final class Toyota90915Yzzd1Import
         }
 
         return $touche;
+    }
+
+    private static function avecColonnesDePreuve(): bool
+    {
+        return Schema::hasColumn('part_fitments', 'evidence_level') && Schema::hasColumn('part_fitments', 'evidence_sources');
+    }
+
+    /**
+     * Preuve structurée d'une application, tirée de ses propres sources :
+     *  - evidence_sources = les URL que cite la ligne, telles quelles ;
+     *  - evidence_level   = le maillon le plus faible de la chaîne prouvée :
+     *      manufacturer_official si un document du constructeur nomme
+     *      directement 90915-YZZD1 pour ce moteur (catalogue PDF Toyota des
+     *      filtres, fiche parts.lexus.com) ;
+     *      dealer_catalog sinon : le schéma EPC du châssis porte l'ancien
+     *      numéro 90915-20001 / 20003, dont le remplacement par la YZZD1
+     *      n'est attesté que par des catalogues de concession Toyota.
+     *
+     * @param  array<string, mixed>  $application
+     * @return array{evidence_level: string, evidence_sources: list<string>}
+     */
+    public static function preuve(array $application): array
+    {
+        $urls = FitmentEvidence::urlsInText($application['notes']);
+        $constructeur = str_contains($application['notes'], self::SRC_PDF) || str_contains($application['notes'], self::SRC_LEXUS);
+
+        return [
+            'evidence_level' => $constructeur ? FitmentEvidence::MANUFACTURER_OFFICIAL : FitmentEvidence::DEALER_CATALOG,
+            'evidence_sources' => $urls,
+        ];
     }
 
     /** Date de consultation des sources de remplacement (revue du 26/11/2026). */

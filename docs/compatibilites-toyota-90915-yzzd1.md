@@ -76,6 +76,25 @@ justifiée par le schéma EPC de son châssis.
 Les revendeurs utilisés auparavant pour les Lexus (autohausaz, mugen-24) ne
 servent plus de preuve : chaque ligne Lexus cite désormais un schéma EPC.
 
+### Preuve structurée des compatibilités des générations anciennes
+
+Chaque ligne de compatibilité posée par `Toyota90915Yzzd1AnciensModelesImport`
+porte une preuve structurée tirée de ses propres sources (règle stricte du
+moteur de compatibilité, section 11 de la proposition chassis/marché) :
+
+- `evidence_sources` = les URL citées dans la note de la ligne ;
+- `evidence_level` = `manufacturer_official` (15 lignes Toyota) quand le
+  catalogue PDF officiel des filtres Toyota nomme la 90915-YZZD1 pour ce
+  moteur ; sinon `dealer_catalog` (6 lignes Lexus : schéma EPC de l'ancien
+  numéro 90915-20001/20003 + remplacement attesté par les concessions, le
+  maillon le plus faible fixe le niveau).
+
+La migration 160000 s'exécute avant la 200000 (création des colonnes) : la
+migration `2026_11_26_202000_qualifier_les_preuves_des_generations_anciennes_90915_yzzd1`
+rejoue l'import, qui qualifie uniquement ses propres lignes (même identité,
+même note, sans preuve) et ne réécrit jamais une ligne déjà qualifiée ou
+modifiée.
+
 ## 4Runner N280 et 2TR-FE
 
 Le « 2010- » du PDF ne vaut pas pour toute la génération. L'EPC américain

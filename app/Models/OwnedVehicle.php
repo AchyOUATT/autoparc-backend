@@ -16,7 +16,7 @@ class OwnedVehicle extends Model
         'user_id', 'brand_id', 'vehicle_type', 'two_wheeler_configuration', 'vehicle_model_id', 'model_libre', 'trim_id',
         'engine_type_id', 'motorisation_id', 'drivetrain_id', 'color_id',
         'engine_displacement_cc', 'engine_displacement_l', 'cylinders', 'engine_layout', 'power_hp',
-        'manufacturing_year', 'manufacturing_month', 'model_year', 'specification_market', 'chassis_code', 'vin', 'engine_code', 'plate_number', 'nickname', 'mileage_km',
+        'manufacturing_year', 'manufacturing_month', 'model_year', 'specification_market', 'circulation_country', 'chassis_code', 'vin', 'engine_code', 'plate_number', 'nickname', 'mileage_km',
         'technical_inspection_expiry', 'insurance_expiry',
         'last_service_date', 'last_service_mileage_km', 'service_interval_km',
     ];
