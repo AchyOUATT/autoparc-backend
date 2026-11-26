@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\FitmentSource;
 use Database\Seeders\VehicleModelsSeeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -65,6 +66,25 @@ final class Toyota90915Yzzd1AnciensModelesImport
 
     private const BORNES = ' Bornes annuelles : contrôler le VIN, le code moteur et la date de fabrication aux bornes.';
 
+    /**
+     * Preuve structurée d'une application, tirée de ses propres sources
+     * (même règle que Toyota90915Yzzd1Import::preuve) : URL citées par la
+     * note ; manufacturer_official si le catalogue PDF Toyota des filtres
+     * nomme la YZZD1 pour ce moteur, sinon dealer_catalog (schéma EPC de
+     * l'ancien numéro + remplacement attesté par les concessions).
+     *
+     * @param  array<string, mixed>  $application
+     * @return array{evidence_level: string, evidence_sources: list<string>}
+     */
+    public static function preuve(array $application): array
+    {
+        return [
+            'evidence_level' => str_contains($application['notes'], self::SRC_PDF)
+                ? FitmentEvidence::MANUFACTURER_OFFICIAL : FitmentEvidence::DEALER_CATALOG,
+            'evidence_sources' => FitmentEvidence::urlsInText($application['notes']),
+        ];
+    }
+
     /** @return array<string, mixed> */
     public static function run(): array
     {
@@ -75,9 +95,11 @@ final class Toyota90915Yzzd1AnciensModelesImport
                 'fitments_inserted' => 0,
                 'fitments_already_present' => 0,
                 'fitments_skipped_missing_model' => [],
+                'fitments_evidence_qualified' => 0,
             ];
 
             self::poserLesModeles($rapport);
+            $avecPreuve = Schema::hasColumn('part_fitments', 'evidence_level') && Schema::hasColumn('part_fitments', 'evidence_sources');
 
             $parts = DB::table('parts')->where('sku', self::SKU)
                 ->whereNull('owner_partner_account_id')
@@ -111,8 +133,18 @@ final class Toyota90915Yzzd1AnciensModelesImport
                     'year_from' => $application['year_from'],
                     'year_to' => $application['year_to'],
                 ];
+                $preuve = $avecPreuve ? self::preuve($application) : [];
                 if (DB::table('part_fitments')->where($identite)->lockForUpdate()->exists()) {
                     $rapport['fitments_already_present']++;
+                    // La migration 160000 insère avant que la 200000 crée les
+                    // colonnes de preuve : la 202000 rejoue l'import pour
+                    // qualifier SES lignes (même identité, même note, sans preuve).
+                    if ($preuve !== []) {
+                        $rapport['fitments_evidence_qualified'] += DB::table('part_fitments')->where($identite)
+                            ->where('notes', $application['notes'])
+                            ->whereNull('evidence_level')->whereNull('evidence_sources')
+                            ->update(['evidence_level' => $preuve['evidence_level'], 'evidence_sources' => json_encode($preuve['evidence_sources'])]);
+                    }
 
                     continue;
                 }
@@ -123,6 +155,10 @@ final class Toyota90915Yzzd1AnciensModelesImport
                     'notes' => $application['notes'],
                     'source' => FitmentSource::Declared->value,
                     'chassis_code' => implode('/', $application['chassis_codes']),
+                    ...($preuve === [] ? [] : [
+                        'evidence_level' => $preuve['evidence_level'],
+                        'evidence_sources' => json_encode($preuve['evidence_sources']),
+                    ]),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

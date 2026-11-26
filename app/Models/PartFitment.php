@@ -17,7 +17,7 @@ class PartFitment extends Model
         // Criteres restrictifs (null = aucune restriction). Voir FitmentRestrictions.
         'chassis_restricted', 'market_codes', 'month_from', 'month_to',
         // Preuve de la compatibilite (voir FitmentEvidence).
-        'evidence_level', 'evidence_sources',
+        'evidence_level', 'evidence_sources', 'verified_by_id', 'verified_on',
         // Renseignee par les controleurs, jamais par la requete : aucune regle
         // de validation ne la laisse passer, et `validated()` ecarte le reste.
         'source',
@@ -34,6 +34,7 @@ class PartFitment extends Model
             'month_from' => 'integer',
             'month_to' => 'integer',
             'evidence_sources' => 'array',
+            'verified_on' => 'date',
         ];
     }
 

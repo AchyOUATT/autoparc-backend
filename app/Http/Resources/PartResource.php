@@ -130,6 +130,10 @@ class PartResource extends JsonResource
                 // Preuve de la compatibilite (distincte de celle d'un remplacement).
                 'evidence_level'   => $f->evidence_level,
                 'evidence_sources' => $f->evidence_sources,
+                'verified_by_id'   => $f->verified_by_id,
+                'verified_on'      => $f->verified_on?->toDateString(),
+                // Ligne documentée au sens de FitmentEvidence (seule à pouvoir confirmer).
+                'evidence_documented' => \App\Support\FitmentEvidence::isDocumented($f),
                 'year_from'        => $f->year_from,
                 'year_to'          => $f->year_to,
                 'position'         => $f->position,

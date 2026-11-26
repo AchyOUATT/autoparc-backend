@@ -228,15 +228,23 @@ class Toyota10001VerifiedImportTest extends TestCase
         $base = ['vehicle_model_id' => $model->id, 'year' => 1993, 'engine_code' => '4A-FE'];
         $path = static fn ($criteria) => '/api/catalog/compatible-parts?'.http_build_query($criteria);
 
-        $this->getJson($path($base))->assertOk()->assertJsonCount(1, 'data')
+        // Sources CUSCO / HKS (catalogues aftermarket) seulement dans les notes,
+        // sans preuve structurée : la ligne est candidate, jamais confirmée.
+        $this->getJson($path($base))->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson($path($base + ['include_candidates' => 1]))->assertOk()->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $part->id)
-            ->assertJsonPath('data.0.compatibility_assessment.status', 'confirmed');
+            ->assertJsonPath('data.0.compatibility_assessment.status', 'candidate')
+            ->assertJsonPath('data.0.compatibility_assessment.missing_criteria', ['evidence']);
         foreach ([['year' => 1990], ['engine_code' => '7A-FE'], ['engine_code' => null]] as $changes) {
             $this->getJson($path(array_replace($base, $changes)))->assertOk()->assertJsonCount(0, 'data');
         }
         $this->getJson($path(array_replace($base, ['engine_code' => null, 'include_candidates' => 1])))
             ->assertOk()->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.compatibility_assessment.status', 'candidate');
+        // Une année ou un moteur contredits l'excluent même des candidats.
+        foreach ([['year' => 1990], ['engine_code' => '7A-FE']] as $changes) {
+            $this->getJson($path(array_replace($base, $changes + ['include_candidates' => 1])))->assertOk()->assertJsonCount(0, 'data');
+        }
     }
 
     public function test_rollback_preserves_reference_data_and_customer_links(): void

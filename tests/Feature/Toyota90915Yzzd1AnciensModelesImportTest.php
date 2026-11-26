@@ -221,6 +221,31 @@ class Toyota90915Yzzd1AnciensModelesImportTest extends TestCase
         $this->assertSame(21, $rapport['fitments_already_present']);
         $this->assertSame($modeles, VehicleModel::count());
         $this->assertSame(21, $piece->fitments()->count());
+        $this->assertSame(0, $rapport['fitments_evidence_qualified']);
+    }
+
+    public function test_chaque_ligne_porte_une_preuve_structuree_et_le_rejeu_qualifie_les_lignes_anciennes(): void
+    {
+        $this->marques();
+        $piece = $this->filtre();
+        Toyota90915Yzzd1AnciensModelesImport::run();
+
+        $lignes = $piece->fitments()->get();
+        foreach ($lignes as $ligne) {
+            $this->assertTrue(\App\Support\FitmentEvidence::isDocumented($ligne), $ligne->notes);
+            foreach ($ligne->evidence_sources as $url) {
+                $this->assertStringContainsString($url, $ligne->notes);
+            }
+        }
+        $this->assertSame(15, $lignes->where('evidence_level', 'manufacturer_official')->count());
+        $this->assertSame(6, $lignes->where('evidence_level', 'dealer_catalog')->count(), 'Les six lignes Lexus passent par le remplacement distributeur.');
+
+        // Lignes posées avant les colonnes de preuve (migration 160000) :
+        // le rejeu de la 202000 les qualifie, une seule fois.
+        \DB::table('part_fitments')->where('part_id', $piece->id)->update(['evidence_level' => null, 'evidence_sources' => null]);
+        $this->assertSame(21, Toyota90915Yzzd1AnciensModelesImport::run()['fitments_evidence_qualified']);
+        $this->assertSame(0, Toyota90915Yzzd1AnciensModelesImport::run()['fitments_evidence_qualified']);
+        $this->assertSame(21, $piece->fitments()->whereNotNull('evidence_level')->count());
     }
 
     public function test_le_seeder_pose_les_memes_generations(): void

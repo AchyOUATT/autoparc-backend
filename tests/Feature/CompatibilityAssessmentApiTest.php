@@ -59,6 +59,7 @@ class CompatibilityAssessmentApiTest extends TestCase
         $part->fitments()->create([
             'vehicle_model_id' => $this->model->id,
             'source' => FitmentSource::Declared,
+            ...self::PREUVE_DOCUMENTEE,
             ...$fitment,
         ]);
 
