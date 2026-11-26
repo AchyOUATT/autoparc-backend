@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\FitmentSource;
 use Database\Seeders\VehicleModelsSeeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
@@ -46,6 +47,7 @@ final class ToyotaSiennaReferentielImport
                 'models_created' => [],
                 'fitments_inserted' => 0,
                 'fitments_already_present' => 0,
+                'fitments_evidence_qualified' => 0,
                 'fitments_skipped_missing_model' => [],
                 'fitments_skipped_missing_part' => [],
                 'bare_model' => 'absent',
@@ -81,6 +83,7 @@ final class ToyotaSiennaReferentielImport
             $rapport = [
                 'fitments_inserted' => 0,
                 'fitments_already_present' => 0,
+                'fitments_evidence_qualified' => 0,
                 'fitments_skipped_missing_model' => [],
                 'fitments_skipped_missing_part' => [],
             ];
@@ -154,8 +157,20 @@ final class ToyotaSiennaReferentielImport
                 'year_from' => $application['year_from'],
                 'year_to' => $application['year_to'],
             ];
-            if (DB::table('part_fitments')->where($identite)->exists()) {
+            $preuve = (Schema::hasColumn('part_fitments', 'evidence_level')
+                && Schema::hasColumn('part_fitments', 'evidence_sources'))
+                ? self::preuve($application) : [];
+            if (DB::table('part_fitments')->where($identite)->lockForUpdate()->exists()) {
                 $rapport['fitments_already_present']++;
+                // La migration 170000 insère avant que la 200000 crée les
+                // colonnes de preuve : la 203000 rejoue l'import pour
+                // qualifier SES lignes (même identité, même note, sans preuve).
+                if ($preuve !== []) {
+                    $rapport['fitments_evidence_qualified'] += DB::table('part_fitments')->where($identite)
+                        ->where('notes', $application['notes'])
+                        ->whereNull('evidence_level')->whereNull('evidence_sources')
+                        ->update(['evidence_level' => $preuve['evidence_level'], 'evidence_sources' => json_encode($preuve['evidence_sources'])]);
+                }
 
                 continue;
             }
@@ -166,6 +181,10 @@ final class ToyotaSiennaReferentielImport
                 'notes' => $application['notes'],
                 'source' => FitmentSource::Declared->value,
                 'chassis_code' => implode('/', $application['chassis_codes']),
+                ...($preuve === [] ? [] : [
+                    'evidence_level' => $preuve['evidence_level'],
+                    'evidence_sources' => json_encode($preuve['evidence_sources']),
+                ]),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -206,6 +225,32 @@ final class ToyotaSiennaReferentielImport
             'updated_at' => now(),
         ]);
         $rapport['bare_model'] = 'deactivated';
+    }
+
+    /**
+     * Preuve structurée d'une application, tirée de ses propres sources
+     * déjà citées dans la note (aucune URL n'est inventée) :
+     *  - evidence_sources = les URL que cite la ligne, telles quelles ;
+     *  - evidence_level   = manufacturer_official si le catalogue PDF Toyota
+     *    des filtres, ou la fiche officielle autoparts.toyota.com, nomme
+     *    directement la référence ; manufacturer_epc si la ligne s'appuie
+     *    sur les catalogues EPC 622420 / 622430 / 622440, sans document
+     *    constructeur qui nomme la référence actuelle.
+     *
+     * @param  array<string, mixed>  $application
+     * @return array{evidence_level: string, evidence_sources: list<string>}
+     */
+    public static function preuve(array $application): array
+    {
+        $notes = $application['notes'];
+        $officielle = str_contains($notes, self::SRC_PDF) || str_contains($notes, self::SRC_YZZA1_OFFICIEL);
+
+        return [
+            'evidence_level' => $officielle
+                ? FitmentEvidence::MANUFACTURER_OFFICIAL
+                : FitmentEvidence::MANUFACTURER_EPC,
+            'evidence_sources' => FitmentEvidence::urlsInText($notes),
+        ];
     }
 
     /**
