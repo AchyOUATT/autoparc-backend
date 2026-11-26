@@ -68,4 +68,4 @@ vérifier `/api/catalog/sync` et la fiche du filtre en production.
 
 ## Preuve structurée des cinq applications
 
-Depuis le 26 novembre 2026, la migration `2026_11_26_210000_qualifier_les_preuves_aftermarket_du_filtre_90915_10001` pose sur ces cinq lignes `evidence_level=aftermarket_crossref`, l’URL CUSCO dans `evidence_sources`, `market_codes=['JP']` et les mois des périodes source. Les lignes restent candidates : un catalogue d’après-vente ne confirme pas une compatibilité. Voir aussi `docs/compatibilites-toyota-10001.md`.
+Depuis le 26 novembre 2026, la migration `2026_11_26_210000_qualifier_les_preuves_aftermarket_du_filtre_90915_10001` pose sur ces cinq lignes `evidence_level=aftermarket_crossref`, l’URL CUSCO dans `evidence_sources`, `market_codes=['JP']` et les mois des périodes source ; la migration `2026_11_26_220000_retirer_marche_et_mois_des_lignes_cusco_du_filtre_90915_10001` a ensuite retiré le marché et les mois (ils agissaient comme critères éliminatoires sans preuve de restriction). Les lignes restent candidates : un catalogue d’après-vente ne confirme pas une compatibilité. Voir aussi `docs/compatibilites-toyota-10001.md`.
