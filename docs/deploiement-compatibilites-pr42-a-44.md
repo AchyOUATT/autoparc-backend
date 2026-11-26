@@ -101,7 +101,8 @@ code de l'état correspondant**. Ordre : #44 → #43 → #41 → #40 → #42.
 | #40 | sans effet sur les données (idem) |
 | #42 | supprime `markets`, `oem_number_relations`, les colonnes de critères, de preuve, `verified_by_id`/`verified_on`, `circulation_country` (**données de preuve perdues**) |
 
-Rejoué localement sur PostgreSQL : les cinq retours passent et le schéma
+Rejoué localement sur PostgreSQL (états #42, #40, #41, +#43 `eb4ab09`,
++#44 `d59dae0`) : les cinq retours passent et le schéma
 revient exactement à celui de `main` (aucune migration en attente). Les
 lignes YZZD1 de #40/#41 restent (sans colonnes de preuve), compatibles avec
 l'ancien code.
@@ -141,8 +142,9 @@ select p.sku, f.evidence_level, count(*) from part_fitments f
 join parts p on p.id = f.part_id
 where p.sku in ('90915-YZZD1','04152-YZZA1','90915-YZZN1')
 group by 1, 2 order by 1, 2;
--- attendu : 90915-YZZD1 = 8 manufacturer_official + 3 dealer_catalog après #40,
--- + 15 manufacturer_official + 6 dealer_catalog après #41.
+-- attendu pour 90915-YZZD1 : 8 manufacturer_official + 3 dealer_catalog après #40,
+-- 23 + 9 après #41 ; #43 ajoute des lignes Sienna SANS preuve (niveau vide)
+-- tant qu'il n'est pas complété (§5).
 
 -- 4. Remplacements qualifiés (#40)
 select o1.number, r.kind, r.evidence_level, o2.number remplace_par
@@ -164,7 +166,7 @@ l'état concerné ; les vérifier avec la requête 2 si une requête échoue.
 API (publique, sans compte) :
 
 - `GET https://autoparc-backend.onrender.com/up` → 200.
-- `GET /api/compatible-parts?vehicle_model_id=<id de camry-xv30>&year=2004&engine_code=1MZ-FE&include_candidates=1`
+- `GET /api/catalog/compatible-parts?vehicle_model_id=<id de camry-xv30>&year=2004&engine_code=1MZ-FE&include_candidates=1`
   → 90915-YZZD1 avec `compatibility_assessment.status = confirmed`
   (ligne documentée, #41).
 - Même requête sans `engine_code` → `candidate` (critère manquant).
