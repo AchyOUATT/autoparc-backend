@@ -9,6 +9,7 @@ use App\Models\PartCategory;
 use App\Models\PartFitment;
 use App\Models\Vehicle;
 use App\Models\VehicleModel;
+use App\Support\FitmentEvidence;
 use App\Support\ToyotaSiennaReferentielImport;
 use Database\Seeders\ColorsSeeder;
 use Database\Seeders\DrivetrainsSeeder;
@@ -177,8 +178,45 @@ class ToyotaSiennaReferentielImportTest extends TestCase
         $this->assertSame([], $rapport['models_created']);
         $this->assertSame(0, $rapport['fitments_inserted']);
         $this->assertSame(6, $rapport['fitments_already_present']);
+        $this->assertSame(0, $rapport['fitments_evidence_qualified']);
         $this->assertSame($modeles, VehicleModel::count());
         $this->assertSame($lignes, PartFitment::count());
+    }
+
+    public function test_chaque_ligne_porte_une_preuve_structuree_et_le_rejeu_qualifie_les_lignes_anciennes(): void
+    {
+        ToyotaSiennaReferentielImport::run();
+
+        $lignes = PartFitment::whereHas('vehicleModel', fn ($q) => $q->where('slug', 'like', 'sienna-xl%'))->get();
+        $this->assertCount(6, $lignes);
+        foreach ($lignes as $ligne) {
+            $this->assertTrue(FitmentEvidence::isDocumented($ligne), $ligne->notes);
+            $this->assertSame('manufacturer_official', $ligne->evidence_level, 'Le PDF Toyota nomme directement la référence sur chaque ligne.');
+            $this->assertNotEmpty($ligne->evidence_sources);
+            $sources = is_array($ligne->evidence_sources) ? $ligne->evidence_sources : [];
+            $this->assertTrue(
+                collect($sources)->contains(fn ($url) => str_contains((string) $url, '06_OilFilters2025_hi.pdf')),
+                'La source structurée doit inclure le PDF constructeur déjà cité.',
+            );
+            $this->assertTrue(
+                collect($sources)->contains(fn ($url) => (bool) preg_match('#toyota-epc\.aftermarketcatalog\.com/vehicle/US/6224[234]0/#', (string) $url)),
+                'La source structurée doit inclure le catalogue EPC 622420/622430/622440 déjà cité.',
+            );
+            foreach ($sources as $url) {
+                $this->assertStringContainsString($url, $ligne->notes, 'Une source structurée doit être citée par la note.');
+            }
+        }
+
+        // Lignes posées avant les colonnes de preuve (migration 170000) :
+        // le rejeu de la 203000 les qualifie, une seule fois, sans réécrire
+        // une ligne déjà qualifiée ou dont la note a changé.
+        \DB::table('part_fitments')->whereIn('id', $lignes->pluck('id'))->update(['evidence_level' => null, 'evidence_sources' => null]);
+        $deja = $lignes->first();
+        $deja->update(['evidence_level' => 'unverified']);
+        $this->assertSame(5, ToyotaSiennaReferentielImport::run()['fitments_evidence_qualified']);
+        $this->assertSame('unverified', $deja->fresh()->evidence_level, 'Une preuve déjà posée n\'est jamais réécrite.');
+        $this->assertSame(0, ToyotaSiennaReferentielImport::run()['fitments_evidence_qualified']);
+        $this->assertSame(5, PartFitment::whereIn('id', $lignes->pluck('id'))->whereNotNull('evidence_level')->where('evidence_level', '!=', 'unverified')->count());
     }
 
     public function test_sans_l_article_la_ligne_est_ignoree_sans_erreur(): void

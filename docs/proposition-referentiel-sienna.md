@@ -19,7 +19,7 @@ production 2007 à ouvert, active, sans alias.
 | `part_fitments` (CASCADE) | 4 | remplacées par des lignes réévaluées sur les générations, puis retirées et archivées (PR suivante, voir le §4) |
 | `oem_number_fitments` (CASCADE) | 0 | aucun |
 | `accessory_fitments` (CASCADE) | 0 | aucun |
-| `motorisations` (SET NULL) | 86 (nrcan, Canada, 2007–2026 ; 43 en `model_year`, 43 en `unknown`) | 84 réattribuées aux générations, 2 ambiguës restées sur la ligne nue ; voir le §5 |
+| `motorisations` (SET NULL) | 86 (nrcan, Canada, 2007–2026 ; 43 en `model_year`, 43 en `unknown`) | les 86 réattribuées aux générations (voir le §5) |
 | `customer_needs`, `private_vehicle_listings` (SET NULL) | 0 / 0 | aucun |
 
 Aucune ligne n'est supprimée et rien n'est renommé. Seuls changent
@@ -98,7 +98,7 @@ sans quoi un rejeu les reposerait.
 
 | Ligne retirée (id prod., pour mémoire) | Remplacée par | Couverture |
 | --- | --- | --- |
-| 04152-YZZA1 · sienna · 2GR-FE · 2007–2016 (456) | 04152-YZZA1 · sienna-xl20 · 2GR-FE · 2006–2009 + sienna-xl30 · 2GR-FE · 2010–2016 | 2007–2016 ⊂ 2006–2016 |
+| 04152-YZZA1 · sienna · 2GR-FE · 2007–2016 (456) | 04152-YZZA1 · sienna-xl20 · 2GR-FE · 2006–2010 + sienna-xl30 · 2GR-FE · 2010–2016 | 2007–2016 ⊂ 2006–2016 |
 | 04152-YZZA1 · sienna · 1AR-FE · 2011–2013 (457) | 04152-YZZA1 · sienna-xl30 · 1AR-FE · 2010–2013 | ⊂ |
 | 04152-YZZA1 · sienna · 2GR-FKS · 2017–2020 (458) | 04152-YZZA1 · sienna-xl30 · 2GR-FKS · 2016–2020 | ⊂ |
 | 90915-YZZN1 · sienna · A25A-FXS · 2021– (340) | 90915-YZZN1 · sienna-xl40 · A25A-FXS · 2020– | ⊂ |
@@ -118,7 +118,7 @@ constructeur. Aux années de transition, c'est la **boîte** qui tranche :
 
 | Règle | Critères nrcan | Génération · moteur · châssis (EPC) | Sources |
 | --- | --- | --- | --- |
-| xl20-2gr-fe-a5 | 3,5 l · 6 cyl. · A5 · AM 2007–2010 | XL20 · 2GR-FE · GSL20/23/25 (12/2006–12/2009) | EPC 622420 ; [Toyota USA, Sienna 2010 en 5 rapports](https://pressroom.toyota.com/sienna-a-reputation-for-family-comfort-utility/) ; [la 2011 est la 3e génération, 6 rapports](https://pressroom.toyota.com/toyota-introduces-all-new-2011-toyota-sienna-minivan/) |
+| xl20-2gr-fe-a5 | 3,5 l · 6 cyl. · A5 · AM 2007–2010 | XL20 · 2GR-FE · GSL20/23/25 (12/2006–01/2010) | EPC 622420, variantes GSL2# jusqu'en 01/2010 (le bandeau du catalogue indique 12/2009) ; EPC 622430, GSL3# dès 01/2010 ; [Toyota USA, Sienna 2010 en 5 rapports](https://pressroom.toyota.com/sienna-a-reputation-for-family-comfort-utility/) ; [la 2011 (XL30) arrive en février 2010, 6 rapports](https://pressroom.toyota.com/toyota-introduces-all-new-2011-toyota-sienna-minivan/) |
 | xl30-1ar-fe-as6 | 2,7 l · 4 cyl. · AS6 · AM 2011–2013 | XL30 · 1AR-FE · ASL30 (05/2010–08/2013) | EPC 622430 ; [Toyota USA, tarifs 2011](https://pressroom.toyota.com/toyota-announces-pricing-for-all-new-2011-sienna-minivan/) |
 | xl30-2gr-fe-as6 | 3,5 l · 6 cyl. · AS6 · AM 2011–2016 | XL30 · 2GR-FE · GSL30/33/35 (01/2010–08/2016) | EPC 622430 ; même source |
 | xl30-2gr-fks-as8 | 3,5 l · 6 cyl. · AS8 · AM 2017–2020 | XL30 · 2GR-FKS · GSL30/33/35 (08/2016–09/2020) | EPC 622430 ; [Toyota Canada, Sienna 2017 en 8 rapports](https://media.toyota.ca/en/releases/2016/a-van-for-all-seasons--and-all-reasons-the-2017-toyota-sienna.html) |
@@ -133,8 +133,8 @@ la même génération.
 
 | Décision | Nombre | Détail |
 | --- | --- | --- |
-| Réattribuées | 84 | XL20 : 14 · XL30 : 46 · XL40 : 24 |
-| Ambiguës (restent sur `sienna`, à valider à la main) | 2 | 24780 « Sienna » et 24781 « Sienna 4WD » : 2010, A5, nature de l'année inconnue. En année-modèle, c'est une XL20 ; en année de fabrication, la XL20 n'est plus produite en 2010 |
+| Réattribuées | 86 | XL20 : 16 · XL30 : 46 · XL40 : 24 |
+| Ambiguës | 0 | Les deux lignes 2010 A5 de nature inconnue (24780 « Sienna », 24781 « Sienna 4WD ») vont à la XL20 : preuve EPC ci-dessous |
 | Non réattribuées | 0 | — |
 | Dupliquées par la migration | 0 | aucune cote copiée |
 | Doublons préexistants | 43 paires | chaque ligne `legacy` répète une ligne `documented` (même année, libellé, cylindrée, boîte, consommation) ; signalés dans la colonne `doublon_de` du CSV |
@@ -153,6 +153,32 @@ Pourquoi rien n'est supprimé ni copié :
 - une cote liée à une finition, vérifiée ou choisie par un véhicule de
   garage n'est pas déplacée (aucune en production).
 
+**Les deux lignes 2010 A5 (24780, 24781).** Elles n'ont pas été attribuées à
+la XL20 sur la seule hypothèse que NRCan publie des années-modèle. La
+preuve vient des variantes EPC, relues le 26/11/2026 :
+
+- [622420 /info](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622420/info) :
+  le bandeau du catalogue indique 01/2003–12/2009, mais **toutes les
+  variantes GSL20/23/25 (2GR-FE) vont de 12/2006 à 01/2010 inclus**. Les
+  MCL2# (3MZ-FE) s'arrêtent en 12/2006.
+- [622430 /info](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622430/info) :
+  GSL30/33/35 dès 01/2010, ASL30 dès 05/2010. Janvier 2010 est un mois de
+  chevauchement réel, conservé dans les bornes (XL20 jusqu'en 2010, XL30
+  dès 2010).
+- La boîte à 5 rapports (A5) n'existe que sur la XL20. La XL30 arrive en
+  février 2010 avec une boîte 6 rapports
+  ([Toyota USA, 18/12/2009](https://pressroom.toyota.com/toyota-introduces-all-new-2011-toyota-sienna-minivan/)).
+
+Les deux lectures concordent donc : en année-modèle 2010, c'est la dernière
+XL20, toujours en 5 rapports ; en année de fabrication 2010, un 3,5 l en
+5 rapports ne peut être qu'un GSL2# de janvier 2010, pas une XL30. Les
+deux cotes sont réattribuées à `sienna-xl20` (actif). Elles n'auraient pas
+dû rester sur la ligne nue inactive : depuis la #42, les recherches
+courantes excluent les modèles inactifs, et ces cotes auraient disparu
+des listes de consommation, ne restant consultables que via le journal
+`motorisation_generation_assignments` et un historique demandé
+explicitement.
+
 `catalog:import-consommations` (rattachement par nom et année) ignore
 désormais les cotes journalisées. Sans cette garde, sa règle d'années
 poserait la 2010 A5 sur la XL30 (2010–2020), et la 2020 AS8 deviendrait
@@ -160,13 +186,10 @@ ambiguë (XL30 et XL40 couvrent 2020).
 
 ## 6. Laissé en l'état, à décider
 
-- **Les 2 cotes ambiguës** (24780, 24781) : à valider à la main. Proposition :
-  XL20, puisque NRCan publie des années-modèle et que la boîte A5 n'existe que
-  sur la XL20.
 - **24 cotes nrcan « Sienna » 1998–2006 sans modèle** (`vehicle_model_id`
   NULL : 3,0 l A4 et 3,3 l A5) : hors périmètre. Point de vigilance : la règle
   d'années de l'import poserait l'année-modèle 2003 (3,0 l A4, encore une
-  XL10) sur la XL20 (fabrication 2003–2009). Il faudrait la même méthode par
+  XL10) sur la XL20 (fabrication 2003–2010). Il faudrait la même méthode par
   boîte.
 - **Nouvelles révisions NRCan** : une nouvelle cote, avec un nouvel
   identifiant, serait rattachée par la règle d'années, avec le même risque

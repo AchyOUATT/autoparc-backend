@@ -55,12 +55,13 @@ final class SiennaMotorisationsReattribution
         return [
             [
                 'rule' => 'xl20-2gr-fe-a5', 'engine_l' => 3.5, 'cylinders' => 6, 'transmission' => 'A5', 'fuel' => 'X',
-                'model_years' => [2007, 2010], 'production_years' => [2006, 2009],
+                'model_years' => [2007, 2010], 'production_years' => [2006, 2010],
                 'target' => 'sienna-xl20', 'engine_code' => '2GR-FE', 'chassis' => 'GSL20/GSL23/GSL25',
                 'evidence' => [
-                    'EPC Toyota 622420 (Sienna XL20) : GSL2# 2GR-FE de 12/2006 à 12/2009 ('.self::SRC_EPC.'/622420/info).',
+                    'EPC Toyota 622420 (Sienna XL20) : le bandeau du catalogue indique 01/2003-12/2009, mais les variantes GSL20/GSL23/GSL25 (2GR-FE) sont produites de 12/2006 à 01/2010 inclus ('.self::SRC_EPC.'/622420/info). Les MCL2# (3MZ-FE) s\'arrêtent en 12/2006.',
+                    'EPC Toyota 622430 (Sienna XL30) : GSL30/33/35 2GR-FE dès 01/2010, ASL30 1AR-FE dès 05/2010 ('.self::SRC_EPC.'/622430/info). Janvier 2010 est un mois de chevauchement GSL2# / GSL3#.',
                     'Toyota USA, 28/09/2009 (Sienna 2010) : V6 3,5 l et boîte automatique 5 rapports (https://pressroom.toyota.com/sienna-a-reputation-for-family-comfort-utility/).',
-                    'Toyota USA, 18/12/2009 : la 2011 est la troisième génération, boîte 6 rapports (https://pressroom.toyota.com/toyota-introduces-all-new-2011-toyota-sienna-minivan/).',
+                    'Toyota USA, 18/12/2009 : la 2011 (XL30) arrive en février 2010, boîte 6 rapports (https://pressroom.toyota.com/toyota-introduces-all-new-2011-toyota-sienna-minivan/). La boîte A5 n\'existe donc pas sur la XL30.',
                 ],
             ],
             [
