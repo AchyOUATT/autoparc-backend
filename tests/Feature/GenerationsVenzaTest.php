@@ -429,7 +429,11 @@ class GenerationsVenzaTest extends TestCase
      */
     public function test_les_trois_autres_importations_restent_sans_generation(): void
     {
-        foreach (['highlander', 'sienna', 'avalon'] as $slug) {
+        // La Sienna a quitte cette liste le 26/11/2026 : voir
+        // `GenerationsTacomaYarisTest` et `ToyotaSiennaReferentielImport`.
+        $this->assertFalse((bool) VehicleModel::where('brand_id', $this->toyota())->where('slug', 'sienna')->firstOrFail()->is_active);
+
+        foreach (['highlander', 'avalon'] as $slug) {
             $modele = VehicleModel::where('brand_id', $this->toyota())->where('slug', $slug)->first();
 
             $this->assertNotNull($modele, "Le modele {$slug} a disparu.");

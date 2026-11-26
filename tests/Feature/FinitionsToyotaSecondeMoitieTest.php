@@ -105,6 +105,9 @@ class FinitionsToyotaSecondeMoitieTest extends TestCase
         // sans finition.
         'camry-xv30', 'avalon-xx10', 'avalon-xx20', 'highlander-xu20', 'sienna-xl10',
         '4runner-n180', '4runner-n280', 'tundra-i', 'solara-xv20', 'solara-xv30', 'supra-a80',
+        // Générations Sienna posées le 26/11/2026
+        // (`VehicleModelsSeeder::GENERATIONS_SIENNA`), sans finition.
+        'sienna-xl20', 'sienna-xl30', 'sienna-xl40',
     ];
 
     /**
@@ -330,9 +333,9 @@ class FinitionsToyotaSecondeMoitieTest extends TestCase
         // fait que dater l'etat du referentiel, et il se met a jour avec lui.
         $toyota = Brand::where('slug', 'toyota')->firstOrFail();
         $this->assertSame(
-            54,
+            57,
             VehicleModel::where('brand_id', $toyota->id)->count(),
-            'Toyota porte 54 lignes : 33 historiques, deux générations Venza, huit références documentées pour le filtre 90915-10001 et onze générations anciennes pour le filtre 90915-YZZD1.',
+            'Toyota porte 57 lignes : 33 historiques, deux générations Venza, huit références documentées pour le filtre 90915-10001, onze générations anciennes pour le filtre 90915-YZZD1 et trois générations Sienna.',
         );
     }
 
@@ -625,9 +628,9 @@ class FinitionsToyotaSecondeMoitieTest extends TestCase
         $this->assertSame(
             $attendues,
             $vides,
-            'Trente-six lignes Toyota restent sans finition : 9 écartées + 6 slugs nus + 2 Venza + 8 références du lot 90915-10001 + 11 générations du lot 90915-YZZD1.',
+            'Trente-neuf lignes Toyota restent sans finition : 9 écartées + 6 slugs nus + 2 Venza + 8 références du lot 90915-10001 + 11 générations du lot 90915-YZZD1 + 3 générations Sienna.',
         );
         $this->assertCount(15, array_merge(self::ECARTEES, self::SLUGS_NUS), 'Le compte de CE lot reste quinze.');
-        $this->assertCount(36, $vides);
+        $this->assertCount(39, $vides);
     }
 }

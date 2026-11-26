@@ -1,118 +1,100 @@
-# Proposition : restructurer le référentiel Toyota Sienna
+# Référentiel Toyota Sienna : restructuration
 
-> **Statut : proposition, rien n'est appliqué.** Ce document ne contient ni
-> migration ni seeder, et ne modifie aucune donnée. Chaque étape attend
-> l'accord du propriétaire.
+> **Statut** : décision du propriétaire du 26/11/2026, mise en œuvre sur la
+> branche `feat/referentiel-sienna` (migration
+> `2026_11_26_170000_donner_ses_generations_a_la_sienna`, classe
+> `App\Support\ToyotaSiennaReferentielImport`). La Sienna XL10 vient de la
+> PR #41, d'où l'ordre de fusion : **#41, puis cette PR**.
 
-## 1. État actuel (production, lecture seule, 26/11/2026)
+## 1. Audit des dépendances de la ligne nue `sienna`
 
-| Élément | Valeur |
-| --- | --- |
-| Ligne `vehicle_models` | une seule ligne, slug `sienna`, génération vide, production 2007 à ouvert, active, sans alias |
-| Finitions, véhicules, véhicules enregistrés | 0 / 0 / 0 |
-| `oem_number_fitments`, `accessory_fitments`, besoins clients, annonces | 0 |
-| `motorisations` | 86 lignes (source nrcan, marché CA, 2007–2026 ; 2,5 / 2,7 / 3,5 l ; 43 en `model_year`, 43 en `unknown`) |
-| `part_fitments` | 4 lignes, toutes déclarées, détaillées ci-dessous |
+Lecture seule en production le 26/11/2026 : id 18657, génération vide,
+production 2007 à ouvert, active, sans alias.
 
-| Pièce | Moteur | Années |
+| Table (clé étrangère, règle de suppression) | Lignes liées | Effet de la désactivation |
 | --- | --- | --- |
-| 90915-YZZN1 | A25A-FXS | 2021– |
-| 04152-YZZA1 | 2GR-FE | 2007–2016 |
-| 04152-YZZA1 | 1AR-FE | 2011–2013 |
-| 04152-YZZA1 | 2GR-FKS | 2017–2020 |
+| `vehicles` (RESTRICT) | 0 | aucun ; s'il y en avait, la ligne resterait active (garde dans le code) |
+| `owned_vehicles` (RESTRICT) | 0 | idem |
+| `trims` (CASCADE) | 0 | aucun |
+| `part_fitments` (CASCADE) | 4 | conservées, intactes, sur une ligne inactive ; remplacées par des lignes réévaluées sur les générations |
+| `oem_number_fitments` (CASCADE) | 0 | aucun |
+| `accessory_fitments` (CASCADE) | 0 | aucun |
+| `motorisations` (SET NULL) | 86 (nrcan, Canada, 2007–2026 ; 43 en `model_year`, 43 en `unknown`) | conservées sur la ligne nue ; voir le §4 |
+| `customer_needs`, `private_vehicle_listings` (SET NULL) | 0 / 0 | aucun |
 
-La PR #41 ajoute `sienna-xl10` (1997–2002). Elle ne touche pas à la ligne nue.
+Aucune ligne n'est supprimée et rien n'est renommé. Seuls changent
+`is_active` (passé à false) et les bornes (vidées), comme pour `tacoma` et
+`venza`. Des bornes « 2007-ouvert » chevaucheraient XL20, XL30 et XL40, et
+`ImportConsommations` lirait la ligne nue avant elles.
 
-Le problème : la ligne nue regroupe sous une seule fiche, en démarrant en
-2007, la fin de la XL20, la XL30 et la XL40. Il manque aussi les
-années 2003–2006 de la XL20.
+**Ce que fait l'inactivité, selon le code** :
 
-## 2. Générations selon l'EPC Toyota (production, marché nord-américain)
+- `/api/catalog/brands/{id}/models` filtre `is_active` ;
+- `/api/catalog/sync` continue d'envoyer la ligne avec `is_active=false`,
+  et l'application mobile masque les modèles inactifs (`ModelRef.isActive`,
+  sélecteurs d'enregistrement), comme elle le fait déjà pour `tacoma` et
+  `venza` ;
+- le décodage VIN ne retient que les marques actives et départage les
+  générations par l'année ;
+- les compatibilités ne filtrent pas `is_active` : une requête qui vise
+  explicitement l'id de la ligne nue lirait encore ses 4 lignes. Comme plus
+  aucun sélecteur ne la propose, plus aucun nouveau véhicule n'y sera
+  rattaché.
 
-| Génération | Châssis | Moteur | Production EPC | Catalogue |
-| --- | --- | --- | --- | --- |
-| XL10 | MCL10 | 1MZ-FE | 08/1997 – 12/2002 | 622410 |
-| XL20 | MCL20/23/25 | 3MZ-FE | 01/2003 – 12/2006 | 622420 |
-| XL20 | GSL20/23/25 | 2GR-FE | 12/2006 – 01/2010 | 622420 |
-| XL30 | GSL30/33/35 | 2GR-FE puis 2GR-FKS | 01/2010 – 09/2020 | 622430 |
-| XL30 | ASL30 | 1AR-FE | 05/2010 – 08/2013 | 622430 |
-| XL40 | AXLH40/45 | A25A-FXS (hybride) | 11/2020 – | 622440 |
+## 2. Générations (EPC Toyota, marché USA, années de fabrication)
 
-Les pages de catalogue sont sous
-`https://toyota-epc.aftermarketcatalog.com/vehicle/US/<catalogue>/info`.
-Wikipedia n'est qu'une source secondaire.
+| Slug | Production | Châssis | Catalogue EPC |
+| --- | --- | --- | --- |
+| `sienna-xl10` (PR #41) | 1997–2002 | MCL10 | 622410 |
+| `sienna-xl20` | 2003–2009 | MCL20/23/25 (3MZ-FE, 01/2003–12/2006), GSL20/23/25 (2GR-FE, 12/2006–12/2009) | [622420](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622420/info) |
+| `sienna-xl30` | 2010–2020 | ASL30 (1AR-FE), GSL30/33/35 (2GR-FE puis 2GR-FKS) | [622430](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622430/info) |
+| `sienna-xl40` | 2020– | AXLH40/45 (A25A-FXS hybride) | [622440](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622440/info) |
 
-## 3. Cible
+Wikipedia ne sert que de recoupement. 2020 est une année partagée réelle :
+XL30 jusqu'en 09/2020, XL40 à partir de 11/2020.
 
-On suit la même méthode que pour le Tacoma (`tacoma-i` à `tacoma-iv` plus
-une ligne nue inactive).
+## 3. Compatibilités : décision ligne par ligne
 
-| Slug | Génération | Production |
-| --- | --- | --- |
-| `sienna-xl10` | XL10 | 1997–2002 (PR #41) |
-| `sienna-xl20` | XL20 | 2003–2010 |
-| `sienna-xl30` | XL30 | 2010–2020 |
-| `sienna-xl40` | XL40 | 2020– |
-| `sienna` | ligne nue | conservée, rendue inactive ou laissée en recherche seulement, **pas supprimée** et **pas renommée** |
+Le constructeur est le [catalogue Toyota des filtres 2025-2026](https://www.toyotapartsandservice.com/wp-content/uploads/2024/10/06_OilFilters2025_hi.pdf),
+en années-modèle américaines. La période vient de l'EPC, en années de
+fabrication.
 
-Les années partagées (2010 et 2020) sont réelles et restent des deux côtés.
+| Ligne nue (conservée) | Décision | Nouvelle(s) ligne(s) | Preuve |
+| --- | --- | --- | --- |
+| 04152-YZZA1, 2GR-FE, 2007–2016 | à cheval sur XL20 et XL30 : **non dupliquée**, découpée selon l'EPC | XL20 GSL20/23/25 **2006–2009** ; XL30 GSL30/33/35 **2010–2016** | PDF « 2007-2010 » et « 2011-2016 V6 (2GRFE) → 04152-YZZA1 » ; EPC [622420 g/04152](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622420/g/04152) (dès 12/2006), [622430 f/151714B](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622430/f/151714B?pnc=04152) (01/2010–08/2016) ; schéma [GSL20L-PRADKK](https://www.toyodiy.com/parts/p_U_200612_TOYOTA_SIENNA_GSL20L-PRADKK_1502.html) |
+| 04152-YZZA1, 1AR-FE, 2011–2013 | rattachée à XL30, période EPC | XL30 ASL30 **2010–2013** | PDF « 2011-2013 L4 (1ARFE) » ; EPC 622430 : 05/2010–08/2013 |
+| 04152-YZZA1, 2GR-FKS, 2017–2020 | rattachée à XL30, période EPC | XL30 GSL3# **2016–2020** | PDF « 2017-2020 V6 (2GRFKS) » ; EPC 622430 : 08/2016–09/2020 ; schéma [GSL30L-PRZEHA](https://www.toyodiy.com/parts/p_U_201608_TOYOTA_SIENNA_GSL30L-PRZEHA_1502.html) |
+| 90915-YZZN1, A25A-FXS, 2021– | rattachée à XL40, période EPC | XL40 AXLH40/45 **2020–** | PDF « 2021- L4 (A25AFXS) → 90915-YZZN1 » ; EPC [622440 g/15601](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622440/g/15601) (90915-10009 dès 11/2020) |
+| — | **nouvelle**, confirmée par l'EPC | 90915-YZZD1 XL20 3MZ-FE, MCL20/23/25, **2003–2006** | PDF « 1998-2006 V6 (1MZFE, 3MZFE) → 90915-YZZD1 » ; EPC [622420 g/15601](https://toyota-epc.aftermarketcatalog.com/vehicle/US/622420/g/15601) (90915-20003 dès 01/2003) ; schéma [MCL20L-PRAEKK](https://www.toyodiy.com/parts/p_U_200301_TOYOTA_SIENNA_MCL20L-PRAEKK_1502.html) |
 
-## 4. Étapes proposées
+Remplacements cités :
 
-Chaque étape fait l'objet d'une PR séparée. Les migrations sont additives et
-idempotentes, et ciblent les lignes par slug, référence et code moteur, sans
-identifiant en dur.
+- 04152-31090 → 04152-YZZA1 est publié par Toyota
+  ([fiche officielle](https://autoparts.toyota.com/products/product/replaceable-element-oil-filter-04152yzza1),
+  « Previous Version(s) ») ;
+- 90915-20003 → 90915-YZZD1 n'est attesté que par les catalogues de
+  distribution Toyota. Pour la Sienna, le PDF constructeur donne YZZD1
+  directement ;
+- 90915-10009 → 90915-YZZN1 n'est attesté que par les catalogues de
+  distribution. Le PDF constructeur donne YZZN1 directement.
 
-1. **Créer** `sienna-xl20`, `sienna-xl30` et `sienna-xl40` (seeder et
-   migration `firstOrCreate` par slug). Aucun effet sur l'existant.
-2. **Dupliquer** les compatibilités vers les nouvelles générations. Les
-   lignes de la ligne nue restent en place pour l'instant.
-   - 04152-YZZA1, 2GR-FE : 2007–2010 vers XL20 (GSL2x) et 2010–2016 vers
-     XL30 (GSL3x), après vérification de chaque partie dans l'EPC.
-   - 04152-YZZA1, 1AR-FE : 2010–2013 vers XL30 (ASL30). La ligne actuelle
-     dit 2011–2013 et l'EPC donne 05/2010 ; il faut relire le schéma 15-02
-     avant de corriger.
-   - 04152-YZZA1, 2GR-FKS : 2017–2020 vers XL30.
-   - 90915-YZZN1, A25A-FXS : 2021– vers XL40. L'EPC donne 11/2020, donc
-     2020 est à valider.
-   - Ajout : 90915-YZZD1 sur la XL20, 3MZ-FE (MCL20/23/25) 2003–2006. La
-     recherche inverse EPC US de 90915-20003 liste les MCL2x.
-3. **Motorisations nrcan** : rattacher chacune des 86 lignes à la génération
-   qui couvre son année. Une ligne `model_year` N correspond le plus souvent
-   à une fabrication en N-1 ou N. Les lignes `unknown` sont rattachées par
-   cylindrée (2,7 l = XL30 1AR-FE ; 2,5 l = XL40 ; 3,5 l = XL20 ou XL30
-   selon l'année). En cas de doute, la ligne reste sur la ligne nue.
-4. **Ligne nue** : une fois les étapes 2 et 3 vérifiées, au choix du
-   propriétaire :
-   - (a) la rendre inactive, comme `tacoma` ;
-   - (b) vider ses bornes de production et la garder comme entrée de
-     recherche.
+`FiltresHuileBoutiqueSeeder` efface et réécrit les compatibilités de la YZZA1
+et de la YZZN1 à chacune de ses exécutions. Il repose donc les lignes Sienna
+de ces deux références depuis `ToyotaSiennaReferentielImport`, leur seule
+définition. La YZZD1 y est marquée `compatibilites_a_verifier`, et le seeder
+la laisse intacte.
 
-   Les lignes `part_fitments` de la ligne nue ne sont supprimées qu'avec un
-   accord explicite. Si on les garde, elles sont filtrées par l'inactivité
-   de la ligne nue.
-5. **Contrôle** : test d'invariant des chevauchements
-   (`CatalogueModelesTest`) ; tests API (XL20 3MZ-FE 2005 confirmé avec
-   YZZD1, XL30 2GR-FE 2012 confirmé avec 04152-YZZA1, XL40 2019 absent) ;
-   vérification en lecture seule du nombre de lignes avant et après.
+## 4. Laissé en l'état, à décider
 
-## 5. Risques
-
-- **Véhicules enregistrés futurs** : il n'y en a aucun aujourd'hui. Il
-  faut restructurer avant qu'un utilisateur rattache une Sienna à la ligne
-  nue.
-- **Décodage VIN** : avec une ligne nue active, un VIN de Sienna 2015
-  pourrait encore pointer vers elle. Rendre la ligne nue inactive (option a)
-  règle ce cas.
-- **Millésime ou fabrication** : nrcan donne des années-modèle et l'API
-  compare des années de fabrication. Les mois d'écart en limite de
-  génération doivent être notés et vérifiés au VIN.
-
-## 6. Décisions attendues du propriétaire
-
-1. Valider le découpage XL20, XL30 et XL40, et ses bornes.
-2. Choisir l'option (a) ou (b) pour la ligne nue.
-3. Dire si l'on conserve ou supprime les 4 lignes `part_fitments` de la ligne
-   nue une fois dupliquées.
-4. Dire si l'on corrige 1AR-FE à 2010 et A25A-FXS à 2020 (selon l'EPC)
-   après relecture du schéma.
+- **Motorisations nrcan (86)** : elles restent rattachées à la ligne nue.
+  Les déplacer vers XL20, XL30 ou XL40 serait modifier des données
+  existantes. Tant que ce n'est pas fait, une Sienna enregistrée sur une
+  génération ne se voit proposer aucune de ces cotes de consommation.
+  Proposition : rattacher chaque ligne `model_year` N à la génération qui
+  couvre la fabrication N-1 ou N, et les lignes `unknown` d'après leur
+  cylindrée (2,7 l → XL30 ; 2,5 l → XL40 ; 3,5 l → XL20 ou XL30 selon
+  l'année). Les cas ambigus de 2010 et 2020 restent sur la ligne nue.
+- **Les 4 lignes de la ligne nue** : conservées. Leur suppression n'est pas
+  proposée sans accord explicite.
+- **Marchés hors USA** : non couverts par ces lignes. La note de chaque
+  ligne précise « marché USA ».

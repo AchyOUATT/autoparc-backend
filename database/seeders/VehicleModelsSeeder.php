@@ -60,7 +60,12 @@ class VehicleModelsSeeder extends Seeder
      */
     public const MODELES_IMPORT_AMERIQUE_DU_NORD = [
         ['Highlander', null, 'suv',       'E', 2008, null],
-        ['Sienna',     null, 'monospace', 'E', 2007, null],
+        // La Sienna a recu ses generations le 26/11/2026 (decision du
+        // proprietaire, voir `GENERATIONS_SIENNA`) : sa ligne nue passe
+        // inactive et perd ses bornes, pour la raison exacte du Tacoma et du
+        // Venza. « 2007-ouvert » chevaucherait XL20, XL30 et XL40, et
+        // `ImportConsommations` la lirait avant elles.
+        ['Sienna',     null, 'monospace', 'E', null, null],
         // Le Venza a perdu ses bornes pour la raison exacte du Tacoma, ecrite
         // au long sur sa ligne ci-dessous : ses deux generations le
         // remplacent dans les listes, et « 2009-ouvert » les chevaucherait
@@ -331,8 +336,8 @@ class VehicleModelsSeeder extends Seeder
      * annee-la. Elle n'est pas rognee ; le vehicule enregistre porte sa
      * generation, choisie explicitement.
      *
-     * LA SIENNA XL20 (2003-2009) N'EST PAS ICI : elle chevaucherait la ligne
-     * nue `sienna` (2007-ouvert). Voir la proposition séparée (branche docs/proposition-referentiel-sienna).
+     * LA SIENNA XL20 (2003-2009) N'EST PAS ICI : elle est posee avec XL30 et
+     * XL40 par `GENERATIONS_SIENNA`, qui rend la ligne nue `sienna` inactive.
      *
      * Le Tundra prend un chiffre romain, comme le Tacoma : Toyota lui donne
      * un JEU de codes (VCK30/40, UCK30/40, GSK30), pas un code unique.
@@ -430,6 +435,34 @@ class VehicleModelsSeeder extends Seeder
     public const SLUGS_NUS_DESACTIVES = [
         'tacoma',
         'venza',
+        'sienna',
+    ];
+
+    /**
+     * Les trois generations de la Sienna qui suivent la XL10
+     * (`GENERATIONS_FILTRE_YZZD1`), decision du proprietaire du 26/11/2026.
+     *
+     * Bornes = annees civiles de FABRICATION lues dans l'EPC Toyota, marche
+     * USA (toyota-epc.aftermarketcatalog.com/vehicle/US/<catalogue>/info) :
+     *  - XL20 : catalogue 622420, 01/2003 - 12/2009, chassis MCL20/23/25
+     *    (3MZ-FE, jusqu'en 12/2006) puis GSL20/23/25 (2GR-FE, des 12/2006) ;
+     *  - XL30 : catalogue 622430, 01/2010 - 09/2020, chassis ASL30 (1AR-FE)
+     *    et GSL30/33/35 (2GR-FE puis 2GR-FKS) ;
+     *  - XL40 : catalogue 622440, 11/2020 - ouvert, chassis AXLH40/45
+     *    (A25A-FXS hybride).
+     * Wikipedia (« Toyota Sienna ») ne sert que de recoupement. 2020 est une
+     * annee partagee reelle (XL30 jusqu'en 09/2020, XL40 des 11/2020).
+     *
+     * Carrosserie et segment : ceux de la ligne nue, non re-decides ici.
+     * La migration `2026_11_26_170000_donner_ses_generations_a_la_sienna` lit
+     * cette constante : il n'y a qu'une definition.
+     *
+     * @var list<array{0: string, 1: string, 2: string, 3: string, 4: int, 5: ?int}>
+     */
+    public const GENERATIONS_SIENNA = [
+        ['Sienna', 'XL20', 'monospace', 'E', 2003, 2009],
+        ['Sienna', 'XL30', 'monospace', 'E', 2010, 2020],
+        ['Sienna', 'XL40', 'monospace', 'E', 2020, null],
     ];
 
     /**
@@ -1000,6 +1033,10 @@ class VehicleModelsSeeder extends Seeder
 
         foreach (self::GENERATIONS_FILTRE_YZZD1 as [$marque, $nom, $gen, $carrosserie, $segment, $de, $a]) {
             $models[] = [$marque, $nom, $gen, $carrosserie, $segment, $de, $a];
+        }
+
+        foreach (self::GENERATIONS_SIENNA as [$nom, $gen, $carrosserie, $segment, $de, $a]) {
+            $models[] = ['toyota', $nom, $gen, $carrosserie, $segment, $de, $a];
         }
 
         foreach (self::GENERATIONS_MAZDA_CX as [$nom, $gen, $carrosserie, $segment, $de, $a]) {
