@@ -357,7 +357,14 @@ class GenerationsVenzaTest extends TestCase
         $attendus = [
             'avalon'      => 4,
             'highlander'  => 7,
-            'sienna'      => 4,
+            // La ligne nue `sienna` ne porte plus rien depuis le 26/11/2026 :
+            // ses 4 lignes sont devenues 5 lignes de generation (la 2GR-FE
+            // 2007-2016 est coupee en XL20 2006-2009 et XL30 2010-2016 par
+            // l'EPC), posees par `ToyotaSiennaReferentielImport`.
+            'sienna'      => 0,
+            'sienna-xl20' => 1,
+            'sienna-xl30' => 3,
+            'sienna-xl40' => 1,
             'tacoma-iii'  => 1,
             'venza-av10'  => 2,
             'venza-xu80'  => 1,
@@ -372,10 +379,12 @@ class GenerationsVenzaTest extends TestCase
         }
 
         $this->assertSame($attendus, $mesures, 'La repartition des dix-neuf lignes a bouge.');
-        $this->assertSame(19, array_sum($mesures), 'Les dix-neuf compatibilites confirmees ne sont plus dix-neuf.');
+        // 19 avant le 26/11/2026 ; 20 depuis, par la seule coupe de la
+        // Sienna 2GR-FE 2007-2016 en deux generations.
+        $this->assertSame(20, array_sum($mesures), 'Les compatibilites confirmees ne sont plus vingt.');
 
         // Et rien ne pend plus aux deux slugs nus vides.
-        foreach (['tacoma', 'venza'] as $slug) {
+        foreach (['tacoma', 'venza', 'sienna'] as $slug) {
             $id = VehicleModel::where('brand_id', $this->toyota())->where('slug', $slug)->value('id');
 
             $this->assertSame(0, PartFitment::where('vehicle_model_id', $id)->count(), $slug);
@@ -429,7 +438,11 @@ class GenerationsVenzaTest extends TestCase
      */
     public function test_les_trois_autres_importations_restent_sans_generation(): void
     {
-        foreach (['highlander', 'sienna', 'avalon'] as $slug) {
+        // La Sienna a quitte cette liste le 26/11/2026 : voir
+        // `GenerationsTacomaYarisTest` et `ToyotaSiennaReferentielImport`.
+        $this->assertFalse((bool) VehicleModel::where('brand_id', $this->toyota())->where('slug', 'sienna')->firstOrFail()->is_active);
+
+        foreach (['highlander', 'avalon'] as $slug) {
             $modele = VehicleModel::where('brand_id', $this->toyota())->where('slug', $slug)->first();
 
             $this->assertNotNull($modele, "Le modele {$slug} a disparu.");
@@ -530,8 +543,11 @@ class GenerationsVenzaTest extends TestCase
             'highlander 2GR-FE 2008-2016 : XU40 + XU50',
             'highlander 2GR-FKS 2017-2022 : XU50 + XU70',
             'highlander 2GR-FXE 2011-2016 : XU40 + XU50',
-            'sienna 2GR-FE 2007-2016 : XL20 + XL30',
-        ], $aCheval, 'Les lignes a cheval ne sont plus les sept connues.');
+            // `sienna 2GR-FE 2007-2016 : XL20 + XL30` a quitte cette liste le
+            // 26/11/2026 : la ligne nue `sienna` ne porte plus aucune
+            // compatibilite (migration 2026_11_26_180100), ses generations
+            // portent les lignes reevaluees sur l'EPC.
+        ], $aCheval, 'Les lignes a cheval ne sont plus les six connues.');
 
         // ── ET LES HUIT QUI TIENNENT, DONT TROIS SUR UNE ANNEE DE BASCULE ───
         //
@@ -554,9 +570,9 @@ class GenerationsVenzaTest extends TestCase
             'highlander 2GR-FXS 2017-2019 : XU50 (touche XU70)',
             'highlander A25A-FXS 2020-ouvert : XU70',
             'highlander T24A-FTS 2023-ouvert : XU70',
-            'sienna 1AR-FE 2011-2013 : XL30',
-            'sienna 2GR-FKS 2017-2020 : XL30 (touche XL40)',
-            'sienna A25A-FXS 2021-ouvert : XL40',
+            // Les trois lignes Sienna (1AR-FE, 2GR-FKS, A25A-FXS) ont quitte
+            // le slug nu le 26/11/2026, remplacees par leurs lignes de
+            // generation (`ToyotaSiennaReferentielImport`).
         ], $tiennent,
             'Les huit lignes qui tiennent dans une seule generation ont change. '
             .'Elles ne bougent pas pour autant : deplacer les unes en laissant les sept '
@@ -588,10 +604,13 @@ class GenerationsVenzaTest extends TestCase
             }
         }
 
+        // 15 jusqu'au 26/11/2026, 11 depuis : les 4 lignes de la ligne nue
+        // `sienna` sont retirees du seeder (et de la base par la migration
+        // 2026_11_26_180100), remplacees par celles de ses generations.
         $this->assertCount(
-            15,
+            11,
             $lignes,
-            'Les trois slugs nus ne portent plus quinze lignes : une a bouge sans que ce fichier le dise.',
+            'Les slugs nus ne portent plus onze lignes : une a bouge sans que ce fichier le dise.',
         );
 
         return $lignes;

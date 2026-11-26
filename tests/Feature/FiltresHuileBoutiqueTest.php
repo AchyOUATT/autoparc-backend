@@ -248,8 +248,12 @@ class FiltresHuileBoutiqueTest extends TestCase
         // 16 lignes du premier versement, 58 du catalogue de correspondance —
         // dont 19 portees par les cinq modeles d'importation americaine — et
         // 20 du catalogue des neuf familles, reparties sur quatre des six
-        // references nouvelles.
-        $this->assertCount(94, $lignes,
+        // references nouvelles. Plus 5 lignes des generations Sienna XL20 /
+        // XL30 / XL40 (4 YZZA1, 1 YZZN1), reposees par
+        // `ToyotaSiennaReferentielImport` a la fin du seeder (26/11/2026).
+        // Moins les 4 lignes de la ligne nue `sienna`, retirees du seeder le
+        // meme jour (migration 2026_11_26_180100) : 99 - 4 = 95.
+        $this->assertCount(95, $lignes,
             'Des compatibilites ont ete perdues : un slug ne se resout plus.');
 
         foreach ($lignes as $ligne) {
@@ -520,7 +524,10 @@ class FiltresHuileBoutiqueTest extends TestCase
         $this->semer();
 
         $attendus = [
-            '04152-YZZA1' => 33,
+            // +4 et +1 : les lignes des generations Sienna (26/11/2026) ;
+            // -3 et -1 : les lignes de la ligne nue `sienna`, retirees le
+            // meme jour (migration 2026_11_26_180100).
+            '04152-YZZA1' => 34,
             '04152-YZZA6' => 4,
             '90915-YZZN1' => 25,
             // Catalogue des neuf familles. Les comptes sont bas et c'est le
@@ -738,7 +745,9 @@ class FiltresHuileBoutiqueTest extends TestCase
 
         $attendus = [
             'highlander' => ['04152-YZZA1' => 5, '90915-YZZN1' => 2],
-            'sienna'     => ['04152-YZZA1' => 3, '90915-YZZN1' => 1],
+            // Vide depuis le 26/11/2026 : ses 4 lignes sont devenues les 5
+            // lignes de generation verifiees plus bas.
+            'sienna'     => [],
             'avalon'     => ['04152-YZZA1' => 3, '90915-YZZN1' => 1],
             // Et non `tacoma` ni `venza` : ces deux lignes-la ne portent plus
             // rien, voir `GenerationsTacomaYarisTest` et
@@ -756,7 +765,10 @@ class FiltresHuileBoutiqueTest extends TestCase
             $modele = VehicleModel::where('slug', $slug)->first();
 
             $this->assertNotNull($modele, "Le modele {$slug} n'a pas ete cree.");
-            $this->assertTrue((bool) $modele->is_active, "Le modele {$slug} est inactif.");
+            // La ligne nue `sienna` est inactive depuis le 26/11/2026 : ses
+            // generations XL20 / XL30 / XL40 la remplacent dans les listes, et
+            // ses quatre lignes en sont retirees (migration 2026_11_26_180100).
+            $this->assertSame($slug !== 'sienna', (bool) $modele->is_active, "Le modele {$slug} n'a pas l'etat attendu.");
             $this->assertSame('Toyota', $modele->brand->name, $slug);
 
             $lignes = PartFitment::with('part')
@@ -771,8 +783,20 @@ class FiltresHuileBoutiqueTest extends TestCase
             $total += array_sum($parReference);
         }
 
-        $this->assertSame(19, $total,
-            'Les cinq modeles crees devaient debloquer dix-neuf compatibilites confirmees.');
+        // 19 avant le 26/11/2026 ; les 4 lignes Sienna sont maintenant
+        // comptees sur ses generations (5 lignes), ci-dessous.
+        $this->assertSame(15, $total,
+            'Hors Sienna, les modeles crees portent quinze compatibilites confirmees.');
+
+        // Les generations de la Sienna portent leurs propres lignes,
+        // reevaluees une a une sur l'EPC (`ToyotaSiennaReferentielImport`).
+        foreach (['sienna-xl20' => ['04152-YZZA1' => 1], 'sienna-xl30' => ['04152-YZZA1' => 3], 'sienna-xl40' => ['90915-YZZN1' => 1]] as $slug => $parReference) {
+            $modele = VehicleModel::where('slug', $slug)->firstOrFail();
+            $this->assertTrue((bool) $modele->is_active, $slug);
+            $lignes = PartFitment::with('part')->where('vehicle_model_id', $modele->id)->get()
+                ->groupBy(fn ($f) => $f->part->sku)->map->count()->all();
+            $this->assertSame($parReference, $lignes, "Le compte de {$slug} a change.");
+        }
     }
 
     /**
@@ -792,7 +816,8 @@ class FiltresHuileBoutiqueTest extends TestCase
         // chevauchement. Le doublon surveille ici reste interdit : une seule
         // ligne nue par nom, et toute autre ligne est une generation declaree.
         $declarees = collect(\Database\Seeders\VehicleModelsSeeder::GENERATIONS_FILTRE_YZZD1)
-            ->map(fn ($g) => $g[1].'|'.$g[2]);
+            ->map(fn ($g) => $g[1].'|'.$g[2])
+            ->merge(collect(\Database\Seeders\VehicleModelsSeeder::GENERATIONS_SIENNA)->map(fn ($g) => $g[0].'|'.$g[1]));
         foreach (['Highlander', 'Sienna', 'Avalon'] as $nom) {
             $this->assertCount(
                 1,

@@ -362,6 +362,16 @@ class GenerationsTacomaYarisTest extends TestCase
             }
         }
 
+        // Plus les lignes des generations Sienna que le seeder repose en fin
+        // de passage (`ToyotaSiennaReferentielImport`), pour la YZZA1 et la
+        // YZZN1, quand leur generation existe.
+        foreach (\App\Support\ToyotaSiennaReferentielImport::applications() as $application) {
+            if (in_array($application['sku'], ['04152-YZZA1', '90915-YZZN1'], true)
+                && VehicleModel::where('slug', $application['model_slug'])->exists()) {
+                $attendues++;
+            }
+        }
+
         $this->assertSame([], $introuvables, 'Des compatibilites designent un modele qui n\'existe pas.');
         $this->assertSame($attendues, PartFitment::count(), 'Le compte en base ne correspond pas au fichier.');
     }
@@ -383,15 +393,30 @@ class GenerationsTacomaYarisTest extends TestCase
      * sept n'etait a lui : ses trois lignes tenaient chacune dans une seule
      * generation. Les sept restent entieres, et la liste est passee de quatre
      * modeles a trois — voir `GenerationsVenzaTest`, qui les recalcule.
+     *
+     * LA SIENNA EST VENUE LE DIRE A SON TOUR (26/11/2026, decision du
+     * proprietaire). Sa ligne a cheval « 2GR-FE 2007-2016 » n'a pas ete
+     * scindee : elle reste, intacte, sur la ligne nue desormais inactive. Les
+     * generations XL20 / XL30 / XL40 recoivent a la place des lignes
+     * reevaluees une a une sur l'EPC Toyota, chassis par chassis
+     * (`ToyotaSiennaReferentielImport`) : GSL2# 2006-2009 et GSL3# 2010-2016
+     * pour ce moteur.
      */
     public function test_les_trois_autres_importations_restent_sans_generation(): void
     {
-        foreach (['highlander', 'sienna', 'avalon'] as $slug) {
+        foreach (['highlander', 'avalon'] as $slug) {
             $modele = VehicleModel::where('brand_id', $this->toyota())->where('slug', $slug)->first();
 
             $this->assertNotNull($modele, "Le modele {$slug} a disparu.");
             $this->assertNull($modele->generation, "Le modele {$slug} a recu une generation : qu'a-t-on fait de ses lignes a cheval ?");
             $this->assertTrue((bool) $modele->is_active, "Le modele {$slug} porte encore ses compatibilites : le desactiver les rendrait inatteignables.");
+        }
+
+        $sienna = VehicleModel::where('brand_id', $this->toyota())->where('slug', 'sienna')->firstOrFail();
+        $this->assertNull($sienna->generation);
+        $this->assertFalse((bool) $sienna->is_active, 'La ligne nue de la Sienna doit etre sortie des listes.');
+        foreach (['sienna-xl20', 'sienna-xl30', 'sienna-xl40'] as $slug) {
+            $this->assertTrue((bool) VehicleModel::where('slug', $slug)->firstOrFail()->is_active, $slug);
         }
     }
 

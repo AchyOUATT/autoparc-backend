@@ -177,13 +177,17 @@ class SelecteurModelesActifsTest extends TestCase
         $this->assertNotContains('tacoma', $proposes->all(), 'La ligne nue du Tacoma est encore proposee a cote de ses generations.');
         $this->assertNotContains('venza', $proposes->all(), 'La ligne nue du Venza est encore proposee a cote de ses generations.');
 
+        $this->assertNotContains('sienna', $proposes->all(), 'La ligne nue de la Sienna est encore proposee a cote de ses generations.');
+
         $this->assertContains('tacoma-iii', $proposes->all());
         $this->assertContains('venza-xu80', $proposes->all());
+        $this->assertContains('sienna-xl30', $proposes->all());
 
         // Et le filtre ne doit pas avoir emporte autre chose au passage :
-        // exactement les deux lignes nues sont desactivees, pas une de plus.
+        // exactement les trois lignes nues sont desactivees, pas une de plus
+        // (la Sienna depuis le 26/11/2026).
         $this->assertSame(
-            ['tacoma', 'venza'],
+            ['sienna', 'tacoma', 'venza'],
             VehicleModel::where('is_active', false)->orderBy('slug')->pluck('slug')->all()
         );
     }
