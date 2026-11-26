@@ -165,6 +165,8 @@ class SiennaLigneNueNettoyageTest extends TestCase
 
     public function test_le_retrait_est_idempotent_et_le_down_restaure(): void
     {
+        $avant = PartFitment::where('vehicle_model_id', $this->nue->id)->orderBy('id')->get()
+            ->map(fn ($f) => collect($f->getAttributes())->except('updated_at')->all())->all();
         SiennaLigneNueCompatibilitesRetrait::run();
         $second = SiennaLigneNueCompatibilitesRetrait::run();
 
@@ -179,6 +181,9 @@ class SiennaLigneNueNettoyageTest extends TestCase
             [['2GR-FE', 2007, 2016], ['1AR-FE', 2011, 2013], ['2GR-FKS', 2017, 2020], ['A25A-FXS', 2021, null]],
             $restaurees->map(fn ($f) => [$f->engine_code, $f->year_from, $f->year_to])->all(),
         );
+        $apres = PartFitment::where('vehicle_model_id', $this->nue->id)->orderBy('id')->get()
+            ->map(fn ($f) => collect($f->getAttributes())->except('updated_at')->all())->all();
+        $this->assertEquals($avant, $apres, 'Restaurées à l\'identique : même id, même contenu.');
     }
 
     public function test_l_api_ne_trouve_plus_rien_sur_la_ligne_nue_et_tout_sur_les_generations(): void
