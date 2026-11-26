@@ -18,7 +18,7 @@ namespace App\Support;
  */
 final class ConservationRestrictionsFitment
 {
-    public const CHAMPS = ['chassis_restricted', 'market_codes', 'month_from', 'month_to', 'evidence_level', 'evidence_sources'];
+    public const CHAMPS = ['chassis_restricted', 'market_codes', 'month_from', 'month_to', 'evidence_level', 'evidence_sources', 'verified_by_id', 'verified_on'];
 
     /**
      * @param  iterable<object>  $fitments

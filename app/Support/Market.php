@@ -3,33 +3,34 @@
 namespace App\Support;
 
 /**
- * Marchés de destination structurés.
+ * Marché de destination COMMERCIALE d'origine (spécification constructeur),
+ * à ne pas confondre avec le pays où le véhicule circule aujourd'hui
+ * (`circulation_country`, affichage seulement, jamais comparé).
  *
- * Les quatre catalogues de l'EPC Toyota sont Japon (JPN), Europe (EUR),
- * Général (GEN) et USA/Canada (USA). Le catalogue Général couvre les
- * destinations hors Japon, Europe et Amérique du Nord : Moyen-Orient,
- * Afrique, Australie, etc. Ces destinations sont donc rattachées à GEN.
+ * Correspondance STRICTEMENT explicite : une compatibilité restreinte à des
+ * marchés ne vaut que pour un véhicule dont le marché figure littéralement
+ * dans la liste. Aucune hiérarchie n'est présumée faute de documentation
+ * constructeur : GEN ne couvre ni AFR, ni MDE, ni AUS ; USA ne couvre pas
+ * CAN. Une ligne qui vaut pour plusieurs marchés les énumère tous.
  *
- * Règle de comparaison (voir docs/proposition-moteur-compatibilite-chassis-marche.md) :
- *  - le marché du véhicule, ou l'un de ses parents, figure dans la règle → satisfait ;
- *  - le véhicule est connu par un parent d'un marché de la règle (GEN contre
- *    AFR) → à vérifier ;
- *  - sinon → la règle est exclue.
+ * `epc_region` n'est renseigné que pour les quatre catalogues EPC Toyota
+ * eux-mêmes (JPN, EUR, GEN, USA) ; il est informatif et ne sert à aucune
+ * comparaison.
  *
  * La table `markets` reprend exactement cette liste (un test le vérifie).
  */
 final class Market
 {
-    /** @var array<string, array{name: string, epc_region: string, parent: ?string}> */
+    /** @var array<string, array{name: string, epc_region: ?string}> */
     public const ALL = [
-        'JPN' => ['name' => 'Japon', 'epc_region' => 'JPN', 'parent' => null],
-        'EUR' => ['name' => 'Europe', 'epc_region' => 'EUR', 'parent' => null],
-        'GEN' => ['name' => 'Général', 'epc_region' => 'GEN', 'parent' => null],
-        'USA' => ['name' => 'États-Unis', 'epc_region' => 'USA', 'parent' => null],
-        'CAN' => ['name' => 'Canada', 'epc_region' => 'USA', 'parent' => null],
-        'MDE' => ['name' => 'Moyen-Orient / Golfe', 'epc_region' => 'GEN', 'parent' => 'GEN'],
-        'AFR' => ['name' => 'Afrique', 'epc_region' => 'GEN', 'parent' => 'GEN'],
-        'AUS' => ['name' => 'Australie', 'epc_region' => 'GEN', 'parent' => 'GEN'],
+        'JPN' => ['name' => 'Japon', 'epc_region' => 'JPN'],
+        'EUR' => ['name' => 'Europe', 'epc_region' => 'EUR'],
+        'GEN' => ['name' => 'Général', 'epc_region' => 'GEN'],
+        'USA' => ['name' => 'États-Unis', 'epc_region' => 'USA'],
+        'CAN' => ['name' => 'Canada', 'epc_region' => null],
+        'MDE' => ['name' => 'Moyen-Orient / Golfe', 'epc_region' => null],
+        'AFR' => ['name' => 'Afrique', 'epc_region' => null],
+        'AUS' => ['name' => 'Australie', 'epc_region' => null],
     ];
 
     /** Codes déjà rencontrés dans la base (consommations, notes) ou usuels. */
@@ -67,39 +68,22 @@ final class Market
         return isset(self::ALL[$code]) ? $code : null;
     }
 
-    /** @return list<string> le code et ses parents. */
-    public static function lineage(string $code): array
-    {
-        $chaine = [];
-        $guard = 0;
-        while ($code !== null && isset(self::ALL[$code]) && $guard++ < 5) {
-            $chaine[] = $code;
-            $code = self::ALL[$code]['parent'];
-        }
-
-        return $chaine;
-    }
-
-    /** @param list<string> $ruleCodes */
+    /**
+     * MATCH si le marché du véhicule figure littéralement dans la règle,
+     * sinon MISMATCH. (AMBIGUOUS n'est plus produit : sans hiérarchie, un
+     * marché connu est soit listé, soit non listé.)
+     *
+     * @param  list<string>  $ruleCodes
+     */
     public static function compare(array $ruleCodes, string $vehicleCode): string
     {
-        $lignee = self::lineage($vehicleCode);
-        $ambigu = false;
-
         foreach ($ruleCodes as $regle) {
-            $regle = self::normalize($regle);
-            if ($regle === null) {
-                continue;
-            }
-            if (in_array($regle, $lignee, true)) {
+            if (self::normalize($regle) === $vehicleCode) {
                 return self::MATCH;
-            }
-            if (in_array($vehicleCode, self::lineage($regle), true)) {
-                $ambigu = true;
             }
         }
 
-        return $ambigu ? self::AMBIGUOUS : self::MISMATCH;
+        return self::MISMATCH;
     }
 
     /** @return list<string> */

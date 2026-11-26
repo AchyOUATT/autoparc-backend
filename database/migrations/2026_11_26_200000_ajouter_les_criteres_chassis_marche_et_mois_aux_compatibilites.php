@@ -20,16 +20,20 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    /** Copie de App\Support\Market::ALL au moment de la migration. */
+    /**
+     * Copie de App\Support\Market::ALL au moment de la migration. Aucune
+     * hiérarchie entre marchés (pas de colonne parent) : correspondance
+     * strictement explicite. `epc_region` seulement pour les 4 catalogues EPC.
+     */
     private const MARCHES = [
-        ['code' => 'JPN', 'name' => 'Japon', 'epc_region' => 'JPN', 'parent_code' => null, 'sort' => 10],
-        ['code' => 'EUR', 'name' => 'Europe', 'epc_region' => 'EUR', 'parent_code' => null, 'sort' => 20],
-        ['code' => 'GEN', 'name' => 'Général', 'epc_region' => 'GEN', 'parent_code' => null, 'sort' => 30],
-        ['code' => 'USA', 'name' => 'États-Unis', 'epc_region' => 'USA', 'parent_code' => null, 'sort' => 40],
-        ['code' => 'CAN', 'name' => 'Canada', 'epc_region' => 'USA', 'parent_code' => null, 'sort' => 50],
-        ['code' => 'MDE', 'name' => 'Moyen-Orient / Golfe', 'epc_region' => 'GEN', 'parent_code' => 'GEN', 'sort' => 60],
-        ['code' => 'AFR', 'name' => 'Afrique', 'epc_region' => 'GEN', 'parent_code' => 'GEN', 'sort' => 70],
-        ['code' => 'AUS', 'name' => 'Australie', 'epc_region' => 'GEN', 'parent_code' => 'GEN', 'sort' => 80],
+        ['code' => 'JPN', 'name' => 'Japon', 'epc_region' => 'JPN', 'sort' => 10],
+        ['code' => 'EUR', 'name' => 'Europe', 'epc_region' => 'EUR', 'sort' => 20],
+        ['code' => 'GEN', 'name' => 'Général', 'epc_region' => 'GEN', 'sort' => 30],
+        ['code' => 'USA', 'name' => 'États-Unis', 'epc_region' => 'USA', 'sort' => 40],
+        ['code' => 'CAN', 'name' => 'Canada', 'epc_region' => null, 'sort' => 50],
+        ['code' => 'MDE', 'name' => 'Moyen-Orient / Golfe', 'epc_region' => null, 'sort' => 60],
+        ['code' => 'AFR', 'name' => 'Afrique', 'epc_region' => null, 'sort' => 70],
+        ['code' => 'AUS', 'name' => 'Australie', 'epc_region' => null, 'sort' => 80],
     ];
 
     public function up(): void
@@ -39,9 +43,8 @@ return new class extends Migration
                 $table->id();
                 $table->string('code', 8)->unique();
                 $table->string('name', 80);
-                // Catalogue EPC Toyota qui documente ce marché : JPN, EUR, GEN, USA.
-                $table->string('epc_region', 8);
-                $table->string('parent_code', 8)->nullable();
+                // Catalogue EPC Toyota homonyme (JPN, EUR, GEN, USA) ; informatif.
+                $table->string('epc_region', 8)->nullable();
                 $table->unsignedSmallInteger('sort')->default(0);
                 $table->timestamps();
             });
@@ -77,15 +80,23 @@ return new class extends Migration
                 }
                 // Preuve de la COMPATIBILITE (ce véhicule reçoit cette pièce),
                 // distincte de la preuve d'un REMPLACEMENT de référence, qui vit
-                // dans oem_number_relations. Null = ligne historique : sa preuve
-                // est dans `notes`, elle reste suffisante si elle est déclarée.
+                // dans oem_number_relations. Null = déclaration nue : jamais
+                // confirmable (voir App\Support\FitmentEvidence).
                 if (! Schema::hasColumn($nom, 'evidence_level')) {
                     // manufacturer_official | manufacturer_epc | dealer_catalog
-                    // | aftermarket_crossref | unverified
+                    // | human_verified | aftermarket_crossref | unverified
                     $table->string('evidence_level', 40)->nullable();
                 }
                 if (! Schema::hasColumn($nom, 'evidence_sources')) {
+                    // Liste JSON d'URL http(s) ; au moins une pour confirmer.
                     $table->json('evidence_sources')->nullable();
+                }
+                if (! Schema::hasColumn($nom, 'verified_by_id')) {
+                    // Compte du personnel qui a validé (human_verified).
+                    $table->foreignId('verified_by_id')->nullable()->constrained('users')->nullOnDelete();
+                }
+                if (! Schema::hasColumn($nom, 'verified_on')) {
+                    $table->date('verified_on')->nullable();
                 }
             });
         }
@@ -99,7 +110,13 @@ return new class extends Migration
                     $table->unsignedTinyInteger('manufacturing_month')->nullable();
                 }
                 if (! Schema::hasColumn($nom, 'specification_market')) {
+                    // Marché de destination COMMERCIALE d'origine (comparé).
                     $table->string('specification_market', 20)->nullable();
+                }
+                if (! Schema::hasColumn($nom, 'circulation_country')) {
+                    // Pays où le véhicule circule aujourd'hui (ISO 3166-1
+                    // alpha-2) : affichage seulement, jamais comparé.
+                    $table->string('circulation_country', 2)->nullable();
                 }
             });
         }
@@ -133,7 +150,7 @@ return new class extends Migration
 
         foreach (['owned_vehicles', 'vehicles'] as $nom) {
             Schema::table($nom, function (Blueprint $table) use ($nom) {
-                foreach (['chassis_code', 'manufacturing_month'] as $col) {
+                foreach (['chassis_code', 'manufacturing_month', 'circulation_country'] as $col) {
                     if (Schema::hasColumn($nom, $col)) {
                         $table->dropColumn($col);
                     }
@@ -148,7 +165,10 @@ return new class extends Migration
 
         foreach (['part_fitments', 'oem_number_fitments'] as $nom) {
             Schema::table($nom, function (Blueprint $table) use ($nom) {
-                $colonnes = ['chassis_restricted', 'market_codes', 'month_from', 'month_to', 'evidence_level', 'evidence_sources'];
+                if (Schema::hasColumn($nom, 'verified_by_id')) {
+                    $table->dropConstrainedForeignId('verified_by_id');
+                }
+                $colonnes = ['chassis_restricted', 'market_codes', 'month_from', 'month_to', 'evidence_level', 'evidence_sources', 'verified_on'];
                 // part_fitments.chassis_code existait avant.
                 if ($nom === 'oem_number_fitments') {
                     $colonnes[] = 'chassis_code';

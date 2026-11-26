@@ -93,6 +93,7 @@ class VehicleResource extends JsonResource
                 'chassis_code'           => $this->chassis_code,
                 'manufacturing_month'    => $this->manufacturing_month,
                 'specification_market'   => $this->specification_market,
+                'circulation_country'    => $this->circulation_country,
                 'power_hp'               => $this->power_hp,
                 'power_kw'               => $this->power_kw,
                 'torque_nm'              => $this->torque_nm,
