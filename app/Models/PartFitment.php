@@ -14,6 +14,10 @@ class PartFitment extends Model
     protected $fillable = [
         'part_id', 'vehicle_model_id', 'trim_id', 'engine_type_id',
         'drivetrain_id', 'engine_code', 'chassis_code', 'year_from', 'year_to', 'position', 'notes',
+        // Criteres restrictifs (null = aucune restriction). Voir FitmentRestrictions.
+        'chassis_restricted', 'market_codes', 'month_from', 'month_to',
+        // Preuve de la compatibilite (voir FitmentEvidence).
+        'evidence_level', 'evidence_sources',
         // Renseignee par les controleurs, jamais par la requete : aucune regle
         // de validation ne la laisse passer, et `validated()` ecarte le reste.
         'source',
@@ -25,7 +29,22 @@ class PartFitment extends Model
             'year_from' => 'integer',
             'year_to'   => 'integer',
             'source'    => FitmentSource::class,
+            'chassis_restricted' => 'boolean',
+            'market_codes' => 'array',
+            'month_from' => 'integer',
+            'month_to' => 'integer',
+            'evidence_sources' => 'array',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Une liste vide vaut « tous marches » : on la stocke a null pour que
+        // le filtre SQL des lignes restrictives ne la confonde pas avec une
+        // restriction.
+        static::saving(function (PartFitment $fitment) {
+            $fitment->market_codes = \App\Support\FitmentRestrictionInput::marketCodes($fitment->market_codes);
+        });
     }
 
     public function part()

@@ -19,6 +19,22 @@ class OemNumberResource extends JsonResource
             'superseded_by'     => $this->whenLoaded('supersededBy', fn () => $this->supersededBy?->number),
             'supersession_evidence' => $this->supersession_evidence,
             'supersession_sources'  => $this->supersession_sources,
+            // Liens qualifies (oem_number_relations) : nature et preuve du
+            // REMPLACEMENT, distinctes de la preuve des compatibilites.
+            'replaced_by'       => $this->whenLoaded('replacementRelations', fn () => $this->replacementRelations->map(fn ($r) => [
+                'number'         => $r->to?->number,
+                'kind'           => $r->kind,
+                'evidence_level' => $r->evidence_level,
+                'sources'        => $r->sources ?? [],
+                'verified_on'    => $r->verified_on?->toDateString(),
+            ])->values()),
+            'replaces'          => $this->whenLoaded('replacedRelations', fn () => $this->replacedRelations->map(fn ($r) => [
+                'number'         => $r->from?->number,
+                'kind'           => $r->kind,
+                'evidence_level' => $r->evidence_level,
+                'sources'        => $r->sources ?? [],
+                'verified_on'    => $r->verified_on?->toDateString(),
+            ])->values()),
             'is_primary'        => $this->whenPivotLoaded('oem_number_part', fn () => (bool) $this->pivot->is_primary),
             'fitments'          => $this->whenLoaded('fitments', fn () => $this->fitments->map(fn ($f) => [
                 'vehicle_model_id' => $f->vehicle_model_id,

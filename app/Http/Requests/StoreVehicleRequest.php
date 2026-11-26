@@ -59,6 +59,14 @@ class StoreVehicleRequest extends FormRequest
             $this->merge(['engine_code' => EngineCode::normalize($this->input('engine_code'))]);
         }
 
+        if ($this->exists('chassis_code') && (is_string($this->input('chassis_code')) || $this->input('chassis_code') === null)) {
+            $this->merge(['chassis_code' => \App\Support\ChassisCode::normalize($this->input('chassis_code'))]);
+        }
+        if (is_string($this->input('specification_market'))) {
+            $marche = strtoupper(trim($this->input('specification_market')));
+            $this->merge(['specification_market' => $marche === '' ? null : $marche]);
+        }
+
         if ($this->isEquipment()) {
             $this->merge(['vehicle_type' => null, 'body_style' => null, 'trim_id' => null]);
         }
@@ -121,6 +129,10 @@ class StoreVehicleRequest extends FormRequest
             'color_id'           => ['nullable', 'exists:colors,id'],
 
             'manufacturing_year' => [$identityPresence, 'integer', 'min:1950', 'max:'.now()->year],
+            // Criteres restrictifs des compatibilites, tous facultatifs.
+            'manufacturing_month' => ['nullable', 'integer', 'between:1,12'],
+            'chassis_code'       => ['nullable', 'string', 'max:40', 'regex:/^[A-Z0-9-]+$/'],
+            'specification_market' => ['nullable', 'string', 'max:20', 'regex:/^[A-Z0-9_-]+$/'],
             'transmission'       => ['nullable', Rule::in(Transmission::values())],
             'gear_count'         => ['nullable', 'integer', 'min:1', 'max:12'],
             'engine_displacement_cc' => ['nullable', 'integer', 'min:0', 'max:20000'],
