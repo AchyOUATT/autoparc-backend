@@ -128,6 +128,88 @@ final class Toyota90915Yzzd1Import
     }
 
     /**
+     * Inverse exact de run(), pour le down() de la migration 140000.
+     *
+     * Retire UNIQUEMENT ce que l'import a posé, reconnu à son empreinte :
+     * - les lignes de compatibilité de même identité ET de même note que
+     *   l'application (une ligne modifiée à la main depuis reste en place) ;
+     * - les liens qualifiés ancien → YZZD1 datés de SOURCES_CONSULTEES_LE ;
+     * - le rattachement non principal des anciens numéros à l'article ;
+     * - l'ancien numéro lui-même, seulement s'il est remplacé par la YZZD1 et
+     *   que plus rien ne le référence (article, compatibilité, lien).
+     * L'article n'est jamais supprimé ; le numéro actuel 90915-YZZD1 ne l'est
+     * que si plus rien ne le référence (cas où l'import l'a créé).
+     *
+     * @return array<string, int>
+     */
+    public static function retirer(): array
+    {
+        return DB::transaction(function (): array {
+            $rapport = ['fitments_removed' => 0, 'oem_relations_removed' => 0, 'oem_links_removed' => 0, 'oem_numbers_removed' => 0];
+            $part = DB::table('parts')->where('sku', self::SKU)->whereNull('owner_partner_account_id')->first();
+            if ($part === null) {
+                return $rapport;
+            }
+
+            foreach (self::applications() as $application) {
+                $modeleId = DB::table('vehicle_models')->where('slug', $application['model_slug'])->value('id');
+                if ($modeleId === null) {
+                    continue;
+                }
+                $trimId = $application['trim_code'] === null ? null
+                    : DB::table('trims')->where('vehicle_model_id', $modeleId)->where('code', $application['trim_code'])->value('id');
+                $rapport['fitments_removed'] += DB::table('part_fitments')->where([
+                    'part_id' => $part->id, 'vehicle_model_id' => $modeleId, 'trim_id' => $trimId,
+                    'engine_type_id' => null, 'drivetrain_id' => null, 'engine_code' => $application['engine_code'],
+                    'year_from' => $application['year_from'], 'year_to' => $application['year_to'],
+                    'notes' => $application['notes'], 'source' => FitmentSource::Declared->value,
+                ])->delete();
+            }
+
+            $actuelId = DB::table('oem_numbers')->where('normalized_number', OemNumber::normalize(self::SKU))->whereNull('brand_id')->value('id');
+            if ($actuelId === null) {
+                return $rapport;
+            }
+            foreach ([...self::NUMEROS_REMPLACES, ...self::NUMEROS_REMPLACES_DISTRIBUTION] as $ancien) {
+                $perime = DB::table('oem_numbers')->where('normalized_number', OemNumber::normalize($ancien))->whereNull('brand_id')->first();
+                if ($perime === null || (int) $perime->superseded_by_id !== (int) $actuelId) {
+                    continue;
+                }
+                if (Schema::hasTable('oem_number_relations')) {
+                    $rapport['oem_relations_removed'] += DB::table('oem_number_relations')
+                        ->where('from_oem_number_id', $perime->id)->where('to_oem_number_id', $actuelId)
+                        ->whereDate('verified_on', self::SOURCES_CONSULTEES_LE)->delete();
+                }
+                $rapport['oem_links_removed'] += DB::table('oem_number_part')
+                    ->where('part_id', $part->id)->where('oem_number_id', $perime->id)->where('is_primary', false)->delete();
+
+                $encoreReference = DB::table('oem_number_part')->where('oem_number_id', $perime->id)->exists()
+                    || DB::table('oem_number_fitments')->where('oem_number_id', $perime->id)->exists()
+                    || DB::table('oem_numbers')->where('superseded_by_id', $perime->id)->exists()
+                    || (Schema::hasTable('oem_number_relations') && DB::table('oem_number_relations')
+                        ->where(fn ($q) => $q->where('from_oem_number_id', $perime->id)->orWhere('to_oem_number_id', $perime->id))->exists());
+                if (! $encoreReference) {
+                    $rapport['oem_numbers_removed'] += DB::table('oem_numbers')->where('id', $perime->id)->delete();
+                }
+            }
+
+            // Le numéro actuel n'est retiré que si l'import l'a créé de toutes
+            // pièces : plus aucun article, compatibilité, lien ni remplacement
+            // ne le référence (en production il est rattaché à l'article).
+            $actuelReference = DB::table('oem_number_part')->where('oem_number_id', $actuelId)->exists()
+                || DB::table('oem_number_fitments')->where('oem_number_id', $actuelId)->exists()
+                || DB::table('oem_numbers')->where('superseded_by_id', $actuelId)->exists()
+                || (Schema::hasTable('oem_number_relations') && DB::table('oem_number_relations')
+                    ->where(fn ($q) => $q->where('from_oem_number_id', $actuelId)->orWhere('to_oem_number_id', $actuelId))->exists());
+            if (! $actuelReference) {
+                $rapport['oem_numbers_removed'] += DB::table('oem_numbers')->where('id', $actuelId)->delete();
+            }
+
+            return $rapport;
+        });
+    }
+
+    /**
      * @param  array<string, mixed>  $rapport
      */
     private static function poserLesApplications(object $part, array &$rapport): bool
