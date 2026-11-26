@@ -765,6 +765,11 @@ class FiltresHuileBoutiqueTest extends TestCase
                 ->groupBy(fn ($f) => $f->part->sku)
                 ->map->count()
                 ->all();
+            // Sans ORDER BY, l'ordre des lignes n'est pas garanti (PostgreSQL
+            // ne rend pas l'ordre d'insertion) : on compare les comptes, pas
+            // l'ordre des clés.
+            ksort($lignes);
+            ksort($parReference);
 
             $this->assertSame($parReference, $lignes, "Le compte de {$slug} a change.");
 
@@ -787,12 +792,24 @@ class FiltresHuileBoutiqueTest extends TestCase
     {
         $this->semer();
 
+        // Depuis le 26/11/2026, ces trois noms portent aussi des generations
+        // ANTERIEURES a leur ligne nue (`GENERATIONS_FILTRE_YZZD1`), sans
+        // chevauchement. Le doublon surveille ici reste interdit : une seule
+        // ligne nue par nom, et toute autre ligne est une generation declaree.
+        $declarees = collect(\Database\Seeders\VehicleModelsSeeder::GENERATIONS_FILTRE_YZZD1)
+            ->map(fn ($g) => $g[1].'|'.$g[2]);
         foreach (['Highlander', 'Sienna', 'Avalon'] as $nom) {
             $this->assertCount(
                 1,
-                VehicleModel::where('name', $nom)->get(),
+                VehicleModel::where('name', $nom)->whereNull('generation')->get(),
                 "Le modele {$nom} existe en plusieurs exemplaires.",
             );
+            foreach (VehicleModel::where('name', $nom)->whereNotNull('generation')->get() as $generation) {
+                $this->assertTrue(
+                    $declarees->contains($nom.'|'.$generation->generation),
+                    "La generation {$nom} {$generation->generation} n'est pas declaree.",
+                );
+            }
         }
 
         // Le Venza fait exception depuis qu'il a ses generations, et de la
@@ -857,9 +874,16 @@ class FiltresHuileBoutiqueTest extends TestCase
             'vehicle_model_id' => $xv50->id,
             'year'             => 2015,
             'engine_code'      => '2AR-FE',
+            // Les lignes du seeder n'ont pas de preuve structurée
+            // (evidence_level / evidence_sources) : elles restent « à
+            // vérifier », jamais confirmées (FitmentEvidence).
+            'include_candidates' => 1,
         ]))->assertOk();
 
         $references = collect($reponse->json('data'))->pluck('sku')->all();
+        $cartouche = collect($reponse->json('data'))->firstWhere('sku', '04152-YZZA1');
+        $this->assertSame('candidate', $cartouche['compatibility_assessment']['status'] ?? null);
+        $this->assertSame(['evidence'], $cartouche['compatibility_assessment']['missing_criteria'] ?? null);
 
         $this->assertContains('04152-YZZA1', $references,
             'Un client avec une Camry XV50 de 2015 ne trouve pas sa cartouche.');
@@ -936,6 +960,13 @@ class FiltresHuileBoutiqueTest extends TestCase
             return collect($reponse->json('data'))->pluck('sku')->all();
         };
 
+        // Sans preuve structurée, rien n'est confirmé ; le tri par code
+        // moteur se lit donc sur la liste des candidats.
+        $this->assertSame([], $skus(['engine_code' => '2GR-FKS']),
+            'Une ligne sans preuve structurée ne doit pas être confirmée.');
+        $skusConfirmes = $skus;
+        $skus = fn (array $criteres) => $skusConfirmes($criteres + ['include_candidates' => 1]);
+
         $v6 = $skus(['engine_code' => '2GR-FKS']);
         $this->assertContains('04152-YZZA1', $v6);
         $this->assertNotContains('90915-YZZN1', $v6,
@@ -955,7 +986,7 @@ class FiltresHuileBoutiqueTest extends TestCase
         $this->assertContains('04152-YZZA1', $sansCode);
         $this->assertContains('90915-YZZN1', $sansCode,
             'La recherche explicite de candidats doit garder les deux moteurs possibles.');
-        $this->assertSame([], $skus([]),
+        $this->assertSame([], $skusConfirmes([]),
             'Une liste confirmée ne doit pas donner aux anciens clients deux moteurs comme certains.');
     }
 
@@ -1242,7 +1273,8 @@ class FiltresHuileBoutiqueTest extends TestCase
 
         $skus = function (array $criteres) use ($j200) {
             $reponse = $this->getJson('/api/catalog/compatible-parts?'.http_build_query(
-                ['vehicle_model_id' => $j200->id, 'year' => 2012] + $criteres,
+                // Lignes du seeder sans preuve structurée : candidates seulement.
+                ['vehicle_model_id' => $j200->id, 'year' => 2012, 'include_candidates' => 1] + $criteres,
             ))->assertOk();
 
             return collect($reponse->json('data'))->pluck('sku')->all();
