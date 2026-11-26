@@ -420,7 +420,7 @@ class Toyota90915Yzzd1ImportTest extends TestCase
             $piece = Part::where('sku', Toyota90915Yzzd1Import::SKU)->firstOrFail();
 
             return [
-                'fitments' => $piece->fitments()->orderBy('id')->get(['id', 'vehicle_model_id', 'trim_id', 'engine_code', 'year_from', 'year_to', 'chassis_code'])->toArray(),
+                'fitments' => $piece->fitments()->orderBy('id')->get(['id', 'vehicle_model_id', 'trim_id', 'engine_code', 'year_from', 'year_to', 'chassis_code', 'evidence_level', 'evidence_sources'])->toArray(),
                 'oem' => OemNumber::orderBy('id')->get(['id', 'normalized_number', 'is_superseded', 'superseded_by_id'])->toArray(),
                 'liens' => OemNumberRelation::orderBy('id')->get(['from_oem_number_id', 'to_oem_number_id', 'kind', 'evidence_level', 'sources'])->toArray(),
                 'pivot' => \DB::table('oem_number_part')->orderBy('oem_number_id')->get(['part_id', 'oem_number_id', 'is_primary'])->map(fn ($r) => (array) $r)->all(),
@@ -444,5 +444,52 @@ class Toyota90915Yzzd1ImportTest extends TestCase
         $this->assertCount(5, $apres2['liens']);
         $this->assertCount(count(Toyota90915Yzzd1Import::applications()), $apres2['fitments']);
         $this->assertSame(0, $apres2['oem_fitments'], 'Aucune ligne OEM copiée vers ou depuis un ancien numéro.');
+    }
+
+    public function test_chaque_ligne_porte_une_preuve_structuree_tiree_de_ses_sources(): void
+    {
+        $this->catalogue();
+        $piece = $this->filtre();
+
+        Toyota90915Yzzd1Import::run();
+
+        $lignes = $piece->fitments()->get();
+        $this->assertCount(count(Toyota90915Yzzd1Import::applications()), $lignes);
+        foreach ($lignes as $ligne) {
+            $this->assertContains($ligne->evidence_level, ['manufacturer_official', 'dealer_catalog'], $ligne->notes);
+            $this->assertNotEmpty($ligne->evidence_sources);
+            foreach ($ligne->evidence_sources as $url) {
+                $this->assertStringContainsString($url, $ligne->notes, 'Une source structurée doit être citée par la note.');
+            }
+            $this->assertTrue(\App\Support\FitmentEvidence::isDocumented($ligne));
+            // Sans document constructeur qui nomme la YZZD1, la chaîne passe
+            // par le remplacement distributeur : niveau dealer_catalog.
+            $constructeur = str_contains($ligne->notes, 'toyotapartsandservice.com') || str_contains($ligne->notes, 'parts.lexus.com');
+            $this->assertSame($constructeur ? 'manufacturer_official' : 'dealer_catalog', $ligne->evidence_level);
+        }
+        $this->assertSame(3, $lignes->where('evidence_level', 'dealer_catalog')->count());
+    }
+
+    public function test_le_rejeu_qualifie_ses_propres_lignes_sans_toucher_aux_autres(): void
+    {
+        $this->catalogue();
+        $piece = $this->filtre();
+        Toyota90915Yzzd1Import::run();
+        // Comme après la migration 140000 en production : lignes posées avant
+        // l'existence des colonnes de preuve.
+        \DB::table('part_fitments')->where('part_id', $piece->id)->update(['evidence_level' => null, 'evidence_sources' => null]);
+        $propre = $piece->fitments()->orderBy('id')->first();
+        $qualifiee = $piece->fitments()->orderBy('id')->skip(1)->first();
+        $qualifiee->update(['evidence_level' => 'unverified']);
+        $manuelle = $piece->fitments()->orderBy('id')->skip(2)->first();
+        $manuelle->update(['notes' => 'Saisie atelier.']);
+
+        $rapport = Toyota90915Yzzd1Import::run();
+
+        $this->assertSame(count(Toyota90915Yzzd1Import::applications()) - 2, $rapport['fitments_evidence_qualified']);
+        $this->assertNotNull($propre->fresh()->evidence_level);
+        $this->assertSame('unverified', $qualifiee->fresh()->evidence_level, 'Une preuve déjà posée n\'est jamais réécrite.');
+        $this->assertNull($manuelle->fresh()->evidence_level, 'Une ligne dont la note a changé n\'est plus celle de l\'import.');
+        $this->assertSame(0, Toyota90915Yzzd1Import::run()['fitments_evidence_qualified']);
     }
 }

@@ -247,7 +247,7 @@ La #40 se fonde maintenant sur cette PR (elle en est la suite) :
 - `verified_on` = 2026-11-26 (date de la revue des sources de la #40) ; `source_note` résume la nature de la source ;
 - l'API expose ces liens dans `replaced_by` / `replaces` (fiche OEM et `GET /api/oem/{n}/cross-references`) à la place de `supersession_evidence / supersession_sources` ;
 - le drapeau historique `is_superseded / superseded_by_id` reste posé comme avant ;
-- ses compatibilités gardent leur preuve dans `notes` ; leur `evidence_level` n'est pas renseigné (lignes déclarées, donc confirmables) — à qualifier ligne par ligne dans une PR de données.
+- ses 11 compatibilités reçoivent une preuve structurée tirée de leurs propres sources (section 11) : `evidence_sources` = les URL citées par la note ; `evidence_level` = `manufacturer_official` quand le catalogue PDF Toyota des filtres ou parts.lexus.com nomme directement la YZZD1 (8 lignes), sinon `dealer_catalog` (3 lignes : Camry XV10 ×2, RX 330), car la chaîne passe par le schéma EPC de l'ancien numéro et le remplacement attesté par les concessions. La migration `201000` pose cette preuve sur les lignes de l'import (même identité ET même note, sans preuve) ; une ligne modifiée à la main n'est pas touchée.
 
 ### 10.6 Modèles inactifs
 
