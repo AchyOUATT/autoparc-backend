@@ -82,14 +82,34 @@ class Toyota90915Yzzd1AnciensModelesImportTest extends TestCase
         $this->assertSame(2007, (int) $xu20->production_end);
         $this->assertSame('lexus', VehicleModel::where('slug', 'rx-xu10')->firstOrFail()->brand->slug);
 
+        // Années de FABRICATION tirées de l'EPC Toyota (revue du 26/11/2026),
+        // châssis dans `chassis_code`.
         $lignes = $piece->fitments()->with('vehicleModel')->get()
-            ->map(fn ($f) => $f->vehicleModel->slug.'|'.$f->engine_code.'|'.$f->year_from.'|'.$f->year_to)
+            ->map(fn ($f) => $f->vehicleModel->slug.'|'.$f->engine_code.'|'.$f->year_from.'|'.$f->year_to.'|'.$f->chassis_code)
             ->sort()->values()->all();
-        $this->assertContains('highlander-xu20|1MZ-FE|2001|2003', $lignes);
-        $this->assertContains('highlander-xu20|3MZ-FE|2004|2007', $lignes);
-        $this->assertContains('camry-xv30|3MZ-FE|2004|2006', $lignes);
-        $this->assertContains('es-xv30|3MZ-FE|2004|2006', $lignes);
-        $this->assertContains('tundra-i|5VZ-FE|2000|2004', $lignes);
+        $this->assertSame([
+            '4runner-n180|3RZ-FE|1995|2000|RZN180/RZN185',
+            '4runner-n180|5VZ-FE|1995|2002|VZN180/VZN185',
+            '4runner-n280|2TR-FE|2009|2011|TRN280/TRN285',
+            'avalon-xx10|1MZ-FE|1994|1999|MCX10',
+            'avalon-xx20|1MZ-FE|1999|2004|MCX20',
+            'camry-xv30|1MZ-FE|2001|2006|MCV30',
+            'camry-xv30|3MZ-FE|2003|2006|MCV31',
+            'es-xv20|1MZ-FE|1996|2001|MCV20',
+            'es-xv30|1MZ-FE|2001|2003|MCV30',
+            'es-xv30|3MZ-FE|2003|2006|MCV31',
+            'gs-s160|2JZ-GE|1997|2004|JZS160',
+            'highlander-xu20|1MZ-FE|2000|2003|MCU20/MCU25',
+            'highlander-xu20|3MZ-FE|2003|2007|MCU23/MCU28/MHU23/MHU28',
+            'is-xe10|2JZ-GE|2000|2005|JCE10',
+            'rx-xu10|1MZ-FE|1998|2003|MCU10/MCU15',
+            'sienna-xl10|1MZ-FE|1997|2002|MCL10',
+            'solara-xv20|1MZ-FE|1998|2002|MCV20',
+            'solara-xv30|3MZ-FE|2003|2008|MCV31',
+            'supra-a80|2JZ-GE|1993|1998|JZA80',
+            'supra-a80|2JZ-GTE|1993|1998|JZA80',
+            'tundra-i|5VZ-FE|1999|2004|VCK30/VCK40',
+        ], $lignes);
 
         foreach ($piece->fitments as $ligne) {
             $this->assertNotNull($ligne->engine_code);
@@ -102,19 +122,53 @@ class Toyota90915Yzzd1AnciensModelesImportTest extends TestCase
         $this->assertSame(15, $piece->stock_quantity);
     }
 
-    public function test_les_lignes_toyota_citent_le_catalogue_officiel_et_lexus_les_revendeurs(): void
+    public function test_chaque_ligne_cite_l_epc_son_chassis_et_son_marche(): void
     {
         $this->marques();
         $piece = $this->filtre();
         Toyota90915Yzzd1AnciensModelesImport::run();
 
         foreach ($piece->fitments()->with('vehicleModel.brand')->get() as $ligne) {
+            $notes = (string) $ligne->notes;
+            $this->assertStringContainsString('Période EPC Toyota', $notes);
+            $this->assertStringContainsString('schéma 15-02', $notes);
+            $this->assertStringContainsString('marché', $notes);
+            foreach (explode('/', (string) $ligne->chassis_code) as $chassis) {
+                $this->assertStringContainsString($chassis, $notes);
+            }
             if ($ligne->vehicleModel->brand->slug === 'toyota') {
-                $this->assertStringContainsString('06_OilFilters2025_hi.pdf', (string) $ligne->notes);
+                $this->assertStringContainsString('06_OilFilters2025_hi.pdf', $notes);
             } else {
-                $this->assertStringContainsString('autohausaz.com', (string) $ligne->notes);
+                $this->assertStringContainsString('ne couvre pas Lexus', $notes);
+                $this->assertStringNotContainsString('autohausaz.com', $notes);
             }
         }
+    }
+
+    public function test_aucune_ligne_ne_depasse_les_bornes_de_production_de_sa_generation(): void
+    {
+        $this->marques();
+        $piece = $this->filtre();
+        Toyota90915Yzzd1AnciensModelesImport::run();
+
+        foreach ($piece->fitments()->with('vehicleModel')->get() as $ligne) {
+            $modele = $ligne->vehicleModel;
+            $this->assertGreaterThanOrEqual($modele->production_start, $ligne->year_from, $modele->slug.' '.$ligne->engine_code);
+            $this->assertLessThanOrEqual($modele->production_end, $ligne->year_to, $modele->slug.' '.$ligne->engine_code);
+        }
+    }
+
+    public function test_le_2tr_fe_du_4runner_n280_ne_couvre_pas_toute_la_generation(): void
+    {
+        $this->marques();
+        $piece = $this->filtre();
+        Toyota90915Yzzd1AnciensModelesImport::run();
+
+        $n280 = VehicleModel::where('slug', '4runner-n280')->firstOrFail();
+        $ligne = $piece->fitments()->where('vehicle_model_id', $n280->id)->sole();
+        $this->assertSame([2009, 2011], [$ligne->year_from, $ligne->year_to]);
+        $this->assertSame(2024, (int) $n280->production_end, 'La génération, elle, va jusqu\'en 2024.');
+        $this->assertStringContainsString('TRN280L 11/2009-08/2011', (string) $ligne->notes);
     }
 
     public function test_une_ligne_existante_n_est_jamais_modifiee(): void

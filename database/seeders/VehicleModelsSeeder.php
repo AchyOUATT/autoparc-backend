@@ -317,17 +317,22 @@ class VehicleModelsSeeder extends Seeder
      * applications du filtre a huile 90915-YZZD1 (decision du proprietaire,
      * 26/11/2026 : « Ajoute ces modeles »).
      *
-     * Bornes = annees de PRODUCTION (Wikipedia anglais, consulte le
-     * 26/11/2026), comme les autres lignes Lexus de ce fichier ; marche
-     * nord-americain quand plusieurs usines different. Chaque generation se
-     * termine au plus tard l'annee ou commence la ligne suivante du meme
-     * modele deja au referentiel (`avalon` 2005, `highlander` 2008,
-     * `es-xv40` 2006, `gs-s190` 2005, `is-xe20` 2005, `rx-xu30` 2003) :
-     * aucun chevauchement, et les lignes nues existantes ne sont pas touchees.
+     * Bornes = annees civiles de PRODUCTION, lues dans le catalogue
+     * constructeur (EPC Toyota, periodes par chassis, revue du 26/11/2026 ;
+     * https://toyota-epc.aftermarketcatalog.com et la recherche inverse
+     * https://www.toyodiy.com/parts/xref), Wikipedia en recoupement
+     * seulement. Ce sont des annees de fabrication, pas des millesimes :
+     * l'application saisit une « Annee de fabrication ». Exemple : Solara
+     * XV20 = 06/1998-11/2002, donc 1998-2002 (le millesime 2003 est fabrique
+     * en 2002).
+     *
+     * Une annee de transition partagee (Avalon 1999, ES 2001, RX 2003,
+     * IS 2005) est REELLE : les deux generations ont ete produites cette
+     * annee-la. Elle n'est pas rognee ; le vehicule enregistre porte sa
+     * generation, choisie explicitement.
      *
      * LA SIENNA XL20 (2003-2009) N'EST PAS ICI : elle chevaucherait la ligne
-     * nue `sienna` (2007-ouvert), dont il faudrait d'abord vider les bornes
-     * comme pour le Tacoma — une decision du proprietaire, pas de ce lot.
+     * nue `sienna` (2007-ouvert). Voir la proposition séparée (branche docs/proposition-referentiel-sienna).
      *
      * Le Tundra prend un chiffre romain, comme le Tacoma : Toyota lui donne
      * un JEU de codes (VCK30/40, UCK30/40, GSK30), pas un code unique.
@@ -343,7 +348,7 @@ class VehicleModelsSeeder extends Seeder
         ['toyota', '4Runner',    'N180', 'suv',       'E', 1995, 2002],
         ['toyota', '4Runner',    'N280', 'suv',       'E', 2009, 2024],
         ['toyota', 'Tundra',     'I',    'pick-up',   'E', 1999, 2006],
-        ['toyota', 'Solara',     'XV20', 'coupe',     'D', 1998, 2003],
+        ['toyota', 'Solara',     'XV20', 'coupe',     'D', 1998, 2002],
         ['toyota', 'Solara',     'XV30', 'coupe',     'D', 2003, 2008],
         ['toyota', 'Supra',      'A80',  'coupe',     'D', 1993, 2002],
         ['lexus',  'ES',         'XV20', 'berline',   'E', 1996, 2001],
