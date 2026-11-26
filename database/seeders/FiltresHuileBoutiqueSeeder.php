@@ -199,6 +199,12 @@ class FiltresHuileBoutiqueSeeder extends Seeder
             "sku"           => "90915-YZZD1",
             "nom"           => "Filtre a huile visse 90915-YZZD1",
             "description"   => "Visse, anciennes applications V6 et certains utilitaires essence. Ne convient pas a tous les gros moteurs Toyota.",
+            // Les compatibilites de cette reference sont ecrites, ligne par
+            // ligne et chassis par chassis, par `Toyota90915Yzzd1Import` et
+            // `Toyota90915Yzzd1AnciensModelesImport` (26/11/2026). Sans ce
+            // drapeau, le `fitments()->delete()` de ce seeder les effacerait
+            // toutes a sa prochaine execution sans que personne ne le voie.
+            "compatibilites_a_verifier" => true,
             "compatibilites" => [
             ],
         ],
