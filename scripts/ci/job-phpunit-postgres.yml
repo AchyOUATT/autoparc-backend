@@ -1,0 +1,138 @@
+# Job à ajouter tel quel sous `jobs:` dans .github/workflows/tests.yml
+# (le jeton de l'agent n'a pas le droit `workflow` : il ne peut pas pousser
+# un fichier de .github/workflows). Indentation : 2 espaces, comme `phpunit:`.
+
+  # ── LA MÊME SUITE SUR POSTGRESQL 18, LA BASE DE PRODUCTION ──────────────
+  #
+  # Le job `phpunit` tourne sur SQLite en mémoire. La production est un
+  # PostgreSQL 18 (Render, `autoparc-db`). Les deux moteurs divergent sur des
+  # points qui ne se voient qu'en production : alias refusés dans HAVING,
+  # contraintes CHECK posées par les migrations, ordre des lignes sans
+  # ORDER BY, séquences non remises à zéro entre deux tests, types JSON.
+  # Mesure du 26/11/2026 sur main (beaa0af) : 5 tests rouges sous PostgreSQL 18,
+  # tous verts sous SQLite.
+  #
+  # Ce job rejoue aussi ce que le `CMD` du Dockerfile exécute à chaque
+  # déploiement (migrate --force puis les seeders de référentiel), deux fois
+  # de suite : un déploiement rejoué ne doit rien changer.
+  phpunit-postgres:
+    name: phpunit (PostgreSQL 18)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: autoparc
+          POSTGRES_PASSWORD: autoparc
+          POSTGRES_DB: autoparc_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U autoparc -d autoparc_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+
+    env:
+      # Ces variables priment sur celles de phpunit.xml (posées sans force).
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: autoparc_test
+      DB_USERNAME: autoparc
+      DB_PASSWORD: autoparc
+      DB_URL: ''
+      # ÉCHECS CONNUS, DÉCLARÉS ICI ET NULLE PART AILLEURS. Aucun test n'est
+      # sauté en silence : ceux-ci sont exclus de l'étape bloquante, puis
+      # rejoués SEULS dans l'étape « Échecs connus » qui les affiche en
+      # avertissement à chaque exécution. Retirer la ligne dès la correction
+      # (l'étape le signale quand le test repasse).
+      #
+      # - ControleAvantVoyageTest : la contrainte CHECK `vehicle_checks_reason_check`
+      #   refuse `seasonal` sous PostgreSQL. Défaut RÉEL de production, corrigé
+      #   dans une PR séparée.
+      ECHECS_CONNUS_POSTGRES: 'ControleAvantVoyageTest::test_le_verdict_d_un_controle_de_saison_ne_parle_pas_de_partir'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, pgsql, pdo_sqlite, sqlite3, mbstring, bcmath, gd
+          # Mêmes plafonds que le job SQLite (voir son commentaire).
+          ini-values: memory_limit=192M, upload_max_filesize=9M, post_max_size=24M
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      # Même ordre que le job SQLite : le .env AVANT composer install.
+      - name: Poser le fichier d'environnement
+        run: cp .env.example .env
+
+      - name: Installer les dépendances
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Générer la clé d'application
+        run: php artisan key:generate
+
+      - name: Version du serveur
+        run: php -r '$p = new PDO("pgsql:host=127.0.0.1;port=5432;dbname=autoparc_test", "autoparc", "autoparc"); echo $p->query("select version()")->fetchColumn(), PHP_EOL;'
+
+      # Ce que fait le CMD du Dockerfile, deux fois : la seconde passe ne
+      # doit trouver aucune migration et ne rien casser. Un seeder en échec
+      # est toléré au démarrage réel (`|| echo ATTENTION`), il est donc
+      # signalé ici en avertissement et non en échec.
+      - name: Démarrage comme en production (migrations + seeders, rejoué)
+        run: |
+          for passe in 1 2; do
+            php artisan migrate --force
+            for s in VehicleModelsSeeder TrimsSeeder KiaCatalogueSeeder TwoWheelerCatalogSeeder VehicleCheckItemsSeeder; do
+              php artisan db:seed --class=$s --force > /dev/null 2>&1 \
+                || echo "::warning::Passe $passe : le seeder $s échoue sur une base vide (toléré au démarrage réel par le Dockerfile)."
+            done
+          done
+          [ "$(php artisan migrate:status | grep -c Pending)" = "0" ] || { echo "::error::Migrations encore en attente après deux passes."; exit 1; }
+
+      - name: Lancer les tests sur PostgreSQL 18
+        run: |
+          set +e
+          php artisan migrate:fresh --force > /dev/null
+          php artisan test --log-junit=junit.xml --exclude-filter "$ECHECS_CONNUS_POSTGRES" 2>&1 | tee sortie-tests.txt
+          code=${PIPESTATUS[0]}
+          set -e
+          if [ -f junit.xml ]; then
+            php -r '
+              $x = @simplexml_load_file("junit.xml");
+              if ($x === false) { echo "::warning::Rapport JUnit illisible.\n"; exit; }
+              foreach ($x->xpath("//testcase[failure or error]") ?: [] as $cas) {
+                $noeud = $cas->failure ?? $cas->error;
+                $lignes = array_values(array_filter(array_map("trim", explode("\n", (string) $noeud)), "strlen"));
+                printf("::error::[PostgreSQL] %s — %s\n", $cas["name"], substr($lignes[1] ?? ($lignes[0] ?? "sans motif"), 0, 280));
+              }
+            '
+          fi
+          grep -E "^ *(Tests|Duration):" sortie-tests.txt | while IFS= read -r ligne; do echo "::notice::$ligne"; done
+          exit $code
+
+      # Non bloquant PAR CONSTRUCTION et visible à chaque exécution : le
+      # test connu rouge est rejoué seul et annoncé. S'il repasse, l'étape le
+      # dit, pour qu'on retire l'exclusion au lieu de l'oublier.
+      - name: Échecs connus PostgreSQL (rejoués, non bloquants)
+        if: always()
+        run: |
+          set +e
+          php artisan test --filter "$ECHECS_CONNUS_POSTGRES" > connus.txt 2>&1
+          code=$?
+          set -e
+          if [ "$code" = "0" ]; then
+            echo "::notice::Échec connu PostgreSQL désormais VERT ($ECHECS_CONNUS_POSTGRES) : retirer la ligne de ECHECS_CONNUS_POSTGRES."
+          else
+            echo "::warning::Échec connu PostgreSQL toujours rouge, exclu de l'étape bloquante : $ECHECS_CONNUS_POSTGRES"
+            grep -E "FAILED|Tests:" connus.txt | head -5
+          fi
