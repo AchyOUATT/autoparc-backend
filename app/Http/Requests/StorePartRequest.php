@@ -34,6 +34,38 @@ class StorePartRequest extends FormRequest
         if ($this->input('type') === 'unknown') {
             $this->merge(['type' => null]);
         }
+
+        // Codes marche : « us », « JP » → USA, JPN. Un code inconnu reste
+        // tel quel pour que la regle `in` le refuse.
+        $fitments = $this->input('fitments');
+        if (is_array($fitments)) {
+            foreach ($fitments as $i => $fitment) {
+                if (is_array($fitment) && array_key_exists('market_codes', $fitment)) {
+                    $fitments[$i]['market_codes'] = \App\Support\FitmentRestrictionInput::marketCodes($fitment['market_codes']);
+                }
+            }
+            $this->merge(['fitments' => $fitments]);
+        }
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            foreach ((array) $this->input('fitments', []) as $i => $fitment) {
+                if (! is_array($fitment)) {
+                    continue;
+                }
+                if (filter_var($fitment['chassis_restricted'] ?? false, FILTER_VALIDATE_BOOLEAN)
+                    && trim((string) ($fitment['chassis_code'] ?? '')) === '') {
+                    $validator->errors()->add("fitments.$i.chassis_code", __('Un châssis restrictif exige au moins un code châssis.'));
+                }
+                foreach (['month_from' => 'year_from', 'month_to' => 'year_to'] as $mois => $annee) {
+                    if (($fitment[$mois] ?? null) !== null && ($fitment[$annee] ?? null) === null) {
+                        $validator->errors()->add("fitments.$i.$mois", __('Un mois de borne exige son année.'));
+                    }
+                }
+            }
+        });
     }
 
     public function authorize(): bool
@@ -91,6 +123,25 @@ class StorePartRequest extends FormRequest
             // `validated()` l'ecarte, et l'ecran d'edition la vide au premier
             // enregistrement. C'est ainsi que les notes disparaissaient.
             'fitments.*.notes'             => ['nullable', 'string', 'max:2000'],
+
+            // Criteres restrictifs (voir FitmentRestrictions). Null = aucune
+            // restriction. Le code chassis seul reste informatif.
+            'fitments.*.chassis_restricted' => ['nullable', 'boolean'],
+            'fitments.*.market_codes'       => ['nullable', 'array'],
+            'fitments.*.market_codes.*'     => ['string', Rule::in(\App\Support\Market::codes())],
+            'fitments.*.month_from'         => ['nullable', 'integer', 'between:1,12'],
+            'fitments.*.month_to'           => ['nullable', 'integer', 'between:1,12'],
+            // Preuve de la compatibilite (voir FitmentEvidence).
+            // Un niveau qui peut confirmer exige au moins une URL source ;
+            // human_verified exige aussi la date de validation, et le compte
+            // qui valide est posé par le serveur (jamais par le client).
+            'fitments.*.evidence_level'     => ['nullable', Rule::in(\App\Support\FitmentEvidence::LEVELS)],
+            'fitments.*.evidence_sources'   => ['nullable', 'array', 'max:20',
+                'required_if:fitments.*.evidence_level,'.implode(',', \App\Support\FitmentEvidence::SUFFICIENT)],
+            'fitments.*.evidence_sources.*' => ['string', 'url:http,https', 'max:500'],
+            'fitments.*.verified_on'        => ['nullable', 'date', 'before_or_equal:today',
+                'required_if:fitments.*.evidence_level,'.\App\Support\FitmentEvidence::HUMAN_VERIFIED],
+            'fitments.*.verified_by_id'     => ['prohibited'],
         ];
     }
 }

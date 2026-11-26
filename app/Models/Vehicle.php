@@ -38,7 +38,7 @@ class Vehicle extends Model
     protected $fillable = [
         'reference', 'vin', 'registration_status', 'vehicle_type', 'body_style',
         'brand_id', 'vehicle_model_id', 'trim_id', 'engine_type_id', 'drivetrain_id', 'color_id',
-        'manufacturing_year', 'transmission', 'gear_count', 'engine_displacement_cc',
+        'manufacturing_year', 'manufacturing_month', 'chassis_code', 'specification_market', 'circulation_country', 'transmission', 'gear_count', 'engine_displacement_cc',
         'power_hp', 'power_kw', 'torque_nm', 'cylinders', 'seats', 'doors', 'engine_code',
         'heavy_configuration', 'two_wheeler_configuration',
         'asset_kind', 'equipment_type', 'equipment_details',
@@ -62,6 +62,7 @@ class Vehicle extends Model
             'condition' => VehicleCondition::class,
             'transmission' => Transmission::class,
             'manufacturing_year' => 'integer',
+            'manufacturing_month' => 'integer',
             'heavy_configuration' => 'array',
             'two_wheeler_configuration' => 'array',
             'equipment_details' => 'array',
