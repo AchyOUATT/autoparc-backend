@@ -44,6 +44,20 @@ class UnifiedVehicleCatalogTest extends TestCase
         $this->color = Color::create(['name' => 'Blanc', 'hex_code' => '#ffffff']);
     }
 
+    /**
+     * Les identifiants des deux sources doivent COÏNCIDER pour ce test. Sous
+     * SQLite en mémoire, chaque table repart de 1 et ils coïncident d'eux-mêmes.
+     * Sous PostgreSQL (la production), une séquence n'est pas remise à zéro par
+     * l'annulation de la transaction de RefreshDatabase : on la cale.
+     */
+    private function aligneLaSequenceDesAnnoncesSur(int $id): void
+    {
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'pgsql') {
+            \Illuminate\Support\Facades\DB::select(
+                "select setval(pg_get_serial_sequence('private_vehicle_listings', 'id'), ?, false)", [$id]);
+        }
+    }
+
     private function vehicle(array $extra = []): Vehicle
     {
         $created = $extra['created_at'] ?? now();
@@ -93,6 +107,7 @@ class UnifiedVehicleCatalogTest extends TestCase
     public function test_native_numeric_identifiers_and_payloads_are_kept_in_a_typed_envelope(): void
     {
         $vehicle = $this->vehicle();
+        $this->aligneLaSequenceDesAnnoncesSur($vehicle->id);
         $listing = $this->listing();
         $this->assertSame($vehicle->id, $listing->id, 'The sources deliberately have colliding native IDs.');
         $this->brand->update(['name' => 'Renamed brand']);
