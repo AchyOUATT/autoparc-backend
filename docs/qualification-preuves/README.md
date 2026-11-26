@@ -17,6 +17,8 @@ Rien n'est rempli automatiquement, sauf les 15 lignes dont l'URL a été **relue
   - John Deere RE59754 sur la 5410.
 - 12 lignes CUSCO et HKS, posées en `aftermarket_crossref`. Ce niveau est insuffisant : ces lignes restent « candidat ». Un tableau d'après-vente qui recopie un numéro Toyota n'est ni le constructeur ni un concessionnaire.
 
+Les cinq lignes CUSCO du filtre 90915-10001 (fitments 424 à 428, priorité P2) sont qualifiées par la migration `2026_11_26_210000_qualifier_les_preuves_aftermarket_du_filtre_90915_10001` : `aftermarket_crossref`, URL CUSCO, marché JP, mois des périodes source. Elles restent candidates. Ce n'est pas le lot de rétro-remplissage `feat/preuves-retro-remplissage-notes`. L'inventaire ci-dessous reflète cet état pour ces cinq lignes ; les autres colonnes restent celles de l'export du 26/11/2026.
+
 L'ancienne règle « par domaine » (deere.com ⇒ constructeur) a été retirée. Elle aurait promu toute future ligne citant ce domaine sans que la page ait été lue.
 
 ## Inventaire : `inventaire-143-compatibilites.csv`

@@ -91,3 +91,11 @@ Ce lot n’ajoute aucune migration et n’appelle pas le seeder global en produc
 Les tentatives vers `autoparts.toyota.com` et `parts.toyota.com` du 7 novembre
 2026 ont reçu un refus de connexion du proxy (`CONNECT 403`). Aucun document
 Toyota n’a donc été consulté en ligne pour valider les propositions de ce lot.
+
+## Qualification des cinq lignes CUSCO (26 novembre 2026)
+
+Les cinq applications documentées (Corolla E100/E110 4A-FE, Camry XV10/XV20 5S-FE, RAV4 XA10 3S-FE) reçoivent, par la migration `2026_11_26_210000_qualifier_les_preuves_aftermarket_du_filtre_90915_10001`, une preuve structurée `aftermarket_crossref` avec l’URL du [catalogue CUSCO](https://www.cusco.co.jp/products/pdf/oilfilter_toyota.pdf), le marché `JP` et les mois des périodes déjà écrites dans les notes. Ce niveau ne suffit pas à confirmer : les lignes restent candidates. Seuls les champs vides sont remplis.
+
+La description de l’article n’est corrigée que si elle est encore le texte lu en production le 26 novembre 2026. La borne « pré-2008 » en est retirée. Le remplacement par le 90915-YZZN1 y est présenté comme une mention des catalogues de concessionnaires américains, et non comme un fait officiel Toyota (la fiche [90915-YZZN1](https://autoparts.toyota.com/products/product/filter-s-a-oil-90915yzzn1) ne cite que le 90915-YZZF2 comme ancienne version). Aucune relation OEM 10001 → YZZN1 n’est ajoutée dans ce lot, et aucune compatibilité n’est recopiée de la YZZN1 vers la 10001.
+
+Les six candidatures encore en attente (Corolla 7A-FE, E120/E130/E140 1ZZ-FE, Yaris XP90 1NZ-FE) ne sont toujours pas publiées. Le catalogue CUSCO range d’ailleurs la Corolla ZZE122/ZZE124 1ZZ-FE et la Vitz NCP91 1NZ-FE sous le 90915-10003, pas sous le 10001.
