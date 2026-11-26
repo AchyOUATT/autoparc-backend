@@ -265,7 +265,7 @@ class PartnerPublicCatalogTest extends TestCase
         $draft = $this->listing('parts', $account, published: false);
 
         foreach ([$legacy, $visible, $draft] as $part) {
-            $part->fitments()->create(['vehicle_model_id' => $this->vehicleModel()->id, 'source' => 'declared']);
+            $part->fitments()->create(['vehicle_model_id' => $this->vehicleModel()->id, 'source' => 'declared', ...self::PREUVE_DOCUMENTEE]);
         }
 
         $data = $this->getJson('/api/catalog/compatible-parts?'.http_build_query([

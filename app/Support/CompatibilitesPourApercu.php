@@ -54,7 +54,9 @@ final class CompatibilitesPourApercu
     public static function formater(PartFitment|AccessoryFitment $fitment): ?string
     {
         $modele = $fitment->vehicleModel;
-        if ($modele === null) {
+        // Un modele inactif (generation retiree) ne s'annonce plus comme
+        // compatibilite courante ; la ligne reste en base, consultable.
+        if ($modele === null || $modele->is_active === false) {
             return null;
         }
 

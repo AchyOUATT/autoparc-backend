@@ -61,6 +61,14 @@ class StoreOwnedVehicleRequest extends FormRequest
             }
         }
 
+        if ($this->exists('chassis_code') && (is_string($this->input('chassis_code')) || $this->input('chassis_code') === null)) {
+            $this->merge(['chassis_code' => \App\Support\ChassisCode::normalize($this->input('chassis_code'))]);
+        }
+
+        if (is_string($this->input('circulation_country'))) {
+            $pays = strtoupper(trim($this->input('circulation_country')));
+            $this->merge(['circulation_country' => $pays === '' ? null : $pays]);
+        }
         if (is_string($this->input('specification_market'))) {
             $market = strtoupper(trim($this->input('specification_market')));
             $this->merge(['specification_market' => $market === '' ? null : $market]);
@@ -96,6 +104,14 @@ class StoreOwnedVehicleRequest extends FormRequest
             // Explicit specification values: never inferred from registration or manufacture.
             'model_year' => ['nullable', 'integer', 'min:1950', 'max:'.(now()->year + 1)],
             'specification_market' => ['nullable', 'string', 'max:20', 'regex:/^[A-Z0-9_-]+$/'],
+            // Pays de circulation actuel (ISO 3166-1 alpha-2) : affichage
+            // seulement, jamais comparé aux compatibilités.
+            'circulation_country'  => ['nullable', 'string', 'size:2', 'regex:/^[A-Z]{2}$/'],
+            // Code chassis constructeur (NZE121, TRN285, ACV30L-AEPNKA) et
+            // mois de fabrication : facultatifs, ils servent seulement a
+            // confirmer les compatibilites qui les exigent.
+            'chassis_code' => ['nullable', 'string', 'max:40', 'regex:/^[A-Z0-9-]+$/'],
+            'manufacturing_month' => ['nullable', 'integer', 'between:1,12'],
             'vehicle_type'       => ['nullable', 'string', 'in:passenger,utility,heavy,two_wheeler'],
             'two_wheeler_configuration' => ['nullable', 'array:'.implode(',', TwoWheelerConfiguration::KEYS)],
             'two_wheeler_configuration.body_type' => ['nullable', Rule::in(TwoWheelerConfiguration::BODY_TYPES)],

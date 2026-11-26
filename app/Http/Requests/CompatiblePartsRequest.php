@@ -78,6 +78,16 @@ class CompatiblePartsRequest extends FormRequest
         return (bool) $this->validated('include_candidates', false);
     }
 
+    /**
+     * Consultation historique : inclut les compatibilites posees sur des
+     * modeles inactifs (generations retirees du referentiel). Faux par
+     * defaut : une recherche courante ne les voit pas.
+     */
+    public function includeInactive(): bool
+    {
+        return (bool) $this->validated('include_inactive', false);
+    }
+
     /** Partagees avec la recherche par criteres, qui pagine la meme collection. */
     protected function paginationRules(): array
     {
@@ -85,6 +95,7 @@ class CompatiblePartsRequest extends FormRequest
             'per_page' => ['nullable', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
             'page'     => ['nullable', 'integer', 'min:1'],
             'include_candidates' => ['nullable', 'boolean'],
+            'include_inactive'   => ['nullable', 'boolean'],
         ];
     }
 

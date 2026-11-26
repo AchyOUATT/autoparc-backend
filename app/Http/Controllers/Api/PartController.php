@@ -7,6 +7,7 @@ use Illuminate\Validation\ValidationException;
 
 use App\Enums\FitmentSource;
 use App\Support\ConservationChassisFitment;
+use App\Support\ConservationRestrictionsFitment;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePartRequest;
 use App\Http\Resources\PartResource;
@@ -89,7 +90,7 @@ class PartController extends Controller
 
             foreach ($data['fitments'] ?? [] as $fitment) {
                 $part->fitments()->create($this->declaree(
-                    ConservationChassisFitment::appliquer($fitment, []),
+                    ConservationRestrictionsFitment::appliquer(ConservationChassisFitment::appliquer($fitment, []), []),
                 ));
             }
 
@@ -174,7 +175,7 @@ class PartController extends Controller
         }
 
         return new PartResource($part->load([
-            'category', 'manufacturer', 'oemNumbers.brand', 'oemNumbers.fitments.vehicleModel.brand',
+            'category', 'manufacturer', 'oemNumbers.brand', 'oemNumbers.fitments.vehicleModel.brand', 'oemNumbers.replacementRelations.to',
             'fitments.vehicleModel.brand', 'fitments.trim', 'fitments.engineType', 'donorVehicle', 'media', 'sellerAccount',
         ]));
     }
@@ -195,11 +196,16 @@ class PartController extends Controller
             // chaque ligne qu'il y a laissee. Toute ligne conservee devient
             // une declaration, meme si elle avait ete fabriquee.
             if (array_key_exists('fitments', $data)) {
-                $conserves = ConservationChassisFitment::index($part->fitments()->get());
+                $existantes = $part->fitments()->get();
+                $conserves = ConservationChassisFitment::index($existantes);
+                $restrictions = ConservationRestrictionsFitment::index($existantes);
                 $part->fitments()->delete();
                 foreach ($data['fitments'] as $fitment) {
                     $part->fitments()->create($this->declaree(
-                        ConservationChassisFitment::appliquer($fitment, $conserves),
+                        ConservationRestrictionsFitment::appliquer(
+                            ConservationChassisFitment::appliquer($fitment, $conserves),
+                            $restrictions,
+                        ),
                     ));
                 }
             }
@@ -220,6 +226,8 @@ class PartController extends Controller
      */
     private function declaree(array $fitment): array
     {
+        $fitment = \App\Support\FitmentEvidence::stampValidator($fitment, request()->user()?->id);
+
         return array_merge($fitment, ['source' => FitmentSource::Declared]);
     }
 
