@@ -492,4 +492,56 @@ class Toyota90915Yzzd1ImportTest extends TestCase
         $this->assertNull($manuelle->fresh()->evidence_level, 'Une ligne dont la note a changé n\'est plus celle de l\'import.');
         $this->assertSame(0, Toyota90915Yzzd1Import::run()['fitments_evidence_qualified']);
     }
+
+    public function test_le_down_de_la_migration_retire_exactement_ce_que_l_import_a_pose(): void
+    {
+        $this->catalogue();
+        $piece = $this->filtre();
+        $autre = $this->filtre('90915-YZZE1');
+        $autre->fitments()->create(['vehicle_model_id' => VehicleModel::where('slug', 'camry-xv10')->value('id'),
+            'engine_code' => '3VZ-FE', 'year_from' => 1992, 'year_to' => 1993, 'source' => 'declared']);
+        $numerosAvant = OemNumber::count();
+        $liensAvant = \DB::table('oem_number_part')->count();
+
+        $migration = require database_path('migrations/2026_11_26_140000_poser_les_compatibilites_du_filtre_90915_yzzd1.php');
+        $migration->up();
+        $manuelle = $piece->fitments()->orderBy('id')->first();
+        $manuelle->update(['notes' => 'Vérifiée en atelier.']);
+        $this->assertSame(11, $piece->fitments()->count());
+        $this->assertGreaterThan($numerosAvant, OemNumber::count());
+
+        $migration->down();
+
+        $this->assertSame([$manuelle->id], $piece->fitments()->pluck('id')->all(), 'Seule la ligne modifiée à la main reste.');
+        $this->assertSame(1, $autre->fitments()->count(), 'Les lignes des autres articles ne sont pas touchées.');
+        $this->assertSame(0, OemNumberRelation::count());
+        foreach ([...Toyota90915Yzzd1Import::NUMEROS_REMPLACES, ...Toyota90915Yzzd1Import::NUMEROS_REMPLACES_DISTRIBUTION] as $ancien) {
+            $this->assertNull(OemNumber::where('number', $ancien)->first(), "$ancien est retiré.");
+        }
+        $this->assertSame($liensAvant, \DB::table('oem_number_part')->count(), 'Les rattachements reviennent à l\'état d\'avant.');
+        $this->assertSame($numerosAvant, OemNumber::count(), 'Les numéros reviennent à l\'état d\'avant.');
+        $this->assertTrue(\DB::table('oem_number_part')->whereNotIn('oem_number_id', OemNumber::pluck('id'))->doesntExist());
+
+        // Rejouable : up() après down() repose tout.
+        $migration->up();
+        $this->assertSame(11, $piece->fitments()->count());
+    }
+
+    public function test_le_down_garde_un_ancien_numero_encore_utilise_ailleurs(): void
+    {
+        $this->catalogue();
+        $piece = $this->filtre();
+        $autre = $this->filtre('90915-YZZE1');
+        Toyota90915Yzzd1Import::run();
+        $numero = OemNumber::where('number', '90915-20003')->firstOrFail();
+        $autre->oemNumbers()->attach($numero->id, ['is_primary' => false]);
+
+        Toyota90915Yzzd1Import::retirer();
+
+        $this->assertNotNull($numero->fresh(), 'Toujours rattaché à un autre article : conservé.');
+        $this->assertNotNull(OemNumber::where('number', Toyota90915Yzzd1Import::SKU)->first(),
+            'Le numéro actuel, encore cible d\'un remplacement, est conservé.');
+        $this->assertFalse(\DB::table('oem_number_part')->where('part_id', $piece->id)->where('oem_number_id', $numero->id)->exists());
+        $this->assertSame(0, $piece->fitments()->count());
+    }
 }

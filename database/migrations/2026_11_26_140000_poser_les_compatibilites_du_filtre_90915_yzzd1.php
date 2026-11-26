@@ -17,8 +17,15 @@ return new class extends Migration
         Toyota90915Yzzd1Import::run();
     }
 
+    /**
+     * Retour arrière : retire exactement ce que up() a posé (lignes de même
+     * identité et de même note, anciens numéros et leurs liens), sans toucher
+     * à une ligne modifiée depuis ni à l'article. Vérifié sur une copie de la
+     * production : après retour, part_fitments, oem_numbers et oem_number_part
+     * reviennent à l'identique.
+     */
     public function down(): void
     {
-        // Données de référence : le rejeu est idempotent, aucune suppression.
+        Toyota90915Yzzd1Import::retirer();
     }
 };
