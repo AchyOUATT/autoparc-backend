@@ -89,23 +89,64 @@ revert) si le retour doit durer.
 
 ### 3.2 Schéma et données : `down()` dans l'ordre inverse
 
-Un lot par déploiement ; `php artisan migrate:rollback --force` (Shell
-Render du service, par le propriétaire) annule le dernier lot, **avec le
-code de l'état correspondant**. Ordre : #44 → #43 → #41 → #40 → #42.
+Chaque déploiement crée un lot de migrations. `php artisan migrate:rollback --force` annule le dernier lot. Il doit s'exécuter **avec le code de l'état correspondant**, dans l'ordre #44 → #43 → #41 → #40 → #42.
+
+**Pas de Shell Render** : le service web est sur l'offre gratuite. Le propriétaire lance donc la commande depuis son poste, en deux temps :
+1. récupérer la *External Database URL* (tableau de bord → base → *Connect*) dans un `.env` local, sans la versionner ;
+2. pour chaque état, dans l'ordre : `git checkout <commit de l'état>`, `composer install`, puis `php artisan migrate:rollback --force`.
+
+Les agents n'ont aucun accès en écriture à la production. Faire d'abord le *Rollback* du code (§3.1). Sinon, le prochain démarrage rejoue `migrate --force` et réapplique le lot.
 
 | PR annulée | Effet du `down()` |
 | --- | --- |
-| #44 | 180200 : restaure les motorisations depuis `motorisation_generation_assignments` ; 180100 : restaure les lignes Sienna nues depuis `part_fitment_archives` ; 180000 : supprime ces deux journaux |
-| #43 | supprime les lignes Sienna posées, réactive le modèle nu `sienna` (générations créées : voir la PR) |
-| #41 | sans effet sur les données (référentiel conservé, rejeu idempotent) |
-| #40 | sans effet sur les données (idem) |
-| #42 | supprime `markets`, `oem_number_relations`, les colonnes de critères, de preuve, `verified_by_id`/`verified_on`, `circulation_country` (**données de preuve perdues**) |
+| #44 | 180200 : restaure les motorisations depuis `motorisation_generation_assignments`. 180100 : restaure les lignes Sienna nues depuis `part_fitment_archives`, **avec leur identifiant, leurs colonnes et leurs dates d'origine** (correctif `fix/sienna-retour-arriere-identifiants`, cc1f4f8). 180000 : supprime ces deux journaux. |
+| #43 | supprime les lignes Sienna posées et réactive le modèle nu `sienna` |
+| #41 | supprime ses compatibilités, reconnues à l'identité et aux mêmes notes, et les générations créées qui ne sont référencées nulle part (5e377df) |
+| #40 | supprime ses compatibilités, la relation de remplacement datée de l'import, les lignes de pivot secondaires et les numéros créés s'ils ne servent plus (01cdee2) |
+| #42 | supprime `markets`, `oem_number_relations`, les colonnes de critères et de preuve, et `circulation_country`. **Toute preuve saisie après le déploiement est perdue** : l'exporter avant. |
 
-Rejoué localement sur PostgreSQL (états #42, #40, #41, +#43 `eb4ab09`,
-+#44 `d59dae0`) : les cinq retours passent et le schéma
-revient exactement à celui de `main` (aucune migration en attente). Les
-lignes YZZD1 de #40/#41 restent (sans colonnes de preuve), compatibles avec
-l'ancien code.
+### 3.2 bis Intégrité des données au retour arrière (répétée le 26/11/2026)
+
+**Copie de répétition :**
+- base PostgreSQL 18 locale, chargée depuis un export en lecture seule de la production (`scripts/verification-deploiement/`, sans donnée personnelle) ;
+- schéma et 117 migrations identiques à la production ;
+- tables chargées : catalogue complet, 31 véhicules du parc, 7 du garage, 111 motorisations Sienna et garage.
+
+**Déroulé :**
+1. démarrage de main ;
+2. déploiements successifs, chacun avec `migrate --force` et les 5 seeders comme sur Render ;
+3. après chaque étape : empreintes (`empreintes.sql` : nombre de lignes, md5 du contenu complet et md5 hors `created_at`/`updated_at`, par table, plus md5 du schéma, des contraintes et des index) et contrôle des clés étrangères (`controle_fk.sql`) ;
+4. retours arrière dans l'ordre inverse, chacun avec le code de son état ;
+5. redémarrage de main.
+
+**Nombre de lignes à chaque étape :**
+
+| Table | main | +#42 | +#40 | +#41 | +#43 | +#44 | −#44 | −#43 | −#41 | −#40 | −#42 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| part_fitments | 143 | 143 | 154 | 175 | 181 | 177 | 181 | 175 | 154 | 143 | 143 |
+| vehicle_models | 326 | 326 | 326 | 342 | 345 | 345 | 345 | 342 | 326 | 326 | 326 |
+| oem_numbers / oem_number_part | 52 | 52 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 52 | 52 |
+| oem_number_relations | — | 0 | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 0 | — |
+| markets | — | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | — |
+| part_fitment_archives | — | — | — | — | — | 4 | — | — | — | — | — |
+| motorisation_generation_assignments | — | — | — | — | — | 86 | — | — | — | — | — |
+| motorisations | 111 | 111 | 111 | 111 | 111 | 111 | 111 | 111 | 111 | 111 | 111 |
+
+**Résultat après le retour complet :**
+- Contenu (md5 hors dates) **identique à l'état de départ pour toutes les tables**.
+- Schéma, contraintes et index : identiques.
+- 0 clé étrangère orpheline, à chaque étape.
+- 0 changement de verdict (voir §4 bis).
+- Seul `updated_at` diffère, sur trois tables :
+  - `parts`, touché par les imports ;
+  - `vehicle_models`, à cause de la réactivation de `sienna` ;
+  - `vehicle_check_items`, réécrit par les seeders à **chaque** démarrage, même sans ce chantier.
+
+**Avant les correctifs**, la même répétition laissait :
+- 32 compatibilités, 16 générations, 5 numéros d'origine et 5 lignes de pivot, car les `down()` de #40 et #41 étaient vides ;
+- les 4 lignes Sienna nues restaurées sous de nouveaux identifiants (548–551 au lieu de 340, 456–458).
+
+Pour rejouer : `scripts/verification-deploiement/repetition-chaine.sh` (en-tête : prérequis et variables).
 
 ### 3.3 Restauration complète
 
@@ -175,13 +216,74 @@ API (publique, sans compte) :
   effet voulu de la règle stricte tant qu'aucune preuve n'est posée.
 - `include_inactive=1` fait réapparaître le modèle nu `sienna` désactivé.
 
+## 4 bis. Verdicts avant / après (lecture seule)
+
+Deux scripts, dans `scripts/verification-deploiement/` :
+- `instantane-verdicts.php` évalue, dans une transaction en lecture seule annulée à la fin :
+  - chaque véhicule réel du parc et du garage × chaque pièce qui a des compatibilités ;
+  - des échantillons du catalogue (chaque ligne aux années de début et de fin, avec et sans moteur).
+- `compare-verdicts.php` classe chaque changement selon les règles attendues. Il sort en code 1 si un changement est `NON_ATTENDU`.
+
+Les règles attendues :
+- `preuve_insuffisante` : confirmé → candidat, faute de preuve ;
+- `critere_contredit_exclu` : → exclu, sur un critère contredit ;
+- `modele_inactif` : génération nue désactivée ;
+- `nouvelles_lignes_yzzd1` : ajouts de #40 et #41 ;
+- `referentiel_sienna` ;
+- `modele_nouveau` : échantillon présent d'un seul côté ;
+- `detail_seul` : même verdict, détail différent.
+
+### Procédure
+
+**Juste avant la fusion de #42 :**
+1. Exporter la production en lecture seule : `export-catalogue.sql` → `catalogue.json` et `export-vehicules.sql` → `vehicules.json`, via `query_render_postgres`.
+2. Préparer une base PostgreSQL vide et migrer avec le code de `main` : `php artisan migrate --force`.
+3. Charger l'export : `python3 charger-copie.py <base> catalogue.json vehicules.json`, puis `psql <base> -f controle_fk.sql` (0 attendu).
+4. Prendre l'instantané : `php scripts/verification-deploiement/instantane-verdicts.php avant.json`, avec `DB_*` pointant sur la copie.
+
+   Pour que les échantillons couvrent aussi les générations créées par #41 et #43, passer en second argument l'instantané d'une répétition post-#44 : `instantane-verdicts.php avant.json repetition-pr44.json`.
+
+**Après le déploiement de #44 :**
+1. Ré-exporter. Décommenter dans `export-catalogue.sql` les quatre tables nouvelles, et ajouter `circulation_country` dans `export-vehicules.sql`.
+2. Préparer une base vide migrée avec le **code déployé**, puis la charger.
+3. Prendre l'instantané : `php instantane-verdicts.php apres.json avant.json`, pour réutiliser les mêmes échantillons.
+4. Comparer : `php compare-verdicts.php avant.json apres.json ecarts.csv`. Le code de sortie doit être 0. Lire le CSV.
+
+Les deux instantanés portent le commit et le nombre de migrations dans `meta`. Aucune écriture n'a lieu en production. Les instantanés ne contiennent ni VIN ni plaque.
+
+### Résultat sur la copie (main → +#44)
+
+793 changements, 0 `NON_ATTENDU`.
+
+| Portée | Changement | Règle | Nombre |
+|---|---|---|---|
+| parc | confirmé → candidat | preuve_insuffisante | 5 |
+| parc | inconnu → exclu (année) | critere_contredit_exclu | 4 |
+| garage | inconnu → exclu (année) | critere_contredit_exclu | 7 |
+| parc / garage | candidat → candidat (détail) | detail_seul | 7 / 2 |
+| catalogue | confirmé → candidat | preuve_insuffisante | 220 |
+| catalogue | inconnu → exclu | critere_contredit_exclu | 187 |
+| catalogue | candidat / confirmé → inconnu | modele_inactif | 7 / 7 |
+| catalogue | inconnu → candidat / confirmé | nouvelles_lignes_yzzd1 | 24 / 18 |
+| catalogue | générations nouvelles | modele_nouveau | 104 |
+| catalogue | candidat → candidat (détail) | detail_seul | 201 |
+
+Les 5 couples du parc qui passent de « confirmé » à « candidat » :
+
+| Véhicule du parc | Modèle | Année | Pièce | Ligne |
+|---|---|---|---|---|
+| 86 | CX-9 TC | 2018 | PE01-18-221 | 509 |
+| 111 | CX-5 KF | 2018 | PE01-18-221 | 507 |
+| 111 | CX-5 KF | 2018 | PE02-18-211 | 494 |
+| 113 | CX-5 KF | 2019 | PE01-18-221 | 507 |
+| 113 | CX-5 KF | 2019 | PE02-18-211 | 494 |
+
+Après le retour arrière complet : 0 changement.
+
 ## 5. Points ouverts au 26/11/2026
 
-- Règle stricte : en production, 0 des 143 compatibilités existantes n'a
-  de preuve structurée ; les 5 couples réels aujourd'hui « confirmés »
-  (parc) passeront « non déterminés » après #42. Décision du propriétaire.
-- #43 : les 6 lignes Sienna sont posées sans `evidence_level` /
-  `evidence_sources` ; le test `ToyotaSiennaReferentielImportTest::test_api_positifs_et_negatifs_par_generation`
-  attend `confirmed` et échoue sur l'état +#43. Il faut que #43 pose la
-  preuve structurée (même mécanique que la migration 202000 de #41) avant
-  fusion.
+- **Règle stricte, acceptée par le propriétaire.** Aucune des 143 compatibilités de production n'a de preuve structurée. Les 5 couples réels « confirmés » du parc passent à « candidat » (§4 bis). Leur qualification est un chantier séparé : PR #47, `docs/qualification-preuves/`.
+- **#43 et #44 doivent intégrer les correctifs de retour arrière** avant fusion :
+  - fusionner #41 (5e377df) ;
+  - reprendre cc1f4f8 de `fix/sienna-retour-arriere-identifiants` (identifiants d'origine des lignes Sienna restaurées).
+- **Exclusion de l'échec connu `seasonal`** (contrainte `vehicle_check_items`) : il est traité à part ; le job PostgreSQL l'exclut nommément et le rejoue à part.
