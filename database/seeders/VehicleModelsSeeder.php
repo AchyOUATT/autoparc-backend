@@ -312,6 +312,47 @@ class VehicleModelsSeeder extends Seeder
         ['CX-50', 'VA', 'suv', 'C', 2022, null],
     ];
 
+    /**
+     * Generations anciennes Toyota et Lexus, posees pour recevoir les
+     * applications du filtre a huile 90915-YZZD1 (decision du proprietaire,
+     * 26/11/2026 : « Ajoute ces modeles »).
+     *
+     * Bornes = annees de PRODUCTION (Wikipedia anglais, consulte le
+     * 26/11/2026), comme les autres lignes Lexus de ce fichier ; marche
+     * nord-americain quand plusieurs usines different. Chaque generation se
+     * termine au plus tard l'annee ou commence la ligne suivante du meme
+     * modele deja au referentiel (`avalon` 2005, `highlander` 2008,
+     * `es-xv40` 2006, `gs-s190` 2005, `is-xe20` 2005, `rx-xu30` 2003) :
+     * aucun chevauchement, et les lignes nues existantes ne sont pas touchees.
+     *
+     * LA SIENNA XL20 (2003-2009) N'EST PAS ICI : elle chevaucherait la ligne
+     * nue `sienna` (2007-ouvert), dont il faudrait d'abord vider les bornes
+     * comme pour le Tacoma — une decision du proprietaire, pas de ce lot.
+     *
+     * Le Tundra prend un chiffre romain, comme le Tacoma : Toyota lui donne
+     * un JEU de codes (VCK30/40, UCK30/40, GSK30), pas un code unique.
+     *
+     * @var list<array{0: string, 1: string, 2: string, 3: string, 4: string, 5: int, 6: int}>
+     */
+    public const GENERATIONS_FILTRE_YZZD1 = [
+        ['toyota', 'Camry',      'XV30', 'berline',   'D', 2001, 2006],
+        ['toyota', 'Avalon',     'XX10', 'berline',   'E', 1994, 1999],
+        ['toyota', 'Avalon',     'XX20', 'berline',   'E', 1999, 2004],
+        ['toyota', 'Highlander', 'XU20', 'suv',       'E', 2000, 2007],
+        ['toyota', 'Sienna',     'XL10', 'monospace', 'E', 1997, 2002],
+        ['toyota', '4Runner',    'N180', 'suv',       'E', 1995, 2002],
+        ['toyota', '4Runner',    'N280', 'suv',       'E', 2009, 2024],
+        ['toyota', 'Tundra',     'I',    'pick-up',   'E', 1999, 2006],
+        ['toyota', 'Solara',     'XV20', 'coupe',     'D', 1998, 2003],
+        ['toyota', 'Solara',     'XV30', 'coupe',     'D', 2003, 2008],
+        ['toyota', 'Supra',      'A80',  'coupe',     'D', 1993, 2002],
+        ['lexus',  'ES',         'XV20', 'berline',   'E', 1996, 2001],
+        ['lexus',  'ES',         'XV30', 'berline',   'E', 2001, 2006],
+        ['lexus',  'GS',         'S160', 'berline',   'E', 1997, 2004],
+        ['lexus',  'IS',         'XE10', 'berline',   'D', 1999, 2005],
+        ['lexus',  'RX',         'XU10', 'suv',       'E', 1998, 2003],
+    ];
+
     public const GENERATIONS_VENZA = [
         // La carrosserie et le segment sont ceux que portait la ligne nue, et
         // ils ne sont pas re-decides ici : ce lot pose une structure, il ne
@@ -950,6 +991,10 @@ class VehicleModelsSeeder extends Seeder
         // production lit cette constante, et il n'y a donc qu'une definition.
         foreach (self::GENERATIONS_VENZA as [$nom, $gen, $carrosserie, $segment, $de, $a]) {
             $models[] = ['toyota', $nom, $gen, $carrosserie, $segment, $de, $a];
+        }
+
+        foreach (self::GENERATIONS_FILTRE_YZZD1 as [$marque, $nom, $gen, $carrosserie, $segment, $de, $a]) {
+            $models[] = [$marque, $nom, $gen, $carrosserie, $segment, $de, $a];
         }
 
         foreach (self::GENERATIONS_MAZDA_CX as [$nom, $gen, $carrosserie, $segment, $de, $a]) {
