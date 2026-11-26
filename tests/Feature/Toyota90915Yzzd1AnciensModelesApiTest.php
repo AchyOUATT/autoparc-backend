@@ -121,8 +121,12 @@ class Toyota90915Yzzd1AnciensModelesApiTest extends TestCase
                 ->assertJsonPath('data.0.status', 'confirmed');
         }
 
+        // Un moteur connu et différent exclut la pièce (verdict `excluded`,
+        // jamais compatible) depuis le moteur à trois verdicts (#42).
         $vehicule->update(['engine_code' => '2AZ-FE']);
         $this->actingAsClient($client)->getJson($url)->assertOk()
-            ->assertJsonPath('data.0.status', 'unknown');
+            ->assertJsonPath('data.0.status', 'excluded')
+            ->assertJsonPath('data.0.compatible', false)
+            ->assertJsonPath('data.0.excluded_criteria', ['engine_code']);
     }
 }

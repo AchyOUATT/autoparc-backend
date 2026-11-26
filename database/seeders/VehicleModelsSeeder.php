@@ -336,7 +336,7 @@ class VehicleModelsSeeder extends Seeder
      * annee-la. Elle n'est pas rognee ; le vehicule enregistre porte sa
      * generation, choisie explicitement.
      *
-     * LA SIENNA XL20 (2003-2009) N'EST PAS ICI : elle est posee avec XL30 et
+     * LA SIENNA XL20 (2003-2010) N'EST PAS ICI : elle est posee avec XL30 et
      * XL40 par `GENERATIONS_SIENNA`, qui rend la ligne nue `sienna` inactive.
      *
      * Le Tundra prend un chiffre romain, comme le Tacoma : Toyota lui donne
@@ -444,14 +444,17 @@ class VehicleModelsSeeder extends Seeder
      *
      * Bornes = annees civiles de FABRICATION lues dans l'EPC Toyota, marche
      * USA (toyota-epc.aftermarketcatalog.com/vehicle/US/<catalogue>/info) :
-     *  - XL20 : catalogue 622420, 01/2003 - 12/2009, chassis MCL20/23/25
-     *    (3MZ-FE, jusqu'en 12/2006) puis GSL20/23/25 (2GR-FE, des 12/2006) ;
-     *  - XL30 : catalogue 622430, 01/2010 - 09/2020, chassis ASL30 (1AR-FE)
-     *    et GSL30/33/35 (2GR-FE puis 2GR-FKS) ;
+     *  - XL20 : catalogue 622420. Le bandeau du catalogue indique
+     *    01/2003-12/2009, mais les variantes precises le mois de fin :
+     *    MCL20/23/25 (3MZ-FE) jusqu'en 12/2006, puis GSL20/23/25 (2GR-FE)
+     *    de 12/2006 a 01/2010 inclus. La borne haute retenue est donc 2010 ;
+     *  - XL30 : catalogue 622430, 01/2010 - 09/2020, chassis ASL30 (1AR-FE,
+     *    des 05/2010) et GSL30/33/35 (2GR-FE des 01/2010, puis 2GR-FKS) ;
      *  - XL40 : catalogue 622440, 11/2020 - ouvert, chassis AXLH40/45
      *    (A25A-FXS hybride).
-     * Wikipedia (« Toyota Sienna ») ne sert que de recoupement. 2020 est une
-     * annee partagee reelle (XL30 jusqu'en 09/2020, XL40 des 11/2020).
+     * Wikipedia (« Toyota Sienna ») ne sert que de recoupement. 2010 et 2020
+     * sont des annees partagees reelles : GSL2# et GSL3# coexistent en
+     * 01/2010 ; XL30 va jusqu'en 09/2020, XL40 des 11/2020.
      *
      * Carrosserie et segment : ceux de la ligne nue, non re-decides ici.
      * La migration `2026_11_26_170000_donner_ses_generations_a_la_sienna` lit
@@ -460,7 +463,7 @@ class VehicleModelsSeeder extends Seeder
      * @var list<array{0: string, 1: string, 2: string, 3: string, 4: int, 5: ?int}>
      */
     public const GENERATIONS_SIENNA = [
-        ['Sienna', 'XL20', 'monospace', 'E', 2003, 2009],
+        ['Sienna', 'XL20', 'monospace', 'E', 2003, 2010],
         ['Sienna', 'XL30', 'monospace', 'E', 2010, 2020],
         ['Sienna', 'XL40', 'monospace', 'E', 2020, null],
     ];
@@ -621,7 +624,7 @@ class VehicleModelsSeeder extends Seeder
             ['mitsubishi', 'Outlander',   'GF',   'suv',     'D', 2012, null],
             ['mitsubishi', 'ASX',         'GA',   'suv',     'C', 2010, null],
             ['mitsubishi', 'Pajero',      'V80',  'suv',     'E', 2006, null],
-            ['mitsubishi', 'Pajero Sport','QF',   'suv',     'D', 2015, null],
+            ['mitsubishi', 'Pajero Sport', 'QF',   'suv',     'D', 2015, null],
             ['mitsubishi', 'Eclipse Cross', 'GK/GL', 'suv',     'C', 2017, null],
             ['mitsubishi', 'L200',        'KL',   'pick-up', 'D', 2015, null],
             ['mitsubishi', 'L200',        'KB',   'pick-up', 'D', 2005, 2015],
@@ -630,8 +633,8 @@ class VehicleModelsSeeder extends Seeder
             ['suzuki', 'Alto',          null,  'citadine',  'A', 2015, null],
             ['suzuki', 'Swift',         'AZG', 'citadine',  'B', 2017, null],
             ['suzuki', 'Swift',         'ZC7', 'citadine',  'B', 2011, 2017],
-            ['suzuki', 'Jimny',         'JB74','tout-terrain','B', 2018, null],
-            ['suzuki', 'Jimny',         'JB43','tout-terrain','B', 1998, 2018],
+            ['suzuki', 'Jimny',         'JB74', 'tout-terrain', 'B', 2018, null],
+            ['suzuki', 'Jimny',         'JB43', 'tout-terrain', 'B', 1998, 2018],
             ['suzuki', 'Vitara',        'LY',  'suv',       'B', 2015, null],
             ['suzuki', 'Ertiga',        null,  'monospace', 'B', 2012, null],
             ['suzuki', 'S-Cross',       null,  'suv',       'C', 2013, null],
@@ -667,7 +670,7 @@ class VehicleModelsSeeder extends Seeder
             ['peugeot', '2008',      null,  'suv',       'B', 2013, null],
             ['peugeot', '3008',      null,  'suv',       'C', 2016, null],
             ['peugeot', '5008',      null,  'suv',       'D', 2017, null],
-            ['peugeot', 'Partner',   null,  'utilitaire','C', 2008, null],
+            ['peugeot', 'Partner',   null,  'utilitaire', 'C', 2008, null],
 
             // ─── RENAULT ───────────────────────────────────────────────
             ['renault', 'Clio',      'IV',  'citadine',  'B', 2012, 2019],
@@ -712,13 +715,13 @@ class VehicleModelsSeeder extends Seeder
 
             // ─── VOLKSWAGEN ────────────────────────────────────────────
             ['volkswagen', 'Polo',   'AW',  'citadine',  'B', 2017, null],
-            ['volkswagen', 'Golf',   'VIII','compacte',  'C', 2019, null],
+            ['volkswagen', 'Golf',   'VIII', 'compacte',  'C', 2019, null],
             ['volkswagen', 'Golf',   'VII', 'compacte',  'C', 2012, 2019],
             ['volkswagen', 'Passat', 'B8',  'berline',   'D', 2014, null],
             ['volkswagen', 'Tiguan', 'AD',  'suv',       'C', 2016, null],
             ['volkswagen', 'T-Roc',  null,  'suv',       'B', 2017, null],
             ['volkswagen', 'Amarok', null,  'pick-up',   'D', 2010, null],
-            ['volkswagen', 'Touareg','CR7', 'suv',       'E', 2018, null],
+            ['volkswagen', 'Touareg', 'CR7', 'suv',       'E', 2018, null],
 
             // ─── MERCEDES-BENZ ─────────────────────────────────────────
             ['mercedes-benz', 'Classe C', 'W205', 'berline', 'D', 2014, null],
@@ -728,8 +731,8 @@ class VehicleModelsSeeder extends Seeder
             ['mercedes-benz', 'GLC',      'X253', 'suv',     'D', 2015, null],
             ['mercedes-benz', 'GLE',      'W167', 'suv',     'E', 2018, null],
             ['mercedes-benz', 'ML / GLE', 'W166', 'suv',     'E', 2011, 2018],
-            ['mercedes-benz', 'Sprinter', null,   'utilitaire','F', 2006, null],
-            ['mercedes-benz', 'Vito',     'W447', 'utilitaire','D', 2014, null],
+            ['mercedes-benz', 'Sprinter', null,   'utilitaire', 'F', 2006, null],
+            ['mercedes-benz', 'Vito',     'W447', 'utilitaire', 'D', 2014, null],
 
             // ─── POIDS LOURDS ──────────────────────────────────────────
             // Familles sans génération ni dates de production non documentées.
@@ -826,15 +829,15 @@ class VehicleModelsSeeder extends Seeder
             ['ford', 'Explorer',    'U625', 'suv',       'E', 2019, null],
 
             // ─── CHEVROLET ─────────────────────────────────────────────
-            ['chevrolet', 'Spark',   'M300','citadine',  'A', 2009, 2015],
+            ['chevrolet', 'Spark',   'M300', 'citadine',  'A', 2009, 2015],
             ['chevrolet', 'Aveo',    'T300',  'berline',   'B', 2011, 2016],
-            ['chevrolet', 'Cruze',   'J300','berline',   'C', 2009, 2016],
+            ['chevrolet', 'Cruze',   'J300', 'berline',   'C', 2009, 2016],
             ['chevrolet', 'Captiva', null,  'suv',       'D', 2006, 2018],
-            ['chevrolet', 'Trailblazer', 'RG','suv',     'D', 2012, null],
+            ['chevrolet', 'Trailblazer', 'RG', 'suv',     'D', 2012, null],
 
             // ─── JEEP ──────────────────────────────────────────────────
-            ['jeep', 'Wrangler',    'JL',   'tout-terrain','D', 2018, null],
-            ['jeep', 'Grand Cherokee','WK2','suv',       'E', 2010, 2021],
+            ['jeep', 'Wrangler',    'JL',   'tout-terrain', 'D', 2018, null],
+            ['jeep', 'Grand Cherokee', 'WK2', 'suv',       'E', 2010, 2021],
             ['jeep', 'Cherokee',    'KL',   'suv',       'D', 2013, null],
             ['jeep', 'Compass',     'MP',   'suv',       'C', 2017, null],
 
@@ -842,8 +845,8 @@ class VehicleModelsSeeder extends Seeder
             ['land-rover', 'Discovery',       'L462', 'suv',   'F', 2016, null],
             ['land-rover', 'Discovery Sport', 'L550', 'suv',   'D', 2014, null],
             ['land-rover', 'Range Rover',     'L405', 'suv',   'F', 2012, null],
-            ['land-rover', 'Range Rover Sport','L494','suv',   'E', 2013, null],
-            ['land-rover', 'Defender',        'L663', 'tout-terrain','E', 2019, null],
+            ['land-rover', 'Range Rover Sport', 'L494', 'suv',   'E', 2013, null],
+            ['land-rover', 'Defender',        'L663', 'tout-terrain', 'E', 2019, null],
 
             // ─── ISUZU ─────────────────────────────────────────────────
             ['isuzu', 'D-Max',      'TFR',  'pick-up',   'D', 2012, null],
@@ -968,7 +971,7 @@ class VehicleModelsSeeder extends Seeder
             ['citroen', 'Berlingo',    'K9',  'monospace', 'C', 2018, null],
             ['citroen', 'Berlingo',    'B9',  'monospace', 'C', 2008, 2018],
             ['citroen', 'C5 Aircross', null,  'suv',       'D', 2018, null],
-            ['citroen', 'Jumper',      null,  'utilitaire','—', 2006, null],
+            ['citroen', 'Jumper',      null,  'utilitaire', '—', 2006, null],
 
             // ─── OPEL ──────────────────────────────────────────────────
             ['opel', 'Corsa',  'F',   'citadine', 'B', 2019, null],
@@ -978,11 +981,11 @@ class VehicleModelsSeeder extends Seeder
             ['opel', 'Astra',  'J',   'compacte', 'C', 2009, 2015],
             ['opel', 'Mokka',  'B',   'suv',      'B', 2020, null],
             ['opel', 'Mokka',  'A',   'suv',      'B', 2012, 2019],
-            ['opel', 'Zafira', 'C',   'monospace','C', 2011, 2019],
-            ['opel', 'Zafira', 'B',   'monospace','C', 2005, 2011],
+            ['opel', 'Zafira', 'C',   'monospace', 'C', 2011, 2019],
+            ['opel', 'Zafira', 'B',   'monospace', 'C', 2005, 2011],
             // Le Zafira Life est un utilitaire derive du Vivaro, sans rapport de
             // pieces avec le monospace Zafira : deux lignes distinctes.
-            ['opel', 'Zafira Life', 'K0', 'monospace','C', 2019, null],
+            ['opel', 'Zafira Life', 'K0', 'monospace', 'C', 2019, null],
 
             // ─── FIAT ──────────────────────────────────────────────────
             ['fiat', '500',    'Type 312',  'citadine',  'A', 2007, null],
@@ -995,7 +998,7 @@ class VehicleModelsSeeder extends Seeder
             // des references thermiques a une electrique.
             ['fiat', '500e',   '332',  'citadine',  'A', 2020, null],
             ['fiat', 'Doblo',  'II',  'monospace', 'C', 2010, 2022],
-            ['fiat', 'Ducato', null,  'utilitaire','—', 2006, null],
+            ['fiat', 'Ducato', null,  'utilitaire', '—', 2006, null],
 
             // ─── SSANGYONG ─────────────────────────────────────────────
             ['ssangyong', 'Korando', 'C300', 'suv',     'C', 2019, null],
@@ -1059,7 +1062,7 @@ class VehicleModelsSeeder extends Seeder
 
             // Un même modèle peut avoir plusieurs générations — slug inclut la génération
             $slug = self::SLUGS_HISTORIQUES[$brandSlug.'|'.$name.'|'.($generation ?? '')]
-                ?? Str::slug($name . ($generation ? '-' . $generation : ''));
+                ?? Str::slug($name.($generation ? '-'.$generation : ''));
 
             // Un slug nu dont les generations ont ete posees sort des listes
             // de selection, et sa ligne reste. Le drapeau est calcule ici et
@@ -1080,13 +1083,13 @@ class VehicleModelsSeeder extends Seeder
             $actif = ! in_array($slug, self::SLUGS_NUS_DESACTIVES, true);
 
             $attributes = [
-                'name'             => $name,
-                'generation'       => $generation,
-                'body_type'        => $bodyType,
-                'segment'          => $segment,
+                'name' => $name,
+                'generation' => $generation,
+                'body_type' => $bodyType,
+                'segment' => $segment,
                 'production_start' => $yearStart,
-                'production_end'   => $yearEnd,
-                'is_active'        => $actif,
+                'production_end' => $yearEnd,
+                'is_active' => $actif,
                 ...($bodyType === 'truck' ? ['default_vehicle_type' => 'heavy'] : []),
             ];
             $aliases = $brandSlug === 'kia'
@@ -1097,8 +1100,8 @@ class VehicleModelsSeeder extends Seeder
             }
 
             ReferenceCatalogWriter::upsert('vehicle_models', [
-                'brand_id'         => $brandId,
-                'slug'             => $slug,
+                'brand_id' => $brandId,
+                'slug' => $slug,
             ], $attributes);
         }
 

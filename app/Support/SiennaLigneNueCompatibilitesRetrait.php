@@ -40,10 +40,10 @@ final class SiennaLigneNueCompatibilitesRetrait
             [
                 'sku' => '04152-YZZA1', 'engine_code' => '2GR-FE', 'year_from' => 2007, 'year_to' => 2016,
                 'replaced_by' => [
-                    ['model_slug' => 'sienna-xl20', 'year_from' => 2006, 'year_to' => 2009],
+                    ['model_slug' => 'sienna-xl20', 'year_from' => 2006, 'year_to' => 2010],
                     ['model_slug' => 'sienna-xl30', 'year_from' => 2010, 'year_to' => 2016],
                 ],
-                'reason' => 'À cheval sur XL20 et XL30 : l\'EPC sépare GSL2# (12/2006-12/2009, catalogue 622420) et GSL3# (01/2010-08/2016, catalogue 622430).',
+                'reason' => 'À cheval sur XL20 et XL30 : l\'EPC sépare GSL2# (12/2006-01/2010, catalogue 622420, variantes) et GSL3# (01/2010-08/2016, catalogue 622430) ; janvier 2010 est partagé.',
             ],
             [
                 'sku' => '04152-YZZA1', 'engine_code' => '1AR-FE', 'year_from' => 2011, 'year_to' => 2013,

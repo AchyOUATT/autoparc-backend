@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\OemNumber;
+use App\Models\OemNumberFitment;
+use App\Models\PartFitment;
 use App\Models\OwnedVehicle;
 use App\Models\Part;
 use App\Models\PartCategory;
@@ -22,8 +24,47 @@ use Illuminate\Database\Eloquent\Collection;
  */
 class CompatibilityService
 {
+    public function __construct(private readonly FitmentRestrictions $restrictions = new FitmentRestrictions()) {}
+
+    /**
+     * Restreint une requete de pieces aux lignes de compatibilite non exclues
+     * par les criteres restrictifs (chassis, marche, mois). Les lignes « a
+     * verifier » restent : elles sortent en candidates.
+     */
+    private function whereFitmentsMatch(Builder $q, \Closure $apply, array $criteria): void
+    {
+        $modelId = isset($criteria['vehicle_model_id']) ? (int) $criteria['vehicle_model_id'] : null;
+
+        // Modele inactif : absent des recherches courantes (include_inactive
+        // pour la consultation historique).
+        if (! app(PartCompatibilityAssessment::class)->modelIsSearchable($criteria)) {
+            $q->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $dropPart = $this->restrictions->idsToDrop(PartFitment::class, $modelId, $criteria, 'excluded');
+        $dropOem = $this->restrictions->idsToDrop(OemNumberFitment::class, $modelId, $criteria, 'excluded');
+
+        $q->whereHas('fitments', function ($f) use ($apply, $dropPart) {
+            $apply($f);
+            if ($dropPart !== []) {
+                $f->whereNotIn('part_fitments.id', $dropPart);
+            }
+        })->orWhereHas('oemNumbers', function ($oem) use ($apply, $dropOem) {
+            // Un numero remplace ne transmet pas ses compatibilites.
+            \App\Support\OemFitmentInheritance::constrain($oem);
+            $oem->whereHas('fitments', function ($f) use ($apply, $dropOem) {
+                $apply($f);
+                if ($dropOem !== []) {
+                    $f->whereNotIn('oem_number_fitments.id', $dropOem);
+                }
+            });
+        });
+    }
+
     /** Pieces compatibles avec un vehicule precis du parc. */
-    public function partsForVehicle(Vehicle $vehicle, array $filters = []): Builder
+    public function partsForVehicle(Vehicle $vehicle, array $filters = [], bool $includeInactive = false): Builder
     {
         if ($vehicle->vehicle_model_id === null) {
             return Part::query()->whereRaw('1 = 0');
@@ -31,9 +72,12 @@ class CompatibilityService
 
         $query = Part::query()
             ->with(['category', 'manufacturer', 'oemNumbers'])
-            ->where(function (Builder $q) use ($vehicle) {
-                $q->whereHas('fitments', fn ($f) => $this->applyVehicleCriteria($f, $vehicle))
-                  ->orWhereHas('oemNumbers.fitments', fn ($f) => $this->applyVehicleCriteria($f, $vehicle));
+            ->where(function (Builder $q) use ($vehicle, $includeInactive) {
+                $this->whereFitmentsMatch(
+                    $q,
+                    fn ($f) => $this->applyVehicleCriteria($f, $vehicle),
+                    $this->vehicleCriteria($vehicle) + ['include_inactive' => $includeInactive],
+                );
             });
 
         // Les pieces sont rattachees aux feuilles de l'arbre : un filtre pose
@@ -71,9 +115,21 @@ class CompatibilityService
         ?int $trimId = null,
         ?int $engineTypeId = null,
         ?int $drivetrainId = null,
-        ?string $engineCode = null
+        ?string $engineCode = null,
+        ?string $chassisCode = null,
+        ?string $specificationMarket = null,
+        ?int $month = null,
+        bool $includeInactive = false,
     ): Builder {
         $engineCode = EngineCode::forCompatibility($engineCode);
+        $criteria = [
+            'vehicle_model_id' => $vehicleModelId,
+            'year' => $year,
+            'month' => $month,
+            'chassis_code' => $chassisCode,
+            'specification_market' => $specificationMarket,
+            'include_inactive' => $includeInactive,
+        ];
 
         $apply = function (Builder $f) use ($vehicleModelId, $year, $trimId, $engineTypeId, $drivetrainId, $engineCode) {
             $f->where('vehicle_model_id', $vehicleModelId);
@@ -106,9 +162,8 @@ class CompatibilityService
 
         return Part::query()
             ->with(['category', 'manufacturer', 'oemNumbers'])
-            ->where(function (Builder $q) use ($apply) {
-                $q->whereHas('fitments', $apply)
-                  ->orWhereHas('oemNumbers.fitments', $apply);
+            ->where(function (Builder $q) use ($apply, $criteria) {
+                $this->whereFitmentsMatch($q, $apply, $criteria);
             })
             ->active();
     }
@@ -119,7 +174,7 @@ class CompatibilityService
      * configuration constatée du véhicule. Seules les valeurs explicites
      * réduisent la recherche ; les contraintes inconnues restent à vérifier.
      */
-    public function partsForOwnedVehicle(OwnedVehicle $vehicle, array $filters = []): Builder
+    public function partsForOwnedVehicle(OwnedVehicle $vehicle, array $filters = [], bool $includeInactive = false): Builder
     {
         // Sans modele au referentiel, rien a comparer : les compatibilites sont
         // declarees par modele. On rend une requete vide plutot que de laisser
@@ -140,6 +195,10 @@ class CompatibilityService
             $vehicle->engine_type_id,
             $vehicle->drivetrain_id,
             $vehicle->effective_engine_code,   // null si absent — pas de filtrage supplementaire
+            $vehicle->effective_chassis_code,
+            $vehicle->specification_market,
+            $vehicle->manufacturing_month,
+            $includeInactive,
         );
 
         if (! empty($filters['category_id'])) {
@@ -166,6 +225,9 @@ class CompatibilityService
             'engine_type_id' => $vehicle->engine_type_id,
             'drivetrain_id' => $vehicle->drivetrain_id,
             'engine_code' => $vehicle->effective_engine_code,
+            'month' => $vehicle->manufacturing_month,
+            'chassis_code' => $vehicle->effective_chassis_code,
+            'specification_market' => $vehicle->specification_market,
         ];
     }
 
@@ -178,11 +240,15 @@ class CompatibilityService
             'engine_type_id' => $vehicle->engine_type_id,
             'drivetrain_id' => $vehicle->drivetrain_id,
             'engine_code' => EngineCode::forCompatibility($vehicle->engine_code),
+            'month' => $vehicle->manufacturing_month,
+            'chassis_code' => \App\Support\ChassisCode::normalize($vehicle->chassis_code)
+                ?? \App\Support\ChassisCode::fromFrameNumber($vehicle->vin),
+            'specification_market' => $vehicle->specification_market,
         ];
     }
 
     /** Vehicules du parc compatibles avec un numero OEM saisi. */
-    public function vehiclesForOem(string $oemNumber): Collection
+    public function vehiclesForOem(string $oemNumber, bool $includeInactive = false): Collection
     {
         $normalized = OemNumber::normalize($oemNumber);
 
@@ -199,6 +265,10 @@ class CompatibilityService
         $oem = $oem->currentReference()->loadMissing('fitments');
 
         $query = Vehicle::query()->with(['brand', 'vehicleModel', 'trim', 'engineType']);
+
+        if (! $includeInactive) {
+            $query->whereHas('vehicleModel', fn ($m) => $m->where('is_active', true));
+        }
 
         $query->where(function (Builder $q) use ($oem) {
             foreach ($oem->fitments as $fitment) {
@@ -242,11 +312,45 @@ class CompatibilityService
             }
         });
 
-        return $query->get();
+        // Chassis, marche, mois : meme exigence que le reste de cette methode,
+        // qui ne garde que les vehicules dont chaque critere est etabli.
+        $restreintes = $oem->fitments->filter(fn ($f) => FitmentRestrictions::isRestricted($f));
+        if ($restreintes->isEmpty()) {
+            return $query->get();
+        }
+
+        return $query->get()->filter(function (Vehicle $vehicle) use ($oem) {
+            $criteres = $this->vehicleCriteria($vehicle);
+            foreach ($oem->fitments as $fitment) {
+                if ((int) $fitment->vehicle_model_id !== (int) $vehicle->vehicle_model_id) {
+                    continue;
+                }
+                // Memes criteres que la requete ci-dessus, pour juger la ligne
+                // qui a effectivement retenu le vehicule.
+                foreach (['trim_id', 'engine_type_id', 'drivetrain_id'] as $champ) {
+                    if ($fitment->{$champ} && (int) $fitment->{$champ} !== (int) $vehicle->{$champ}) {
+                        continue 2;
+                    }
+                }
+                $code = EngineCode::normalize($fitment->engine_code);
+                if ($code !== null && $code !== EngineCode::normalize($vehicle->engine_code)) {
+                    continue;
+                }
+                if (($fitment->year_from || $fitment->year_to)
+                    && ($vehicle->manufacturing_year === null || ! $fitment->coversYear((int) $vehicle->manufacturing_year))) {
+                    continue;
+                }
+                if ($this->restrictions->evaluate($fitment, $criteres) === []) {
+                    return true;
+                }
+            }
+
+            return false;
+        })->values();
     }
 
     /** Modeles couverts par un numero OEM (catalogue, hors parc). */
-    public function modelsForOem(string $oemNumber): Collection
+    public function modelsForOem(string $oemNumber, bool $includeInactive = false): Collection
     {
         $normalized = OemNumber::normalize($oemNumber);
 
@@ -258,7 +362,9 @@ class CompatibilityService
 
         $modelIds = $oem->currentReference()->fitments()->pluck('vehicle_model_id')->unique();
 
-        return VehicleModel::with('brand')->whereIn('id', $modelIds)->get();
+        return VehicleModel::with('brand')->whereIn('id', $modelIds)
+            ->when(! $includeInactive, fn ($q) => $q->where('is_active', true))
+            ->get();
     }
 
     /** Equivalences : autres references OEM couvertes par les memes pieces. */
@@ -274,7 +380,9 @@ class CompatibilityService
 
         $partIds = $oem->parts()->pluck('parts.id');
 
-        return OemNumber::with('brand')
+        // Les liens qualifiés (nature + preuve du REMPLACEMENT) accompagnent
+        // chaque référence croisée ; ils ne valent jamais compatibilité.
+        return OemNumber::with(['brand', 'replacementRelations.to'])
             ->whereHas('parts', fn ($p) => $p->whereIn('parts.id', $partIds))
             ->where('id', '!=', $oem->id)
             ->get();

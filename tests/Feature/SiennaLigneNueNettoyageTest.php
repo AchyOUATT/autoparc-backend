@@ -120,7 +120,7 @@ class SiennaLigneNueNettoyageTest extends TestCase
         $this->assertCount(4, $archives);
         $parCle = $archives->keyBy('fitment_key');
         $this->assertSame(
-            ['04152-YZZA1|sienna-xl20|2GR-FE|2006-2009', '04152-YZZA1|sienna-xl30|2GR-FE|2010-2016'],
+            ['04152-YZZA1|sienna-xl20|2GR-FE|2006-2010', '04152-YZZA1|sienna-xl30|2GR-FE|2010-2016'],
             json_decode($parCle['04152-YZZA1|sienna|2GR-FE|2007-2016']->replaced_by, true),
         );
         $this->assertSame(['04152-YZZA1|sienna-xl30|1AR-FE|2010-2013'], json_decode($parCle['04152-YZZA1|sienna|1AR-FE|2011-2013']->replaced_by, true));
@@ -199,25 +199,24 @@ class SiennaLigneNueNettoyageTest extends TestCase
 
     // ── Motorisations de la ligne nue ────────────────────────────────────────
 
-    public function test_les_86_cotes_de_production_donnent_84_reattribuees_et_2_ambigues(): void
+    public function test_les_86_cotes_de_production_sont_toutes_reattribuees(): void
     {
         $rapport = SiennaMotorisationsReattribution::run();
 
-        $this->assertSame(84, $rapport['reassigned']);
-        $this->assertSame(2, $rapport['ambiguous']);
+        $this->assertSame(86, $rapport['reassigned']);
+        $this->assertSame(0, $rapport['ambiguous']);
         $this->assertSame(0, $rapport['not_reassigned']);
         $this->assertSame([], $rapport['skipped_missing_generation']);
-
-        // Les deux ambiguës : 2010, boîte 5 rapports, nature de l'année inconnue.
-        $this->assertEqualsCanonicalizing([$this->cotes[24780], $this->cotes[24781]], $rapport['ambiguous_ids']);
-        $this->assertSame(2, Motorisation::where('vehicle_model_id', $this->nue->id)->count());
+        $this->assertSame([], $rapport['ambiguous_ids']);
+        $this->assertSame(0, Motorisation::where('vehicle_model_id', $this->nue->id)->count());
 
         $parGeneration = Motorisation::query()->join('vehicle_models', 'vehicle_models.id', '=', 'motorisations.vehicle_model_id')
             ->selectRaw('vehicle_models.slug as slug, count(*) as n')->groupBy('vehicle_models.slug')->pluck('n', 'slug')->map(fn ($n) => (int) $n)->all();
         ksort($parGeneration);
-        // XL20 : 2007-2009 ×4 + 2010 ×2 (année-modèle) ; XL30 : 2011-2020 ;
-        // XL40 : 2021-2026.
-        $this->assertSame(['sienna' => 2, 'sienna-xl20' => 14, 'sienna-xl30' => 46, 'sienna-xl40' => 24], $parGeneration);
+        // XL20 : 2007-2009 ×4 + 2010 ×4 (2 année-modèle + 2 de nature
+        // inconnue, réattribuées : GSL2# produits jusqu'en 01/2010 et
+        // boîte A5 absente de la XL30) ; XL30 : 2011-2020 ; XL40 : 2021-2026.
+        $this->assertSame(['sienna-xl20' => 16, 'sienna-xl30' => 46, 'sienna-xl40' => 24], $parGeneration);
 
         // Aucune cote créée ni supprimée.
         $this->assertSame(86, Motorisation::count());
@@ -231,7 +230,8 @@ class SiennaLigneNueNettoyageTest extends TestCase
 
         $this->assertSame('sienna-xl20', $slug(54001), '2010 année-modèle, A5 : XL20 (Toyota, Sienna 2010 en 5 rapports).');
         $this->assertSame('sienna-xl20', $slug(54002));
-        $this->assertSame('sienna', $slug(24780), '2010 de nature inconnue, A5 : ambiguë, reste sur la ligne nue.');
+        $this->assertSame('sienna-xl20', $slug(24780), '2010 de nature inconnue, A5 : XL20 (GSL2# jusqu\'en 01/2010 ; A5 absente de la XL30).');
+        $this->assertSame('sienna-xl20', $slug(24781));
         $this->assertSame('sienna-xl30', $slug(55107), '2011 2,7 l AS6 : XL30 1AR-FE.');
         $this->assertSame('sienna-xl30', $slug(36870), '2020 année-modèle AS8 : XL30 2GR-FKS, pas la XL40.');
         $this->assertSame('sienna-xl30', $slug(7683), '2020 de nature inconnue, AS8 : XL30 dans les deux lectures.');
@@ -271,10 +271,11 @@ class SiennaLigneNueNettoyageTest extends TestCase
         $second = SiennaMotorisationsReattribution::run();
 
         $this->assertSame(0, $second['reassigned']);
-        $this->assertSame(2, $second['already_logged']);
+        // Plus aucune cote sur la ligne nue : le journal (86) suffit a prouver l'idempotence.
+        $this->assertSame(0, $second['already_logged']);
         $this->assertSame(86, DB::table('motorisation_generation_assignments')->count());
 
-        $this->assertSame(84, SiennaMotorisationsReattribution::restaurer());
+        $this->assertSame(86, SiennaMotorisationsReattribution::restaurer());
         $this->assertSame(86, Motorisation::where('vehicle_model_id', $this->nue->id)->count());
         $this->assertSame(0, DB::table('motorisation_generation_assignments')->count());
     }
@@ -288,8 +289,9 @@ class SiennaLigneNueNettoyageTest extends TestCase
         $this->assertSame(0, $rapport['reassigned']);
         $this->assertEqualsCanonicalizing(['sienna-xl20', 'sienna-xl30', 'sienna-xl40'], $rapport['skipped_missing_generation']);
         $this->assertSame(86, Motorisation::where('vehicle_model_id', $this->nue->id)->count());
-        // Seules les deux ambiguës sont journalisées ; les autres attendent leurs générations.
-        $this->assertSame(2, DB::table('motorisation_generation_assignments')->count());
+        // Aucune cote n'est journalisée tant que les générations manquent :
+        // une exécution ultérieure pourra conclure (y compris les 2010 A5).
+        $this->assertSame(0, DB::table('motorisation_generation_assignments')->count());
     }
 
     public function test_le_rattachement_automatique_ne_defait_pas_la_decision(): void
@@ -301,7 +303,7 @@ class SiennaLigneNueNettoyageTest extends TestCase
         // Sans la garde, la règle d'années poserait la 2010 A5 sur la XL30
         // (2010-2020) et la 2010 ambiguë aussi.
         $this->assertSame('sienna-xl20', VehicleModel::find(Motorisation::find($this->cotes[54001])->vehicle_model_id)->slug);
-        $this->assertSame($this->nue->id, (int) Motorisation::find($this->cotes[24780])->vehicle_model_id);
+        $this->assertSame('sienna-xl20', VehicleModel::find(Motorisation::find($this->cotes[24780])->vehicle_model_id)->slug, 'Sans la garde, la règle d\'années poserait aussi la 2010 A5 legacy sur la XL30.');
     }
 
     // ── Les trois migrations, rejouées ───────────────────────────────────────
@@ -322,7 +324,7 @@ class SiennaLigneNueNettoyageTest extends TestCase
 
         $this->assertSame(0, PartFitment::where('vehicle_model_id', $this->nue->id)->count());
         $this->assertSame(4, DB::table('part_fitment_archives')->count());
-        $this->assertSame(2, Motorisation::where('vehicle_model_id', $this->nue->id)->count());
+        $this->assertSame(0, Motorisation::where('vehicle_model_id', $this->nue->id)->count());
         $this->assertSame(86, DB::table('motorisation_generation_assignments')->count());
 
         // down() dans l'ordre inverse : retour exact à l'état de départ.

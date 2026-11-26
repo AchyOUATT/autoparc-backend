@@ -80,7 +80,7 @@ class ToyotaSiennaReferentielImportTest extends TestCase
         $rapport = ToyotaSiennaReferentielImport::run();
 
         $this->assertSame(['sienna-xl20', 'sienna-xl30', 'sienna-xl40'], $rapport['models_created']);
-        $attendu = ['sienna-xl20' => ['XL20', 2003, 2009], 'sienna-xl30' => ['XL30', 2010, 2020], 'sienna-xl40' => ['XL40', 2020, null]];
+        $attendu = ['sienna-xl20' => ['XL20', 2003, 2010], 'sienna-xl30' => ['XL30', 2010, 2020], 'sienna-xl40' => ['XL40', 2020, null]];
         foreach ($attendu as $slug => [$gen, $de, $a]) {
             $modele = VehicleModel::where('slug', $slug)->firstOrFail();
             $this->assertSame('Sienna', $modele->name);
@@ -108,7 +108,7 @@ class ToyotaSiennaReferentielImportTest extends TestCase
             ->sort()->values()->all();
 
         $this->assertSame([
-            ['04152-YZZA1', 'sienna-xl20', '2GR-FE', 2006, 2009, 'GSL20/GSL23/GSL25'],
+            ['04152-YZZA1', 'sienna-xl20', '2GR-FE', 2006, 2010, 'GSL20/GSL23/GSL25'],
             ['04152-YZZA1', 'sienna-xl30', '1AR-FE', 2010, 2013, 'ASL30'],
             ['04152-YZZA1', 'sienna-xl30', '2GR-FE', 2010, 2016, 'GSL30/GSL33/GSL35'],
             ['04152-YZZA1', 'sienna-xl30', '2GR-FKS', 2016, 2020, 'GSL30/GSL33/GSL35'],
@@ -218,10 +218,13 @@ class ToyotaSiennaReferentielImportTest extends TestCase
         $this->assertNull($this->statut('90915-YZZD1', 'sienna-xl20', 2008, '2GR-FE'), 'Le 2GR-FE prend une cartouche.');
         $this->assertNull($this->statut('90915-YZZD1', 'sienna-xl20', 2007, '3MZ-FE'), 'MCL2# fabriqués jusqu\'en 12/2006.');
         $this->assertSame('confirmed', $this->statut('04152-YZZA1', 'sienna-xl20', 2007, '2GR-FE'));
+        $this->assertSame('confirmed', $this->statut('04152-YZZA1', 'sienna-xl20', 2010, '2GR-FE'), 'GSL2# fabriqués jusqu\'en 01/2010.');
+        $this->assertNull($this->statut('04152-YZZA1', 'sienna-xl20', 2011, '2GR-FE'), 'Plus de GSL2# après 01/2010.');
         $this->assertNull($this->statut('04152-YZZA1', 'sienna-xl20', 2004, '3MZ-FE'));
 
         // XL30
         $this->assertSame('confirmed', $this->statut('04152-YZZA1', 'sienna-xl30', 2012, '2GR-FE'));
+        $this->assertSame('confirmed', $this->statut('04152-YZZA1', 'sienna-xl30', 2010, '2GR-FE'), 'GSL3# fabriqués dès 01/2010 : janvier 2010 chevauche GSL2# et GSL3#.');
         $this->assertSame('confirmed', $this->statut('04152-YZZA1', 'sienna-xl30', 2010, '1AR-FE'), 'ASL30 fabriqué dès 05/2010.');
         $this->assertNull($this->statut('04152-YZZA1', 'sienna-xl30', 2014, '1AR-FE'), 'ASL30 fabriqué jusqu\'en 08/2013.');
         $this->assertSame('confirmed', $this->statut('04152-YZZA1', 'sienna-xl30', 2018, '2GR-FKS'));

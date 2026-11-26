@@ -43,6 +43,8 @@ class OwnedVehicleResource extends JsonResource
             'year'        => $this->manufacturing_year,
             'model_year' => $this->model_year,
             'specification_market' => $this->specification_market,
+            'chassis_code' => $this->chassis_code,
+            'manufacturing_month' => $this->manufacturing_month,
 
             // Echeances d'entretien. Les champs bruts servent au formulaire,
             // `deadlines` a l'affichage : c'est la meme liste, calculee au meme

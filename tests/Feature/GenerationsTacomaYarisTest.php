@@ -5,8 +5,16 @@ namespace Tests\Feature;
 use App\Models\Brand;
 use App\Models\Part;
 use App\Models\PartFitment;
+use App\Models\Vehicle;
 use App\Models\VehicleModel;
+use App\Support\ToyotaSiennaReferentielImport;
+use Database\Seeders\BrandsSeeder;
+use Database\Seeders\ColorsSeeder;
+use Database\Seeders\DrivetrainsSeeder;
+use Database\Seeders\EngineTypesSeeder;
 use Database\Seeders\FiltresHuileBoutiqueSeeder;
+use Database\Seeders\ManufacturersSeeder;
+use Database\Seeders\PartCategoriesSeeder;
 use Database\Seeders\VehicleModelsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -51,15 +59,15 @@ class GenerationsTacomaYarisTest extends TestCase
         parent::setUp();
 
         $this->seed([
-            \Database\Seeders\PartCategoriesSeeder::class,
-            \Database\Seeders\ManufacturersSeeder::class,
-            \Database\Seeders\BrandsSeeder::class,
-            \Database\Seeders\VehicleModelsSeeder::class,
+            PartCategoriesSeeder::class,
+            ManufacturersSeeder::class,
+            BrandsSeeder::class,
+            VehicleModelsSeeder::class,
             // Les trois tables dont `VehicleFactory` a besoin pour fabriquer le
             // vehicule du test de garde : sans elles, elle lit `null->id`.
-            \Database\Seeders\ColorsSeeder::class,
-            \Database\Seeders\EngineTypesSeeder::class,
-            \Database\Seeders\DrivetrainsSeeder::class,
+            ColorsSeeder::class,
+            EngineTypesSeeder::class,
+            DrivetrainsSeeder::class,
         ]);
     }
 
@@ -87,10 +95,10 @@ class GenerationsTacomaYarisTest extends TestCase
             // generation la plus recente, donc 2023 tombait sur la IV, qui ne
             // porte aucune compatibilite. Mesure : 1 piece avant, 0 apres.
             // Voir le commentaire de `GENERATIONS_TACOMA`.
-            'tacoma-i'   => ['I',   1995, 2004],
-            'tacoma-ii'  => ['II',  2005, 2015],
+            'tacoma-i' => ['I',   1995, 2004],
+            'tacoma-ii' => ['II',  2005, 2015],
             'tacoma-iii' => ['III', 2016, 2023],
-            'tacoma-iv'  => ['IV',  2024, null],
+            'tacoma-iv' => ['IV',  2024, null],
         ];
 
         foreach ($attendues as $slug => [$generation, $debut, $fin]) {
@@ -298,7 +306,7 @@ class GenerationsTacomaYarisTest extends TestCase
 
         foreach ($deplacees as [$slug, $sku, $moteur, $de, $a]) {
             $modele = VehicleModel::where('brand_id', $this->toyota())->where('slug', $slug)->firstOrFail();
-            $piece  = Part::where('sku', $sku)->firstOrFail();
+            $piece = Part::where('sku', $sku)->firstOrFail();
 
             $ligne = PartFitment::where('vehicle_model_id', $modele->id)
                 ->where('part_id', $piece->id)
@@ -365,7 +373,7 @@ class GenerationsTacomaYarisTest extends TestCase
         // Plus les lignes des generations Sienna que le seeder repose en fin
         // de passage (`ToyotaSiennaReferentielImport`), pour la YZZA1 et la
         // YZZN1, quand leur generation existe.
-        foreach (\App\Support\ToyotaSiennaReferentielImport::applications() as $application) {
+        foreach (ToyotaSiennaReferentielImport::applications() as $application) {
             if (in_array($application['sku'], ['04152-YZZA1', '90915-YZZN1'], true)
                 && VehicleModel::where('slug', $application['model_slug'])->exists()) {
                 $attendues++;
@@ -399,7 +407,7 @@ class GenerationsTacomaYarisTest extends TestCase
      * scindee : elle reste, intacte, sur la ligne nue desormais inactive. Les
      * generations XL20 / XL30 / XL40 recoivent a la place des lignes
      * reevaluees une a une sur l'EPC Toyota, chassis par chassis
-     * (`ToyotaSiennaReferentielImport`) : GSL2# 2006-2009 et GSL3# 2010-2016
+     * (`ToyotaSiennaReferentielImport`) : GSL2# 2006-2010 et GSL3# 2010-2016
      * pour ce moteur.
      */
     public function test_les_trois_autres_importations_restent_sans_generation(): void
@@ -504,13 +512,13 @@ class GenerationsTacomaYarisTest extends TestCase
         // On remet l'etat d'AVANT ce lot — active, bornee 1995-ouvert — pour
         // que le garde ait quelque chose a proteger.
         DB::table('vehicle_models')->where('id', $nue->id)->update([
-            'is_active'        => true,
+            'is_active' => true,
             'production_start' => 1995,
-            'production_end'   => null,
+            'production_end' => null,
         ]);
 
-        \App\Models\Vehicle::factory()->create([
-            'brand_id'         => $this->toyota(),
+        Vehicle::factory()->create([
+            'brand_id' => $this->toyota(),
             'vehicle_model_id' => $nue->id,
         ]);
 
@@ -534,9 +542,9 @@ class GenerationsTacomaYarisTest extends TestCase
         $nue = VehicleModel::where('brand_id', $this->toyota())->where('slug', 'tacoma')->firstOrFail();
 
         DB::table('vehicle_models')->where('id', $nue->id)->update([
-            'is_active'        => true,
+            'is_active' => true,
             'production_start' => 1995,
-            'production_end'   => null,
+            'production_end' => null,
         ]);
 
         $this->jouerLaMigration();

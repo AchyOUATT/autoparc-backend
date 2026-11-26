@@ -53,6 +53,13 @@ class CompatiblePartsCriteriaRequest extends CompatiblePartsRequest
             // celles qui valent pour tout le modele, ce qui est la bonne
             // reponse a « je ne reconnais pas ce moteur ».
             'engine_code'      => ['nullable', 'string', 'max:32'],
+
+            // Criteres restrictifs (voir FitmentRestrictions). Facultatifs :
+            // absents, une regle qui les exige sort « a verifier », jamais
+            // « confirmee » ; une regle qui ne les exige pas n'est pas touchee.
+            'chassis_code'         => ['nullable', 'string', 'max:40'],
+            'specification_market' => ['nullable', 'string', 'max:20', 'regex:/^[A-Z0-9_-]+$/'],
+            'manufacturing_month'  => ['nullable', 'integer', 'between:1,12'],
         ];
     }
 
@@ -69,6 +76,14 @@ class CompatiblePartsCriteriaRequest extends CompatiblePartsRequest
      */
     protected function prepareForValidation(): void
     {
+        if (is_string($this->input('chassis_code'))) {
+            $this->merge(['chassis_code' => \App\Support\ChassisCode::normalize($this->input('chassis_code'))]);
+        }
+        if (is_string($this->input('specification_market'))) {
+            $marche = strtoupper(trim($this->input('specification_market')));
+            $this->merge(['specification_market' => $marche === '' ? null : $marche]);
+        }
+
         if (! $this->has('engine_code')) {
             return;
         }
@@ -92,6 +107,7 @@ class CompatiblePartsCriteriaRequest extends CompatiblePartsRequest
             'trim_id.exists'            => __("Cette finition n'existe pas."),
             'engine_type_id.exists'     => __("Cette motorisation n'existe pas."),
             'drivetrain_id.exists'      => __("Cette transmission n'existe pas."),
+            'manufacturing_month.between' => __('Le mois de fabrication va de 1 à 12.'),
         ];
     }
 }
