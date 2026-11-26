@@ -269,4 +269,33 @@ class Toyota90915Yzzd1AnciensModelesImportTest extends TestCase
 
         $this->assertSame(21, $piece->fitments()->count());
     }
+
+    public function test_le_down_de_la_migration_retire_ses_lignes_et_ses_generations_inutilisees(): void
+    {
+        $this->marques();
+        $piece = $this->filtre();
+        $modelesAvant = VehicleModel::count();
+        $migration = require database_path('migrations/2026_11_26_160000_ajouter_les_generations_anciennes_du_filtre_90915_yzzd1.php');
+        $migration->up();
+        $this->assertSame(21, $piece->fitments()->count());
+
+        // Une génération rattachée depuis (ici une finition) et une ligne
+        // modifiée à la main ne sont pas retirées.
+        $supra = VehicleModel::where('slug', 'supra-a80')->firstOrFail();
+        \DB::table('trims')->insert(['vehicle_model_id' => $supra->id, 'name' => 'RZ', 'created_at' => now(), 'updated_at' => now()]);
+        $manuelle = $piece->fitments()->where('vehicle_model_id', VehicleModel::where('slug', 'camry-xv30')->value('id'))->firstOrFail();
+        $manuelle->update(['notes' => 'Vérifiée en atelier.']);
+
+        $migration->down();
+
+        $this->assertSame([$manuelle->id], $piece->fitments()->pluck('id')->all());
+        $this->assertNotNull(VehicleModel::where('slug', 'supra-a80')->first(), 'Génération référencée : conservée.');
+        $this->assertNotNull(VehicleModel::where('slug', 'camry-xv30')->first(), 'Porte encore la ligne modifiée : conservée.');
+        $this->assertSame($modelesAvant + 2, VehicleModel::count(), 'Les 14 autres générations sont retirées.');
+
+        // Rejouable : up() repose ce qui manque, sans doublon.
+        $migration->up();
+        $this->assertSame(16 + $modelesAvant, VehicleModel::count());
+        $this->assertSame(21, $piece->fitments()->count(), 'La ligne modifiée à la main garde sa place : l\'import ne la double pas.');
+    }
 }

@@ -190,17 +190,24 @@ final class SiennaLigneNueCompatibilitesRetrait
                 'engine_code' => $a['engine_code'], 'year_from' => $a['year_from'], 'year_to' => $a['year_to'],
             ];
             if (! DB::table('part_fitments')->where($identite)->exists()) {
-                DB::table('part_fitments')->insert([
-                    ...$identite,
-                    'engine_type_id' => $a['engine_type_id'] ?? null,
-                    'drivetrain_id' => $a['drivetrain_id'] ?? null,
-                    'position' => $a['position'] ?? null,
-                    'notes' => $a['notes'] ?? null,
-                    'source' => $a['source'] ?? 'declared',
-                    'chassis_code' => $a['chassis_code'] ?? null,
-                    'created_at' => $a['created_at'] ?? now(),
-                    'updated_at' => now(),
-                ]);
+                // Restauration À L'IDENTIQUE : toutes les colonnes archivées
+                // qui existent encore (preuve, critères, horodatages compris),
+                // et l'identifiant d'origine s'il est libre. Vérifié sur une
+                // copie de la production : après retour arrière, les lignes
+                // ont de nouveau leur id et leur contenu d'avant.
+                $colonnes = array_flip(Schema::getColumnListing('part_fitments'));
+                $ligne = array_intersect_key($a, $colonnes);
+                $ligne = [...$ligne, ...$identite];
+                $origine = $archive->original_id ?? ($a['id'] ?? null);
+                if ($origine !== null && ! DB::table('part_fitments')->where('id', $origine)->exists()) {
+                    $ligne['id'] = (int) $origine;
+                } else {
+                    unset($ligne['id']);
+                }
+                $ligne['source'] ??= 'declared';
+                $ligne['created_at'] ??= now();
+                $ligne['updated_at'] ??= now();
+                DB::table('part_fitments')->insert($ligne);
                 $restaurees++;
             }
             DB::table('part_fitment_archives')->where('id', $archive->id)->delete();
