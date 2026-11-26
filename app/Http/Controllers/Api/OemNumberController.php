@@ -48,6 +48,15 @@ class OemNumberController extends Controller
             'fitments.*.year_from'       => ['nullable', 'integer', 'min:1950'],
             'fitments.*.year_to'         => ['nullable', 'integer', 'min:1950'],
             'fitments.*.position'        => ['nullable', 'string', 'max:60'],
+            'fitments.*.chassis_code'    => ['nullable', 'string', 'max:80'],
+            'fitments.*.chassis_restricted' => ['nullable', 'boolean'],
+            'fitments.*.market_codes'    => ['nullable', 'array'],
+            'fitments.*.market_codes.*'  => ['string', \Illuminate\Validation\Rule::in(\App\Support\Market::codes())],
+            'fitments.*.month_from'      => ['nullable', 'integer', 'between:1,12'],
+            'fitments.*.month_to'        => ['nullable', 'integer', 'between:1,12'],
+            'fitments.*.evidence_level'  => ['nullable', \Illuminate\Validation\Rule::in(\App\Support\FitmentEvidence::LEVELS)],
+            'fitments.*.evidence_sources' => ['nullable', 'array', 'max:20'],
+            'fitments.*.evidence_sources.*' => ['string', 'url', 'max:500'],
         ]);
 
         $oem = OemNumber::firstOrCreate(
@@ -71,6 +80,7 @@ class OemNumberController extends Controller
     {
         return new OemNumberResource($oemNumber->load([
             'brand', 'supersededBy', 'fitments.vehicleModel.brand', 'fitments.trim', 'fitments.engineType',
+            'replacementRelations.to', 'replacedRelations.from',
         ]));
     }
 
