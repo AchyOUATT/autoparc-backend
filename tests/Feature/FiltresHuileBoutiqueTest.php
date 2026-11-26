@@ -251,7 +251,9 @@ class FiltresHuileBoutiqueTest extends TestCase
         // references nouvelles. Plus 5 lignes des generations Sienna XL20 /
         // XL30 / XL40 (4 YZZA1, 1 YZZN1), reposees par
         // `ToyotaSiennaReferentielImport` a la fin du seeder (26/11/2026).
-        $this->assertCount(99, $lignes,
+        // Moins les 4 lignes de la ligne nue `sienna`, retirees du seeder le
+        // meme jour (migration 2026_11_26_180100) : 99 - 4 = 95.
+        $this->assertCount(95, $lignes,
             'Des compatibilites ont ete perdues : un slug ne se resout plus.');
 
         foreach ($lignes as $ligne) {
@@ -522,10 +524,12 @@ class FiltresHuileBoutiqueTest extends TestCase
         $this->semer();
 
         $attendus = [
-            // +4 et +1 : les lignes des generations Sienna (26/11/2026).
-            '04152-YZZA1' => 37,
+            // +4 et +1 : les lignes des generations Sienna (26/11/2026) ;
+            // -3 et -1 : les lignes de la ligne nue `sienna`, retirees le
+            // meme jour (migration 2026_11_26_180100).
+            '04152-YZZA1' => 34,
             '04152-YZZA6' => 4,
-            '90915-YZZN1' => 26,
+            '90915-YZZN1' => 25,
             // Catalogue des neuf familles. Les comptes sont bas et c'est le
             // sujet : sur les six references nouvelles, deux n'ont aucune
             // ligne au statut « Confirme » dans le document, et les quatre
@@ -741,7 +745,9 @@ class FiltresHuileBoutiqueTest extends TestCase
 
         $attendus = [
             'highlander' => ['04152-YZZA1' => 5, '90915-YZZN1' => 2],
-            'sienna'     => ['04152-YZZA1' => 3, '90915-YZZN1' => 1],
+            // Vide depuis le 26/11/2026 : ses 4 lignes sont devenues les 5
+            // lignes de generation verifiees plus bas.
+            'sienna'     => [],
             'avalon'     => ['04152-YZZA1' => 3, '90915-YZZN1' => 1],
             // Et non `tacoma` ni `venza` : ces deux lignes-la ne portent plus
             // rien, voir `GenerationsTacomaYarisTest` et
@@ -761,7 +767,7 @@ class FiltresHuileBoutiqueTest extends TestCase
             $this->assertNotNull($modele, "Le modele {$slug} n'a pas ete cree.");
             // La ligne nue `sienna` est inactive depuis le 26/11/2026 : ses
             // generations XL20 / XL30 / XL40 la remplacent dans les listes, et
-            // ses quatre lignes restent en place, intactes (verifie ci-dessous).
+            // ses quatre lignes en sont retirees (migration 2026_11_26_180100).
             $this->assertSame($slug !== 'sienna', (bool) $modele->is_active, "Le modele {$slug} n'a pas l'etat attendu.");
             $this->assertSame('Toyota', $modele->brand->name, $slug);
 
@@ -777,8 +783,10 @@ class FiltresHuileBoutiqueTest extends TestCase
             $total += array_sum($parReference);
         }
 
-        $this->assertSame(19, $total,
-            'Les cinq modeles crees devaient debloquer dix-neuf compatibilites confirmees.');
+        // 19 avant le 26/11/2026 ; les 4 lignes Sienna sont maintenant
+        // comptees sur ses generations (5 lignes), ci-dessous.
+        $this->assertSame(15, $total,
+            'Hors Sienna, les modeles crees portent quinze compatibilites confirmees.');
 
         // Les generations de la Sienna portent leurs propres lignes,
         // reevaluees une a une sur l'EPC (`ToyotaSiennaReferentielImport`).
