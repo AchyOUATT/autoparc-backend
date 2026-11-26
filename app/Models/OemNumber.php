@@ -16,11 +16,18 @@ class OemNumber extends Model
     protected $fillable = [
         'number', 'normalized_number', 'brand_id', 'label',
         'is_superseded', 'superseded_by_id',
+        'supersession_evidence', 'supersession_sources',
     ];
+
+    /** Remplacement publié par le constructeur lui-même (fiche officielle). */
+    public const PREUVE_CONSTRUCTEUR = 'documentation_constructeur';
+
+    /** Remplacement attesté seulement par des catalogues de distribution de la marque. */
+    public const PREUVE_DISTRIBUTION = 'catalogues_distribution';
 
     protected function casts(): array
     {
-        return ['is_superseded' => 'boolean'];
+        return ['is_superseded' => 'boolean', 'supersession_sources' => 'array'];
     }
 
     protected static function booted(): void

@@ -17,6 +17,8 @@ class OemNumberResource extends JsonResource
             'brand'             => $this->whenLoaded('brand', fn () => $this->brand?->name),
             'is_superseded'     => $this->is_superseded,
             'superseded_by'     => $this->whenLoaded('supersededBy', fn () => $this->supersededBy?->number),
+            'supersession_evidence' => $this->supersession_evidence,
+            'supersession_sources'  => $this->supersession_sources,
             'is_primary'        => $this->whenPivotLoaded('oem_number_part', fn () => (bool) $this->pivot->is_primary),
             'fitments'          => $this->whenLoaded('fitments', fn () => $this->fitments->map(fn ($f) => [
                 'vehicle_model_id' => $f->vehicle_model_id,
