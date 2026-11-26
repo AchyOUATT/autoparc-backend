@@ -55,8 +55,12 @@ class OemNumberController extends Controller
             'fitments.*.month_from'      => ['nullable', 'integer', 'between:1,12'],
             'fitments.*.month_to'        => ['nullable', 'integer', 'between:1,12'],
             'fitments.*.evidence_level'  => ['nullable', \Illuminate\Validation\Rule::in(\App\Support\FitmentEvidence::LEVELS)],
-            'fitments.*.evidence_sources' => ['nullable', 'array', 'max:20'],
-            'fitments.*.evidence_sources.*' => ['string', 'url', 'max:500'],
+            'fitments.*.evidence_sources' => ['nullable', 'array', 'max:20',
+                'required_if:fitments.*.evidence_level,'.implode(',', \App\Support\FitmentEvidence::SUFFICIENT)],
+            'fitments.*.evidence_sources.*' => ['string', 'url:http,https', 'max:500'],
+            'fitments.*.verified_on'     => ['nullable', 'date', 'before_or_equal:today',
+                'required_if:fitments.*.evidence_level,'.\App\Support\FitmentEvidence::HUMAN_VERIFIED],
+            'fitments.*.verified_by_id'  => ['prohibited'],
         ]);
 
         $oem = OemNumber::firstOrCreate(
@@ -68,7 +72,7 @@ class OemNumberController extends Controller
         );
 
         foreach ($data['fitments'] ?? [] as $fitment) {
-            $oem->fitments()->create($fitment);
+            $oem->fitments()->create(\App\Support\FitmentEvidence::stampValidator($fitment, $request->user()?->id));
         }
 
         return (new OemNumberResource($oem->load(['brand', 'fitments.vehicleModel'])))

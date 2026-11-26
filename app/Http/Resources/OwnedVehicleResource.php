@@ -43,6 +43,7 @@ class OwnedVehicleResource extends JsonResource
             'year'        => $this->manufacturing_year,
             'model_year' => $this->model_year,
             'specification_market' => $this->specification_market,
+            'circulation_country'  => $this->circulation_country,
             'chassis_code' => $this->chassis_code,
             'manufacturing_month' => $this->manufacturing_month,
 

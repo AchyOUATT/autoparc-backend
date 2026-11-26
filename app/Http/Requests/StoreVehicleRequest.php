@@ -62,6 +62,10 @@ class StoreVehicleRequest extends FormRequest
         if ($this->exists('chassis_code') && (is_string($this->input('chassis_code')) || $this->input('chassis_code') === null)) {
             $this->merge(['chassis_code' => \App\Support\ChassisCode::normalize($this->input('chassis_code'))]);
         }
+        if (is_string($this->input('circulation_country'))) {
+            $pays = strtoupper(trim($this->input('circulation_country')));
+            $this->merge(['circulation_country' => $pays === '' ? null : $pays]);
+        }
         if (is_string($this->input('specification_market'))) {
             $marche = strtoupper(trim($this->input('specification_market')));
             $this->merge(['specification_market' => $marche === '' ? null : $marche]);
@@ -133,6 +137,9 @@ class StoreVehicleRequest extends FormRequest
             'manufacturing_month' => ['nullable', 'integer', 'between:1,12'],
             'chassis_code'       => ['nullable', 'string', 'max:40', 'regex:/^[A-Z0-9-]+$/'],
             'specification_market' => ['nullable', 'string', 'max:20', 'regex:/^[A-Z0-9_-]+$/'],
+            // Pays de circulation actuel (ISO 3166-1 alpha-2) : affichage
+            // seulement, jamais comparé aux compatibilités.
+            'circulation_country'  => ['nullable', 'string', 'size:2', 'regex:/^[A-Z]{2}$/'],
             'transmission'       => ['nullable', Rule::in(Transmission::values())],
             'gear_count'         => ['nullable', 'integer', 'min:1', 'max:12'],
             'engine_displacement_cc' => ['nullable', 'integer', 'min:0', 'max:20000'],

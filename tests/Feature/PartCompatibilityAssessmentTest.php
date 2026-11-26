@@ -55,6 +55,7 @@ class PartCompatibilityAssessmentTest extends TestCase
         $part->fitments()->create([
             'vehicle_model_id' => $this->model->id,
             'source' => FitmentSource::Declared,
+            ...self::PREUVE_DOCUMENTEE,
             ...$fitment,
         ]);
 
@@ -169,6 +170,7 @@ class PartCompatibilityAssessmentTest extends TestCase
             'vehicle_model_id' => $this->model->id,
             'engine_code' => 'TEST-A',
             'source' => FitmentSource::Declared,
+            ...self::PREUVE_DOCUMENTEE,
         ]);
 
         $this->assertSame('confirmed', $this->assess($part, ['engine_code' => 'TEST-A'])['status']);
@@ -197,6 +199,7 @@ class PartCompatibilityAssessmentTest extends TestCase
             'engine_code' => 'TEST-A',
             'year_from' => 2014,
             'year_to' => 2016,
+            ...self::PREUVE_DOCUMENTEE,
         ]);
 
         $candidate = $this->assess($part);
@@ -240,6 +243,7 @@ class PartCompatibilityAssessmentTest extends TestCase
             'engine_code' => 'TEST-B',
             'drivetrain_id' => $this->awd->id,
             'source' => FitmentSource::Declared,
+            ...self::PREUVE_DOCUMENTEE,
         ]);
         $assessment = $this->assess($part, ['year' => null]);
 

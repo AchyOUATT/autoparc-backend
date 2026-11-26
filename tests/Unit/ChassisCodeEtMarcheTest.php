@@ -48,18 +48,19 @@ class ChassisCodeEtMarcheTest extends TestCase
         $this->assertNull(ChassisCode::fromFrameNumber(null));
     }
 
-    public function test_marches_alias_et_hierarchie_epc(): void
+    public function test_marches_alias_sans_hierarchie(): void
     {
         $this->assertSame('USA', Market::normalize('us'));
         $this->assertSame('JPN', Market::normalize('JP'));
         $this->assertSame('EUR', Market::normalize('EU'));
         $this->assertSame('MDE', Market::normalize('GCC'));
         $this->assertNull(Market::normalize('XYZ'));
-        $this->assertSame(['AFR', 'GEN'], Market::lineage('AFR'));
 
         $this->assertSame(Market::MATCH, Market::compare(['USA', 'CAN'], 'CAN'));
-        $this->assertSame(Market::MATCH, Market::compare(['GEN'], 'AFR'));
-        $this->assertSame(Market::AMBIGUOUS, Market::compare(['AFR'], 'GEN'));
+        // Aucune hiérarchie : GEN ne couvre pas AFR, USA ne couvre pas CAN.
+        $this->assertSame(Market::MISMATCH, Market::compare(['GEN'], 'AFR'));
+        $this->assertSame(Market::MISMATCH, Market::compare(['AFR'], 'GEN'));
+        $this->assertSame(Market::MISMATCH, Market::compare(['USA'], 'CAN'));
         $this->assertSame(Market::MISMATCH, Market::compare(['USA'], 'EUR'));
         $this->assertSame(Market::MISMATCH, Market::compare(['AFR'], 'MDE'));
     }
