@@ -75,6 +75,18 @@ return new class extends Migration
                     // Mois de fabrication de year_to (1-12) ; null = décembre.
                     $table->unsignedTinyInteger('month_to')->nullable();
                 }
+                // Preuve de la COMPATIBILITE (ce véhicule reçoit cette pièce),
+                // distincte de la preuve d'un REMPLACEMENT de référence, qui vit
+                // dans oem_number_relations. Null = ligne historique : sa preuve
+                // est dans `notes`, elle reste suffisante si elle est déclarée.
+                if (! Schema::hasColumn($nom, 'evidence_level')) {
+                    // manufacturer_official | manufacturer_epc | dealer_catalog
+                    // | aftermarket_crossref | unverified
+                    $table->string('evidence_level', 40)->nullable();
+                }
+                if (! Schema::hasColumn($nom, 'evidence_sources')) {
+                    $table->json('evidence_sources')->nullable();
+                }
             });
         }
 
@@ -104,7 +116,8 @@ return new class extends Migration
                 $table->string('kind', 40);
                 // manufacturer_official | manufacturer_epc | dealer_catalog | aftermarket_crossref
                 $table->string('evidence_level', 40);
-                $table->string('source_url', 500)->nullable();
+                // Liste JSON des URL consultées pour CE remplacement.
+                $table->json('sources')->nullable();
                 $table->text('source_note')->nullable();
                 $table->date('verified_on')->nullable();
                 $table->timestamps();
@@ -135,7 +148,7 @@ return new class extends Migration
 
         foreach (['part_fitments', 'oem_number_fitments'] as $nom) {
             Schema::table($nom, function (Blueprint $table) use ($nom) {
-                $colonnes = ['chassis_restricted', 'market_codes', 'month_from', 'month_to'];
+                $colonnes = ['chassis_restricted', 'market_codes', 'month_from', 'month_to', 'evidence_level', 'evidence_sources'];
                 // part_fitments.chassis_code existait avant.
                 if ($nom === 'oem_number_fitments') {
                     $colonnes[] = 'chassis_code';

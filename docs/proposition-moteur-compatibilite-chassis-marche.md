@@ -100,9 +100,9 @@ L'année comparée reste l'**année de fabrication** (convention du moteur, rapp
 | Supersession constructeur | `manufacturer_supersession` | `manufacturer_official`, `manufacturer_epc` |
 | Remplacement attesté distributeur | `distributor_replacement` | `dealer_catalog`, `aftermarket_crossref` |
 
-Colonnes : `source_url`, `source_note`, `verified_on`, unicité (from, to, kind). Le modèle refuse une nature inconnue, un niveau de preuve incohérent avec la nature, et une référence qui se remplace elle-même. `OemNumber::currentManufacturerReference()` ne suit que les supersessions constructeur. `currentReference()` et `is_superseded / superseded_by_id` restent en place (lecture historique, « supersession non qualifiée »).
+Colonnes : `sources` (liste JSON d'URL), `source_note`, `verified_on`, unicité (from, to, kind). Le modèle refuse une nature inconnue, un niveau de preuve incohérent avec la nature, et une référence qui se remplace elle-même. `OemNumber::currentManufacturerReference()` ne suit que les supersessions constructeur. `currentReference()` et `is_superseded / superseded_by_id` restent en place (lecture historique, « supersession non qualifiée »).
 
-Règle proposée pour la suite : un remplacement distributeur ne permet jamais d'hériter d'une compatibilité confirmée ; au mieux, candidate. Aujourd'hui aucune compatibilité n'est héritée par remplacement, donc rien ne change.
+Règle appliquée : **un numéro remplacé ne transmet jamais ses compatibilités**, quelle que soit la preuve du remplacement (voir section 10).
 
 ## 3. Changements de schéma (migration `2026_11_26_200000_…`)
 
@@ -201,3 +201,66 @@ Retour arrière : la migration a un `down()` qui ne retire que ce qu'elle a ajou
 3. Canada : rattaché à la région EPC USA mais distinct de `USA`. Faut-il qu'une ligne `USA` couvre aussi le Canada ?
 4. Faut-il un mois de fabrication obligatoire pour certains modèles (changement de référence en cours d'année) ?
 5. Qualifier les 10 remplacements existants (`is_superseded`) dans `oem_number_relations` : avec quelles preuves ?
+
+
+## 10. Compléments (revue du 26/11/2026)
+
+### 10.1 Stockage des preuves : une seule structure par nature de preuve
+
+| Ce qu'on prouve | Où | Colonnes |
+|---|---|---|
+| Qu'une référence en **remplace** une autre | `oem_number_relations` | `kind` (`manufacturer_supersession` / `distributor_replacement`), `evidence_level` (`manufacturer_official`, `manufacturer_epc` / `dealer_catalog`, `aftermarket_crossref`), `sources` (JSON), `source_note`, `verified_on` |
+| Qu'un **véhicule reçoit** une pièce | `part_fitments`, `oem_number_fitments` | `evidence_level` (`manufacturer_official`, `manufacturer_epc`, `dealer_catalog`, `aftermarket_crossref`, `unverified`), `evidence_sources` (JSON) ; `source` (`declared` / `generated`) inchangé |
+
+`oem_numbers.is_superseded / superseded_by_id` restent le pointeur historique (recherche par ancien numéro), sans niveau de preuve. Les colonnes `oem_numbers.supersession_evidence / supersession_sources` que la PR #40 ajoutait ne sont **plus créées** : la #40 écrit désormais ses remplacements dans `oem_number_relations` (voir 10.5).
+
+### 10.2 Verdicts
+
+| Verdict | Condition | `compatible` / `compatibility_ready` |
+|---|---|---|
+| `confirmed` | une ligne du modèle : tous les critères exigés connus et satisfaits **et** preuve suffisante | vrai / vrai |
+| `candidate` | au moins une ligne non exclue, mais critère inconnu, preuve insuffisante (`missing_criteria` contient `evidence`) ou ligne `generated` | faux / faux |
+| `excluded` | le modèle a des lignes pour la pièce et **chacune** est contredite par un critère connu (`excluded_criteria`) | faux / faux |
+| `unknown` | aucune ligne pour ce modèle, modèle absent, ou modèle inactif | faux / faux |
+
+Priorité : confirmed > candidate > excluded > unknown. `unknown` n'est pas une incompatibilité (le catalogue ne sait pas). Les anciens booléens ne sont vrais que pour `confirmed` : une application qui ne lit pas `status` ne présente jamais une candidate ni une exclusion comme compatible.
+
+Changement visible : une ligne contredite (autre code moteur, autre motricité, année hors plage, châssis/marché/mois incompatibles) donnait `unknown` / `no_matching_fitment` ; elle donne désormais `excluded` / `incompatible_vehicle_criteria`. Les booléens ne changent pas.
+
+### 10.3 Preuve suffisante (`App\Support\FitmentEvidence`)
+
+- ligne `generated` : jamais suffisante → candidate ;
+- ligne `declared` sans `evidence_level` (les 143 lignes en production, preuve dans `notes`) : suffisante, pour ne rien changer aux données existantes ;
+- ligne `declared` avec `evidence_level` : suffisante si `manufacturer_official`, `manufacturer_epc` ou `dealer_catalog` ; insuffisante si `aftermarket_crossref` ou `unverified`.
+
+Le même filtre est appliqué en SQL (`constrainConfirmed`) et en PHP (`assess`).
+
+### 10.4 Numéros remplacés
+
+Une pièce peut porter d'anciens numéros pour être retrouvée par recherche. Ces numéros ne lui transmettent **jamais** leurs compatibilités (`App\Support\OemFitmentInheritance`), qu'ils soient marqués par le drapeau historique ou par un lien qualifié, constructeur ou distributeur. Seule exception : le numéro **principal** de la pièce (`is_primary`), cas d'une pièce ancienne vendue sous son propre numéro. En production : 10 numéros remplacés rattachés à des pièces, dont 1 principal ; 0 compatibilité par numéro OEM, donc aucun verdict ne change.
+
+### 10.5 Données de la PR #40
+
+La #40 se fonde maintenant sur cette PR (elle en est la suite) :
+
+- sa migration `2026_11_26_135000` (colonnes `supersession_*`) est retirée ;
+- `Toyota90915Yzzd1Import` crée, de façon idempotente, une ligne `oem_number_relations` par ancien numéro : YZZB1, YZZB9, YZZG2 → `manufacturer_supersession` / `manufacturer_official` avec les 2 URL de la fiche officielle Toyota / Lexus ; 20001, 20003 → `distributor_replacement` / `dealer_catalog` avec les 5 URL des catalogues de concession. Un lien existant n'est jamais réécrit ;
+- le drapeau historique `is_superseded / superseded_by_id` reste posé comme avant ;
+- ses compatibilités gardent leur preuve dans `notes` ; leur `evidence_level` n'est pas renseigné (lignes déclarées, donc confirmables) — à qualifier ligne par ligne dans une PR de données.
+
+### 10.6 Modèles inactifs
+
+Une génération inactive (`vehicle_models.is_active = false`) sort des recherches courantes : `GET /api/catalog/compatible-parts`, `/api/my/vehicles/{id}/compatible-parts`, `/api/vehicles/{id}/compatible-parts`, `/api/my/parts/{part}/garage-compatibility` (verdict `unknown`, raison `inactive_vehicle_model`), `/api/oem/{n}/models`, `/api/oem/{n}/vehicles`, le résumé `compatibility` des cartes et le texte d'aperçu de partage. Les données restent en base et consultables : paramètre `include_inactive=1` sur ces routes, et la liste `fitments` complète de la fiche pièce, avec `vehicle_model_active: false` (l'éditeur du personnel doit voir toutes les lignes, sinon un `PUT` les effacerait). En production : 2 modèles inactifs, 0 compatibilité et 0 véhicule dessus.
+
+### 10.7 Application mobile
+
+- `GarageCompatibility` lit `compatible` et `compatibility_ready` : `confirmed` → « Compatible » (vert) ; `candidate`, `excluded` et `unknown` → « Non déterminé » (ambre). Une candidate n'est jamais présentée comme compatible.
+- Les listes de pièces compatibles n'envoient pas `include_candidates` : elles ne montrent que des confirmées.
+- Aucune correction n'est nécessaire. Amélioration proposée (PR séparée, à valider) : lire `status` pour afficher « À vérifier : moteur / châssis / marché / mois / preuve » et « Exclue : … », et masquer dans la fiche les lignes `vehicle_model_active: false`.
+
+### 10.8 Ordre de fusion
+
+1. **#42** (ce moteur, migration additive) ;
+2. **#40** (base : #42 ; écrit dans `oem_number_relations`) ;
+3. **#41** (indépendante du code de #40/#42 ; sa documentation renvoie à `oem_number_relations`) ;
+4. **#43** (Sienna, dépend de #41).

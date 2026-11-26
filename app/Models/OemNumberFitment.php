@@ -15,6 +15,8 @@ class OemNumberFitment extends Model
         'drivetrain_id', 'engine_code', 'year_from', 'year_to', 'position', 'notes',
         // Criteres restrictifs (null = aucune restriction). Voir FitmentRestrictions.
         'chassis_code', 'chassis_restricted', 'market_codes', 'month_from', 'month_to',
+        // Preuve de la compatibilite (voir FitmentEvidence).
+        'evidence_level', 'evidence_sources',
     ];
 
     protected function casts(): array
@@ -26,6 +28,7 @@ class OemNumberFitment extends Model
             'market_codes' => 'array',
             'month_from' => 'integer',
             'month_to' => 'integer',
+            'evidence_sources' => 'array',
         ];
     }
 

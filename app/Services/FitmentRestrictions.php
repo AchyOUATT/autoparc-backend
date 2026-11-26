@@ -39,6 +39,18 @@ class FitmentRestrictions
      */
     public function evaluate(PartFitment|OemNumberFitment $fitment, array $criteria): ?array
     {
+        $detail = $this->evaluateDetailed($fitment, $criteria);
+
+        return $detail['excluded'] === null ? $detail['missing'] : null;
+    }
+
+    /**
+     * Comme evaluate(), en nommant le critère qui exclut la ligne.
+     *
+     * @return array{excluded: ?string, missing: list<string>}
+     */
+    public function evaluateDetailed(PartFitment|OemNumberFitment $fitment, array $criteria): array
+    {
         $missing = [];
 
         // Châssis : seulement si la règle le déclare restrictif.
@@ -51,7 +63,7 @@ class FitmentRestrictions
                 } else {
                     $resultat = ChassisCode::compare($codes, $vehicule);
                     if ($resultat === ChassisCode::MISMATCH) {
-                        return null;
+                        return ['excluded' => self::MISSING_CHASSIS, 'missing' => []];
                     }
                     if ($resultat === ChassisCode::AMBIGUOUS) {
                         $missing[] = self::MISSING_CHASSIS;
@@ -73,7 +85,7 @@ class FitmentRestrictions
             } else {
                 $resultat = Market::compare($marches, $vehicule);
                 if ($resultat === Market::MISMATCH) {
-                    return null;
+                    return ['excluded' => self::MISSING_MARKET, 'missing' => []];
                 }
                 if ($resultat === Market::AMBIGUOUS) {
                     $missing[] = self::MISSING_MARKET;
@@ -99,12 +111,12 @@ class FitmentRestrictions
                 if ($mois === null) {
                     $missing[] = self::MISSING_MONTH;
                 } elseif (! $respecte($mois, (int) $borneMois)) {
-                    return null;
+                    return ['excluded' => self::MISSING_MONTH, 'missing' => []];
                 }
             }
         }
 
-        return array_values(array_unique($missing));
+        return ['excluded' => null, 'missing' => array_values(array_unique($missing))];
     }
 
     public static function isRestricted(PartFitment|OemNumberFitment $fitment): bool

@@ -131,6 +131,10 @@ class StorePartRequest extends FormRequest
             'fitments.*.market_codes.*'     => ['string', Rule::in(\App\Support\Market::codes())],
             'fitments.*.month_from'         => ['nullable', 'integer', 'between:1,12'],
             'fitments.*.month_to'           => ['nullable', 'integer', 'between:1,12'],
+            // Preuve de la compatibilite (voir FitmentEvidence).
+            'fitments.*.evidence_level'     => ['nullable', Rule::in(\App\Support\FitmentEvidence::LEVELS)],
+            'fitments.*.evidence_sources'   => ['nullable', 'array', 'max:20'],
+            'fitments.*.evidence_sources.*' => ['string', 'url', 'max:500'],
         ];
     }
 }

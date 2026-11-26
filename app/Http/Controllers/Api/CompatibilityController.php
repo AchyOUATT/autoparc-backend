@@ -34,18 +34,18 @@ class CompatibilityController extends Controller
         $this->authorize('view', $ownedVehicle);
 
         $parts = $this->compatibility
-            ->partsForOwnedVehicle($ownedVehicle, $request->filters());
+            ->partsForOwnedVehicle($ownedVehicle, $request->filters(), $request->includeInactive());
 
-        return $this->paginateAssessed($parts, $this->compatibility->ownedVehicleCriteria($ownedVehicle), $request);
+        return $this->paginateAssessed($parts, $this->compatibility->ownedVehicleCriteria($ownedVehicle) + ['include_inactive' => $request->includeInactive()], $request);
     }
 
     /** GET /api/vehicles/{vehicle}/compatible-parts */
     public function partsForVehicle(CompatiblePartsRequest $request, Vehicle $vehicle)
     {
         $parts = $this->compatibility
-            ->partsForVehicle($vehicle, $request->filters());
+            ->partsForVehicle($vehicle, $request->filters(), $request->includeInactive());
 
-        return $this->paginateAssessed($parts, $this->compatibility->vehicleCriteria($vehicle), $request);
+        return $this->paginateAssessed($parts, $this->compatibility->vehicleCriteria($vehicle) + ['include_inactive' => $request->includeInactive()], $request);
     }
 
     /** GET /api/catalog/compatible-parts?vehicle_model_id=..&year=.. (recherche sans vehicule du parc) */
@@ -68,15 +68,21 @@ class CompatibilityController extends Controller
             $data['chassis_code'] ?? null,
             $data['specification_market'] ?? null,
             isset($data['manufacturing_month']) ? (int) $data['manufacturing_month'] : null,
+            $request->includeInactive(),
         );
 
-        $criteria = $data + ['month' => $data['manufacturing_month'] ?? null];
+        $criteria = $data + [
+            'month' => $data['manufacturing_month'] ?? null,
+            'include_inactive' => $request->includeInactive(),
+        ];
 
         return $this->paginateAssessed($parts, $criteria, $request);
     }
 
     private function paginateAssessed(Builder $parts, array $criteria, CompatiblePartsRequest $request)
     {
+        $criteria = $this->assessment->withModelState($criteria);
+
         if (! $request->user()?->isStaff()) {
             $parts->visibleToPublic();
         }
@@ -93,7 +99,7 @@ class CompatibilityController extends Controller
     private function withAssessments(LengthAwarePaginator $parts, array $criteria)
     {
         $models = $parts->getCollection();
-        $models->loadMissing(['fitments', 'oemNumbers.fitments']);
+        $models->loadMissing(PartCompatibilityAssessment::EAGER);
 
         foreach ($models as $part) {
             $part->setAttribute('compatibility_assessment', $this->assessment->assess($part, $criteria));
@@ -105,6 +111,7 @@ class CompatibilityController extends Controller
             $part->unsetRelation('fitments');
             foreach ($part->oemNumbers as $oem) {
                 $oem->unsetRelation('fitments');
+                $oem->unsetRelation('replacementRelations');
             }
         }
 
@@ -114,7 +121,7 @@ class CompatibilityController extends Controller
     /** GET /api/oem/{number}/vehicles : vehicules du parc concernes par une reference OEM. */
     public function vehiclesForOem(string $number)
     {
-        $vehicles = $this->compatibility->vehiclesForOem($number);
+        $vehicles = $this->compatibility->vehiclesForOem($number, request()->boolean('include_inactive'));
 
         if (! request()->user()?->isStaff()) {
             $visibleIds = Vehicle::visibleToPublic()->whereKey($vehicles->modelKeys())->pluck('id');
@@ -127,7 +134,7 @@ class CompatibilityController extends Controller
     /** GET /api/oem/{number}/models : modeles couverts par une reference OEM. */
     public function modelsForOem(string $number)
     {
-        return VehicleModelResource::collection($this->compatibility->modelsForOem($number));
+        return VehicleModelResource::collection($this->compatibility->modelsForOem($number, request()->boolean('include_inactive')));
     }
 
     /** GET /api/oem/{number}/cross-references : references equivalentes. */

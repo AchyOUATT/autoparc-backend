@@ -114,6 +114,7 @@ class PartResource extends JsonResource
                 'id'               => $f->id,
                 'vehicle_model_id' => $f->vehicle_model_id,
                 'vehicle_model'    => $f->vehicleModel?->full_name,
+                'vehicle_model_active' => $f->vehicleModel?->is_active !== false,
                 'brand_id'         => $f->vehicleModel?->brand_id,
                 'trim_id'          => $f->trim_id,
                 'trim'             => $f->trim?->name,
@@ -126,6 +127,9 @@ class PartResource extends JsonResource
                 'market_codes'     => $f->market_codes,
                 'month_from'       => $f->month_from,
                 'month_to'         => $f->month_to,
+                // Preuve de la compatibilite (distincte de celle d'un remplacement).
+                'evidence_level'   => $f->evidence_level,
+                'evidence_sources' => $f->evidence_sources,
                 'year_from'        => $f->year_from,
                 'year_to'          => $f->year_to,
                 'position'         => $f->position,
@@ -184,6 +188,9 @@ class PartResource extends JsonResource
             // pareillement, et `unique()` les confondrait alors en une seule
             // entree — « +N » comprise. Sur ce referentiel le cas n'existe
             // pas ; s'il apparaissait, c'est ici qu'il faudrait distinguer.
+            // Modeles inactifs : hors du resume courant (la liste `fitments`
+            // complete reste rendue, avec `vehicle_model_active`).
+            ->filter(fn ($f) => $f->vehicleModel?->is_active !== false)
             ->map(fn ($f) => trim($f->vehicleModel?->name ?? ''))
             ->filter()
             ->unique()

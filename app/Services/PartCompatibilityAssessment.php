@@ -6,18 +6,45 @@ use App\Enums\FitmentSource;
 use App\Models\OemNumberFitment;
 use App\Models\Part;
 use App\Models\PartFitment;
+use App\Models\VehicleModel;
 use App\Support\EngineCode;
+use App\Support\FitmentEvidence;
+use App\Support\OemFitmentInheritance;
 use Illuminate\Database\Eloquent\Builder;
 
-/** Qualifies a match against the catalogue; it does not certify a manufacturer. */
+/**
+ * Qualifies a match against the catalogue; it does not certify a manufacturer.
+ *
+ * Verdicts :
+ *  - confirmed : une ligne déclarée, à preuve suffisante, dont tous les
+ *                critères exigés sont connus et satisfaits ;
+ *  - candidate : au moins une ligne non exclue, mais un critère exigé est
+ *                inconnu, ou la preuve est insuffisante, ou la ligne est
+ *                fabriquée — jamais présenté comme certain ;
+ *  - excluded  : le modèle a des lignes pour cette pièce, et chacune est
+ *                contredite par un critère connu du véhicule ;
+ *  - unknown   : aucune ligne pour ce modèle (le catalogue ne sait pas ;
+ *                ce n'est pas une incompatibilité).
+ *
+ * Seul confirmed met `compatible` et `compatibility_ready` à vrai.
+ */
 class PartCompatibilityAssessment
 {
+    public const MISSING_EVIDENCE = 'evidence';
+
     public function __construct(private readonly FitmentRestrictions $restrictions = new FitmentRestrictions()) {}
+
+    /** Les relations à charger pour assess(), sans N+1. */
+    public const EAGER = ['fitments', 'oemNumbers.fitments', 'oemNumbers.replacementRelations'];
 
     /** Filter before pagination: legacy clients use returned IDs as confirmation. */
     public function constrainConfirmed(Builder $parts, array $criteria): Builder
     {
         if (empty($criteria['vehicle_model_id'])) {
+            return $parts->whereRaw('1 = 0');
+        }
+
+        if (! $this->modelIsSearchable($criteria)) {
             return $parts->whereRaw('1 = 0');
         }
 
@@ -56,6 +83,10 @@ class PartCompatibilityAssessment
                     ->orWhereRaw("TRIM(engine_code) = ''")
                     ->orWhereRaw('UPPER(TRIM(engine_code)) = ?', [$engineCode]));
             }
+
+            // Preuve suffisante (voir FitmentEvidence).
+            $fitment->where(fn ($q) => $q->whereNull('evidence_level')
+                ->orWhereIn('evidence_level', FitmentEvidence::SUFFICIENT));
         };
 
         return $parts->where(function (Builder $query) use ($apply, $dropPart, $dropOem) {
@@ -65,11 +96,14 @@ class PartCompatibilityAssessment
                 if ($dropPart !== []) {
                     $fitment->whereNotIn('part_fitments.id', $dropPart);
                 }
-            })->orWhereHas('oemNumbers.fitments', function (Builder $fitment) use ($apply, $dropOem) {
-                $apply($fitment);
-                if ($dropOem !== []) {
-                    $fitment->whereNotIn('oem_number_fitments.id', $dropOem);
-                }
+            })->orWhereHas('oemNumbers', function (Builder $oem) use ($apply, $dropOem) {
+                OemFitmentInheritance::constrain($oem);
+                $oem->whereHas('fitments', function (Builder $fitment) use ($apply, $dropOem) {
+                    $apply($fitment);
+                    if ($dropOem !== []) {
+                        $fitment->whereNotIn('oem_number_fitments.id', $dropOem);
+                    }
+                });
             });
         });
     }
@@ -80,64 +114,127 @@ class PartCompatibilityAssessment
             return $this->result('unknown', ['vehicle_model_id'], 'missing_vehicle_model');
         }
 
+        // L'etat du modele est fourni par l'appelant (withModelState) : aucune
+        // requete ici, l'evaluation reste sans acces base une fois les
+        // relations prechargees.
+        if (($criteria['vehicle_model_active'] ?? true) === false && empty($criteria['include_inactive'])) {
+            return $this->result('unknown', [], 'inactive_vehicle_model');
+        }
+
         // A one-character VIN marker is not a resolved engine code. Do not
         // infer an engine or drivetrain from a trim's defaults here.
         $criteria['engine_code'] = EngineCode::forCompatibility($criteria['engine_code'] ?? null);
-        $part->loadMissing(['fitments', 'oemNumbers.fitments']);
+        $part->loadMissing(self::EAGER);
         $candidates = [];
-        $declaredCandidate = false;
+        $excluded = [];
+        $reasons = [];
 
+        $lignes = [];
         foreach ($part->fitments as $fitment) {
-            $missing = $this->missingCriteria($fitment, $criteria);
+            $lignes[] = [$fitment, $fitment->source === FitmentSource::Declared, 'matching_declared_fitment'];
+        }
+        foreach ($part->oemNumbers as $oem) {
+            // Un numéro remplacé ne transmet pas ses compatibilités.
+            if (! OemFitmentInheritance::passes($oem)) {
+                continue;
+            }
+            foreach ($oem->fitments as $fitment) {
+                $lignes[] = [$fitment, true, 'matching_oem_fitment'];
+            }
+        }
 
-            if ($missing === null) {
+        foreach ($lignes as [$fitment, $declared, $reasonIfConfirmed]) {
+            $verdict = $this->evaluateRow($fitment, $criteria);
+
+            if ($verdict === null) {
+                continue; // autre modèle
+            }
+
+            if ($verdict['excluded'] !== null) {
+                $excluded[] = $verdict['excluded'];
+
                 continue;
             }
 
-            $declared = $fitment->source === FitmentSource::Declared;
+            $missing = $verdict['missing'];
+            $preuve = FitmentEvidence::isSufficient($fitment->evidence_level, $declared ? FitmentSource::Declared : FitmentSource::Generated);
 
-            if ($declared && $missing === []) {
-                return $this->result('confirmed', [], 'matching_declared_fitment');
+            if ($missing === [] && $preuve) {
+                return $this->result('confirmed', [], $reasonIfConfirmed);
             }
 
+            if (! $declared) {
+                $reasons[] = 'generated_fitment';
+            } elseif (! $preuve) {
+                $missing[] = self::MISSING_EVIDENCE;
+                $reasons[] = 'insufficient_evidence';
+            } else {
+                $reasons[] = 'missing_vehicle_criteria';
+            }
             $candidates[] = $missing;
-            $declaredCandidate = $declaredCandidate || $declared;
         }
 
-        foreach ($part->oemNumbers as $oem) {
-            foreach ($oem->fitments as $fitment) {
-                $missing = $this->missingCriteria($fitment, $criteria);
+        if ($candidates !== []) {
+            $missing = array_values(array_unique(array_merge(...$candidates)));
+            // La raison la plus actionnable : un critère du véhicule à renseigner.
+            $reason = in_array('missing_vehicle_criteria', $reasons, true) ? 'missing_vehicle_criteria'
+                : (in_array('insufficient_evidence', $reasons, true) ? 'insufficient_evidence' : 'generated_fitment');
 
-                if ($missing === null) {
-                    continue;
-                }
-
-                if ($missing === []) {
-                    return $this->result('confirmed', [], 'matching_oem_fitment');
-                }
-
-                $candidates[] = $missing;
-                $declaredCandidate = true;
-            }
+            return $this->result('candidate', $missing, $reason);
         }
 
-        if ($candidates === []) {
-            // No matching declaration means that the catalogue cannot answer;
-            // it is not evidence that this part cannot physically fit.
-            return $this->result('unknown', [], 'no_matching_fitment');
+        if ($excluded !== []) {
+            return $this->result('excluded', [], 'incompatible_vehicle_criteria', array_values(array_unique($excluded)));
         }
 
-        $missing = array_values(array_unique(array_merge(...$candidates)));
-
-        return $this->result(
-            'candidate',
-            $missing,
-            $declaredCandidate ? 'missing_vehicle_criteria' : 'generated_fitment',
-        );
+        // No matching declaration means that the catalogue cannot answer;
+        // it is not evidence that this part cannot physically fit.
+        return $this->result('unknown', [], 'no_matching_fitment');
     }
 
-    /** Null excludes a row; an empty list is a complete match for that row. */
-    private function missingCriteria(PartFitment|OemNumberFitment $fitment, array $criteria): ?array
+    /**
+     * Un modèle inactif (génération retirée) n'entre pas dans une recherche
+     * courante ; `include_inactive` le rouvre pour la consultation historique.
+     */
+    /** @var array<int, bool> */
+    private array $activeModels = [];
+
+    /** Ajoute `vehicle_model_active` aux criteres (une requete par modele). */
+    public function withModelState(array $criteria): array
+    {
+        $id = (int) ($criteria['vehicle_model_id'] ?? 0);
+        if ($id !== 0) {
+            $criteria['vehicle_model_active'] = $this->modelIsSearchable(['vehicle_model_id' => $id]);
+        }
+
+        return $criteria;
+    }
+
+    public function modelIsSearchable(array $criteria): bool
+    {
+        if (! empty($criteria['include_inactive'])) {
+            return true;
+        }
+        $id = (int) ($criteria['vehicle_model_id'] ?? 0);
+        if ($id === 0) {
+            return true;
+        }
+
+        if (! array_key_exists($id, $this->activeModels)) {
+            $actif = VehicleModel::query()->whereKey($id)->value('is_active');
+            $this->activeModels[$id] = $actif === null || (bool) $actif;
+        }
+
+        return $this->activeModels[$id];
+    }
+
+    /**
+     * Null : autre modèle. Sinon le critère qui exclut la ligne, ou les
+     * critères à renseigner (liste vide = tous satisfaits).
+     *
+     * @return array{excluded: ?string, missing: list<string>}|null
+     */
+    private function evaluateRow(PartFitment|OemNumberFitment $fitment, array $criteria): ?array
     {
         if ((int) $fitment->vehicle_model_id !== (int) $criteria['vehicle_model_id']) {
             return null;
@@ -151,7 +248,7 @@ class PartCompatibilityAssessment
                 $missing[] = 'year';
             }
         } elseif (! $fitment->coversYear((int) $year)) {
-            return null;
+            return ['excluded' => 'year', 'missing' => []];
         }
 
         foreach (['trim_id', 'engine_type_id', 'drivetrain_id'] as $field) {
@@ -166,7 +263,7 @@ class PartCompatibilityAssessment
             if ($actual === null || $actual === '') {
                 $missing[] = $field;
             } elseif ((int) $actual !== (int) $expected) {
-                return null;
+                return ['excluded' => $field, 'missing' => []];
             }
         }
 
@@ -176,27 +273,28 @@ class PartCompatibilityAssessment
             if ($criteria['engine_code'] === null) {
                 $missing[] = 'engine_code';
             } elseif ($criteria['engine_code'] !== $expectedCode) {
-                return null;
+                return ['excluded' => 'engine_code', 'missing' => []];
             }
         }
 
         // Criteres restrictifs : chassis, marche de destination, mois aux
         // bornes. Une colonne vide ne change rien.
-        $restrictions = $this->restrictions->evaluate($fitment, $criteria);
-        if ($restrictions === null) {
-            return null;
+        $restrictions = $this->restrictions->evaluateDetailed($fitment, $criteria);
+        if ($restrictions['excluded'] !== null) {
+            return $restrictions;
         }
 
-        return array_values(array_unique(array_merge($missing, $restrictions)));
+        return ['excluded' => null, 'missing' => array_values(array_unique(array_merge($missing, $restrictions['missing'])))];
     }
 
-    private function result(string $status, array $missing, string $reason): array
+    private function result(string $status, array $missing, string $reason, array $excluded = []): array
     {
         return [
             'status' => $status,
             'compatible' => $status === 'confirmed',
             'compatibility_ready' => $status === 'confirmed',
             'missing_criteria' => $missing,
+            'excluded_criteria' => $excluded,
             'reason' => $reason,
         ];
     }

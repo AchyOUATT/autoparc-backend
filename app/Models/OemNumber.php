@@ -78,6 +78,21 @@ class OemNumber extends Model
     }
 
     /**
+     * Remplacee par une autre reference, quelle que soit la preuve : drapeau
+     * historique ou lien qualifie.
+     */
+    public function isReplaced(): bool
+    {
+        if ($this->is_superseded || $this->superseded_by_id !== null) {
+            return true;
+        }
+
+        return $this->relationLoaded('replacementRelations')
+            ? $this->replacementRelations->isNotEmpty()
+            : $this->replacementRelations()->exists();
+    }
+
+    /**
      * Reference courante en ne suivant QUE les supersessions constructeur
      * qualifiees. Un remplacement atteste par un distributeur n'est pas suivi.
      */

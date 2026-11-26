@@ -16,6 +16,8 @@ class PartFitment extends Model
         'drivetrain_id', 'engine_code', 'chassis_code', 'year_from', 'year_to', 'position', 'notes',
         // Criteres restrictifs (null = aucune restriction). Voir FitmentRestrictions.
         'chassis_restricted', 'market_codes', 'month_from', 'month_to',
+        // Preuve de la compatibilite (voir FitmentEvidence).
+        'evidence_level', 'evidence_sources',
         // Renseignee par les controleurs, jamais par la requete : aucune regle
         // de validation ne la laisse passer, et `validated()` ecarte le reste.
         'source',
@@ -31,6 +33,7 @@ class PartFitment extends Model
             'market_codes' => 'array',
             'month_from' => 'integer',
             'month_to' => 'integer',
+            'evidence_sources' => 'array',
         ];
     }
 

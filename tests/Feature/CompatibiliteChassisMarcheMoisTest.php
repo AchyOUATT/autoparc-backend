@@ -98,7 +98,7 @@ class CompatibiliteChassisMarcheMoisTest extends TestCase
         $this->assertSame('confirmed', $this->assess($part, ['chassis_code' => 'trn280'])['status']);
         $this->assertSame('confirmed', $this->assess($part, ['chassis_code' => 'TRN285L-GKPSKA'])['status']);
 
-        $this->assertSame('unknown', $this->assess($part, ['chassis_code' => 'GRN285'])['status']);
+        $this->assertSame('excluded', $this->assess($part, ['chassis_code' => 'GRN285'])['status']);
 
         $manquant = $this->assess($part);
         $this->assertSame('candidate', $manquant['status']);
@@ -119,7 +119,7 @@ class CompatibiliteChassisMarcheMoisTest extends TestCase
         $part = $this->part(['chassis_code' => 'MCV3*', 'chassis_restricted' => true]);
 
         $this->assertSame('confirmed', $this->assess($part, ['chassis_code' => 'MCV36'])['status']);
-        $this->assertSame('unknown', $this->assess($part, ['chassis_code' => 'VCV10'])['status']);
+        $this->assertSame('excluded', $this->assess($part, ['chassis_code' => 'VCV10'])['status']);
     }
 
     // ── Marché ─────────────────────────────────────────────────────────
@@ -131,7 +131,7 @@ class CompatibiliteChassisMarcheMoisTest extends TestCase
         $this->assertSame('confirmed', $this->assess($part, ['specification_market' => 'USA'])['status']);
         $this->assertSame('confirmed', $this->assess($part, ['specification_market' => 'us'])['status']);
         $this->assertSame('confirmed', $this->assess($part, ['specification_market' => 'CAN'])['status']);
-        $this->assertSame('unknown', $this->assess($part, ['specification_market' => 'EUR'])['status']);
+        $this->assertSame('excluded', $this->assess($part, ['specification_market' => 'EUR'])['status']);
 
         $this->assertSame(['specification_market'], $this->assess($part)['missing_criteria']);
         // Un code que le référentiel ne connaît pas ne se compare pas.
@@ -147,7 +147,7 @@ class CompatibiliteChassisMarcheMoisTest extends TestCase
 
         $afrique = $this->part(['market_codes' => ['AFR']]);
         $this->assertSame('candidate', $this->assess($afrique, ['specification_market' => 'GEN'])['status']);
-        $this->assertSame('unknown', $this->assess($afrique, ['specification_market' => 'MDE'])['status']);
+        $this->assertSame('excluded', $this->assess($afrique, ['specification_market' => 'MDE'])['status']);
     }
 
     public function test_une_liste_de_marches_vide_est_stockee_nulle(): void
@@ -168,8 +168,8 @@ class CompatibiliteChassisMarcheMoisTest extends TestCase
         $this->assertSame('confirmed', $this->assess($part, ['year' => 2010])['status']);
         $this->assertSame('confirmed', $this->assess($part, ['year' => 2009, 'month' => 12])['status']);
         $this->assertSame('confirmed', $this->assess($part, ['year' => 2011, 'month' => 8])['status']);
-        $this->assertSame('unknown', $this->assess($part, ['year' => 2009, 'month' => 10])['status']);
-        $this->assertSame('unknown', $this->assess($part, ['year' => 2011, 'month' => 9])['status']);
+        $this->assertSame('excluded', $this->assess($part, ['year' => 2009, 'month' => 10])['status']);
+        $this->assertSame('excluded', $this->assess($part, ['year' => 2011, 'month' => 9])['status']);
 
         $borne = $this->assess($part, ['year' => 2009]);
         $this->assertSame('candidate', $borne['status']);
@@ -194,7 +194,7 @@ class CompatibiliteChassisMarcheMoisTest extends TestCase
         $this->assertEqualsCanonicalizing(['engine_code', 'chassis_code', 'specification_market'], $resultat['missing_criteria']);
 
         // Un seul critère incompatible exclut la règle, même si d'autres manquent.
-        $this->assertSame('unknown', $this->assess($part, ['specification_market' => 'JPN'])['status']);
+        $this->assertSame('excluded', $this->assess($part, ['specification_market' => 'JPN'])['status']);
     }
 
     public function test_une_regle_exclue_n_empeche_pas_une_autre_de_confirmer(): void
@@ -220,7 +220,7 @@ class CompatibiliteChassisMarcheMoisTest extends TestCase
 
         $this->assertSame('confirmed', $this->assess($part, ['chassis_code' => 'TRN285'])['status']);
         $this->assertSame('candidate', $this->assess($part)['status']);
-        $this->assertSame('unknown', $this->assess($part, ['chassis_code' => 'TRN280'])['status']);
+        $this->assertSame('excluded', $this->assess($part, ['chassis_code' => 'TRN280'])['status']);
     }
 
     // ── API publique ───────────────────────────────────────────────────

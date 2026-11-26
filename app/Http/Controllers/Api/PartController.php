@@ -175,7 +175,7 @@ class PartController extends Controller
         }
 
         return new PartResource($part->load([
-            'category', 'manufacturer', 'oemNumbers.brand', 'oemNumbers.fitments.vehicleModel.brand',
+            'category', 'manufacturer', 'oemNumbers.brand', 'oemNumbers.fitments.vehicleModel.brand', 'oemNumbers.replacementRelations.to',
             'fitments.vehicleModel.brand', 'fitments.trim', 'fitments.engineType', 'donorVehicle', 'media', 'sellerAccount',
         ]));
     }

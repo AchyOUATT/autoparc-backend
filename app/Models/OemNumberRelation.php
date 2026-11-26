@@ -34,12 +34,12 @@ class OemNumberRelation extends Model
 
     protected $fillable = [
         'from_oem_number_id', 'to_oem_number_id', 'kind', 'evidence_level',
-        'source_url', 'source_note', 'verified_on',
+        'sources', 'source_note', 'verified_on',
     ];
 
     protected function casts(): array
     {
-        return ['verified_on' => 'date'];
+        return ['verified_on' => 'date', 'sources' => 'array'];
     }
 
     protected static function booted(): void
