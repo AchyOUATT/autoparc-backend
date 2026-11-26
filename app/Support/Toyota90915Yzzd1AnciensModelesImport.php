@@ -177,6 +177,67 @@ final class Toyota90915Yzzd1AnciensModelesImport
     /**
      * @param  array<string, mixed>  $rapport
      */
+    /**
+     * Inverse exact de run(), pour le down() de la migration 160000.
+     *
+     * Retire ses lignes de compatibilité (même identité ET même note : une
+     * ligne modifiée à la main depuis reste), puis les générations qu'il crée,
+     * seulement quand plus rien ne les référence (compatibilité, véhicule du
+     * parc ou du garage, finition, motorisation, annonce, besoin client,
+     * accessoire, numéro OEM). Une génération rattachée entre-temps reste.
+     *
+     * @return array{fitments_removed: int, models_removed: list<string>, models_kept: list<string>}
+     */
+    public static function retirer(): array
+    {
+        return DB::transaction(function (): array {
+            $rapport = ['fitments_removed' => 0, 'models_removed' => [], 'models_kept' => []];
+            $part = DB::table('parts')->where('sku', self::SKU)->whereNull('owner_partner_account_id')->first();
+            if ($part !== null) {
+                foreach (self::applications() as $application) {
+                    $modeleId = DB::table('vehicle_models')->where('slug', $application['model_slug'])->value('id');
+                    if ($modeleId === null) {
+                        continue;
+                    }
+                    $rapport['fitments_removed'] += DB::table('part_fitments')->where([
+                        'part_id' => $part->id, 'vehicle_model_id' => $modeleId, 'trim_id' => null,
+                        'engine_type_id' => null, 'drivetrain_id' => null, 'engine_code' => $application['engine_code'],
+                        'year_from' => $application['year_from'], 'year_to' => $application['year_to'],
+                        'notes' => $application['notes'], 'source' => FitmentSource::Declared->value,
+                    ])->delete();
+                }
+            }
+
+            $references = ['part_fitments', 'vehicles', 'owned_vehicles', 'trims', 'motorisations', 'private_vehicle_listings',
+                'customer_needs', 'accessory_fitments', 'oem_number_fitments'];
+            foreach (VehicleModelsSeeder::GENERATIONS_FILTRE_YZZD1 as [$marque, $nom, $gen]) {
+                $brandId = DB::table('brands')->where('slug', $marque)->value('id');
+                $slug = Str::slug($nom.'-'.$gen);
+                $id = $brandId === null ? null : DB::table('vehicle_models')->where('brand_id', $brandId)->where('slug', $slug)->value('id');
+                if ($id === null) {
+                    continue;
+                }
+                $utilisee = false;
+                foreach ($references as $table) {
+                    if (Schema::hasTable($table) && Schema::hasColumn($table, 'vehicle_model_id')
+                        && DB::table($table)->where('vehicle_model_id', $id)->exists()) {
+                        $utilisee = true;
+                        break;
+                    }
+                }
+                if ($utilisee) {
+                    $rapport['models_kept'][] = $slug;
+
+                    continue;
+                }
+                DB::table('vehicle_models')->where('id', $id)->delete();
+                $rapport['models_removed'][] = $slug;
+            }
+
+            return $rapport;
+        });
+    }
+
     private static function poserLesModeles(array &$rapport): void
     {
         foreach (VehicleModelsSeeder::GENERATIONS_FILTRE_YZZD1 as [$marque, $nom, $gen, $carrosserie, $segment, $de, $a]) {
