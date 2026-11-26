@@ -860,6 +860,15 @@ class FiltresHuileBoutiqueSeeder extends Seeder
         foreach (array_unique($enAttente) as $sku) {
             $this->command?->warn("  {$sku} : applications en attente de verification ; compatibilites existantes conservees, aucune proposition publiee.");
         }
+
+        // Les compatibilites des generations Sienna XL20 / XL30 / XL40 sont
+        // ecrites par `ToyotaSiennaReferentielImport` (26/11/2026), avec leur
+        // chassis et leur source EPC. Le `fitments()->delete()` ci-dessus
+        // vient d'effacer celles de la YZZA1 et de la YZZN1 : elles sont
+        // reposees ici, depuis leur seule definition. (La ligne YZZD1 de la
+        // XL20 n'a pas besoin de l'etre : la YZZD1 est conservee, voir son
+        // drapeau `compatibilites_a_verifier`.)
+        \App\Support\ToyotaSiennaReferentielImport::reposerLesCompatibilites(['04152-YZZA1', '90915-YZZN1']);
     }
 
     /**
