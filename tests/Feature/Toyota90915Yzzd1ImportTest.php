@@ -10,6 +10,9 @@ use App\Models\PartCategory;
 use App\Models\Trim;
 use App\Models\VehicleModel;
 use App\Support\Toyota90915Yzzd1Import;
+use Database\Seeders\FiltresHuileBoutiqueSeeder;
+use Database\Seeders\ManufacturersSeeder;
+use Database\Seeders\PartCategoriesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -240,6 +243,26 @@ class Toyota90915Yzzd1ImportTest extends TestCase
         // OEM n'est posée, donc la recherche par ancien numéro ne renvoie
         // aucun modèle déduit du remplacement.
         $this->assertSame([], $this->getJson('/api/oem/90915-20003/models')->assertOk()->json('data'));
+    }
+
+    public function test_rejouer_le_seeder_des_filtres_n_efface_pas_les_compatibilites(): void
+    {
+        $this->seed([
+            PartCategoriesSeeder::class,
+            ManufacturersSeeder::class,
+        ]);
+        $this->catalogue();
+        $this->filtre();
+        Toyota90915Yzzd1Import::run();
+        $piece = Part::where('sku', Toyota90915Yzzd1Import::SKU)->firstOrFail();
+        $avant = $piece->fitments()->count();
+        $this->assertSame(count(Toyota90915Yzzd1Import::applications()), $avant);
+
+        // Ce seeder fait `fitments()->delete()` sur ses références : la
+        // YZZD1 y est marquée `compatibilites_a_verifier`, il doit la laisser.
+        $this->seed(FiltresHuileBoutiqueSeeder::class);
+
+        $this->assertSame($avant, $piece->fitments()->count());
     }
 
     public function test_un_niveau_de_preuve_deja_renseigne_n_est_pas_reecrit(): void
