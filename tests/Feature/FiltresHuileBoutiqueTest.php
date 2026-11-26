@@ -787,12 +787,24 @@ class FiltresHuileBoutiqueTest extends TestCase
     {
         $this->semer();
 
+        // Depuis le 26/11/2026, ces trois noms portent aussi des generations
+        // ANTERIEURES a leur ligne nue (`GENERATIONS_FILTRE_YZZD1`), sans
+        // chevauchement. Le doublon surveille ici reste interdit : une seule
+        // ligne nue par nom, et toute autre ligne est une generation declaree.
+        $declarees = collect(\Database\Seeders\VehicleModelsSeeder::GENERATIONS_FILTRE_YZZD1)
+            ->map(fn ($g) => $g[1].'|'.$g[2]);
         foreach (['Highlander', 'Sienna', 'Avalon'] as $nom) {
             $this->assertCount(
                 1,
-                VehicleModel::where('name', $nom)->get(),
+                VehicleModel::where('name', $nom)->whereNull('generation')->get(),
                 "Le modele {$nom} existe en plusieurs exemplaires.",
             );
+            foreach (VehicleModel::where('name', $nom)->whereNotNull('generation')->get() as $generation) {
+                $this->assertTrue(
+                    $declarees->contains($nom.'|'.$generation->generation),
+                    "La generation {$nom} {$generation->generation} n'est pas declaree.",
+                );
+            }
         }
 
         // Le Venza fait exception depuis qu'il a ses generations, et de la
