@@ -435,7 +435,7 @@ class VersionDePartageTest extends TestCase
         // Une compatibilite declaree pour que la recherche par criteres rende
         // la piece : c'est un chemin a part, servi par CompatibilityService et
         // non par PartController.
-        $piece->fitments()->create(['vehicle_model_id' => $this->modele()->id]);
+        $piece->fitments()->create(['vehicle_model_id' => $this->modele()->id, ...self::PREUVE_DOCUMENTEE]);
 
         // Et un numero OEM rattache au meme modele, pour le chemin qui rend des
         // VEHICULES depuis une reference saisie au comptoir.

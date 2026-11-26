@@ -55,6 +55,7 @@ class PartCompatibilityAssessmentTest extends TestCase
         $part->fitments()->create([
             'vehicle_model_id' => $this->model->id,
             'source' => FitmentSource::Declared,
+            ...self::PREUVE_DOCUMENTEE,
             ...$fitment,
         ]);
 
@@ -95,9 +96,13 @@ class PartCompatibilityAssessmentTest extends TestCase
         $this->assertTrue($exact['compatibility_ready']);
         $this->assertSame([], $exact['missing_criteria']);
         $this->assertSame('matching_declared_fitment', $exact['reason']);
-        $this->assertSame('unknown', $other['status']);
+        // Un code moteur connu et différent CONTREDIT la ligne : exclue, et
+        // non plus « inconnue ».
+        $this->assertSame('excluded', $other['status']);
         $this->assertFalse($other['compatible']);
-        $this->assertSame('no_matching_fitment', $other['reason']);
+        $this->assertFalse($other['compatibility_ready']);
+        $this->assertSame('incompatible_vehicle_criteria', $other['reason']);
+        $this->assertSame(['engine_code'], $other['excluded_criteria']);
     }
 
     public function test_un_caractere_du_vin_ne_devient_pas_un_code_moteur_resolu(): void
@@ -115,7 +120,7 @@ class PartCompatibilityAssessmentTest extends TestCase
         $other = Drivetrain::create(['code' => 'TEST-FWD', 'label' => 'Traction de test']);
 
         $this->assertSame(['drivetrain_id'], $this->assess($part)['missing_criteria']);
-        $this->assertSame('unknown', $this->assess($part, ['drivetrain_id' => $other->id])['status']);
+        $this->assertSame('excluded', $this->assess($part, ['drivetrain_id' => $other->id])['status']);
         $this->assertSame('confirmed', $this->assess($part, ['drivetrain_id' => $this->awd->id])['status']);
     }
 
@@ -165,6 +170,7 @@ class PartCompatibilityAssessmentTest extends TestCase
             'vehicle_model_id' => $this->model->id,
             'engine_code' => 'TEST-A',
             'source' => FitmentSource::Declared,
+            ...self::PREUVE_DOCUMENTEE,
         ]);
 
         $this->assertSame('confirmed', $this->assess($part, ['engine_code' => 'TEST-A'])['status']);
@@ -176,8 +182,8 @@ class PartCompatibilityAssessmentTest extends TestCase
 
         $this->assertSame('confirmed', $this->assess($part, ['year' => 2014])['status']);
         $this->assertSame('confirmed', $this->assess($part, ['year' => 2016])['status']);
-        $this->assertSame('unknown', $this->assess($part, ['year' => 2013])['status']);
-        $this->assertSame('unknown', $this->assess($part, ['year' => 2017])['status']);
+        $this->assertSame('excluded', $this->assess($part, ['year' => 2013])['status']);
+        $this->assertSame('excluded', $this->assess($part, ['year' => 2017])['status']);
         $missing = $this->assess($part, ['year' => null]);
         $this->assertSame('candidate', $missing['status']);
         $this->assertSame(['year'], $missing['missing_criteria']);
@@ -193,6 +199,7 @@ class PartCompatibilityAssessmentTest extends TestCase
             'engine_code' => 'TEST-A',
             'year_from' => 2014,
             'year_to' => 2016,
+            ...self::PREUVE_DOCUMENTEE,
         ]);
 
         $candidate = $this->assess($part);
@@ -236,6 +243,7 @@ class PartCompatibilityAssessmentTest extends TestCase
             'engine_code' => 'TEST-B',
             'drivetrain_id' => $this->awd->id,
             'source' => FitmentSource::Declared,
+            ...self::PREUVE_DOCUMENTEE,
         ]);
         $assessment = $this->assess($part, ['year' => null]);
 

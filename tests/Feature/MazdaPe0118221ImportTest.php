@@ -313,7 +313,7 @@ class MazdaPe0118221ImportTest extends TestCase
         MazdaPe0118221Import::run();
 
         $piece = Part::where('sku', MazdaPe0118221Import::SKU)->firstOrFail();
-        $texte = CompatibilitesPourApercu::texte($piece->fitments()->with('vehicleModel.brand')->get());
+        $texte = CompatibilitesPourApercu::texte($piece->fitments()->with('vehicleModel.brand')->orderBy('id')->get());
 
         $this->assertNotNull($texte);
         $this->assertStringStartsWith('Compatible : ', $texte);

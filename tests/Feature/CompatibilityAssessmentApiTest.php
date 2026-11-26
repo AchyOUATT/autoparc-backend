@@ -59,6 +59,7 @@ class CompatibilityAssessmentApiTest extends TestCase
         $part->fitments()->create([
             'vehicle_model_id' => $this->model->id,
             'source' => FitmentSource::Declared,
+            ...self::PREUVE_DOCUMENTEE,
             ...$fitment,
         ]);
 
@@ -115,10 +116,27 @@ class CompatibilityAssessmentApiTest extends TestCase
             ->assertJsonPath('data.0.missing_criteria.0', 'engine_code');
     }
 
-    public function test_une_absence_de_declaration_dans_le_garage_reste_inconnue(): void
+    public function test_un_moteur_contredit_dans_le_garage_est_exclu_sans_devenir_certain(): void
     {
         $part = $this->part(['engine_code' => 'TEST-A']);
         $this->vehicle->update(['engine_code' => 'TEST-B']);
+
+        // Les anciens booleens restent faux : une app qui ne lit pas
+        // `status` affiche « Non déterminé », jamais « Compatible ».
+        $this->actingAsClient($this->owner)
+            ->getJson("/api/my/parts/{$part->id}/garage-compatibility")
+            ->assertOk()
+            ->assertJsonPath('data.0.status', 'excluded')
+            ->assertJsonPath('data.0.compatible', false)
+            ->assertJsonPath('data.0.compatibility_ready', false)
+            ->assertJsonPath('data.0.excluded_criteria', ['engine_code'])
+            ->assertJsonPath('data.0.reason', 'incompatible_vehicle_criteria');
+    }
+
+    public function test_une_absence_de_declaration_dans_le_garage_reste_inconnue(): void
+    {
+        $autre = VehicleModel::create(['brand_id' => $this->model->brand_id, 'name' => 'Autre modèle', 'generation' => 'G9']);
+        $part = $this->part(['vehicle_model_id' => $autre->id]);
 
         $this->actingAsClient($this->owner)
             ->getJson("/api/my/parts/{$part->id}/garage-compatibility")

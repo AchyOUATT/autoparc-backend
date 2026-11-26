@@ -16,7 +16,7 @@ class OwnedVehicle extends Model
         'user_id', 'brand_id', 'vehicle_type', 'two_wheeler_configuration', 'vehicle_model_id', 'model_libre', 'trim_id',
         'engine_type_id', 'motorisation_id', 'drivetrain_id', 'color_id',
         'engine_displacement_cc', 'engine_displacement_l', 'cylinders', 'engine_layout', 'power_hp',
-        'manufacturing_year', 'model_year', 'specification_market', 'vin', 'engine_code', 'plate_number', 'nickname', 'mileage_km',
+        'manufacturing_year', 'manufacturing_month', 'model_year', 'specification_market', 'circulation_country', 'chassis_code', 'vin', 'engine_code', 'plate_number', 'nickname', 'mileage_km',
         'technical_inspection_expiry', 'insurance_expiry',
         'last_service_date', 'last_service_mileage_km', 'service_interval_km',
     ];
@@ -30,6 +30,7 @@ class OwnedVehicle extends Model
             'cylinders' => 'integer',
             'power_hp' => 'integer',
             'manufacturing_year'          => 'integer',
+            'manufacturing_month'         => 'integer',
             'model_year' => 'integer',
             'mileage_km'                  => 'integer',
             'technical_inspection_expiry' => 'date',
@@ -287,6 +288,17 @@ class OwnedVehicle extends Model
     public function getEffectiveEngineCodeAttribute(): ?string
     {
         return EngineCode::forCompatibility($this->engine_code);
+    }
+
+    /**
+     * Code châssis effectif : saisi, sinon préfixe d'un numéro de châssis
+     * japonais (NZE121-3123456 → NZE121). Jamais déduit d'un VIN à 17
+     * caractères ni du code moteur.
+     */
+    public function getEffectiveChassisCodeAttribute(): ?string
+    {
+        return \App\Support\ChassisCode::normalize($this->chassis_code)
+            ?? \App\Support\ChassisCode::fromFrameNumber($this->vin);
     }
 
     /** Données moteur renseignées, sans présumer du verdict par pièce. */
