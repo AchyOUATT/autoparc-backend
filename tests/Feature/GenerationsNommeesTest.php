@@ -181,7 +181,10 @@ class GenerationsNommeesTest extends TestCase
             ->selectRaw('CASE WHEN production_start IS NULL THEN generation ELSE NULL END as generation_without_year')
             ->groupBy('brand_id', 'name', 'production_start')
             ->groupByRaw('CASE WHEN production_start IS NULL THEN generation ELSE NULL END')
-            ->having('n', '>', 1)
+            // HAVING sur l'expression et non sur l'alias `n` : PostgreSQL
+            // (la base de production) refuse un alias du SELECT dans HAVING,
+            // SQLite l'accepte. Même sens, portable.
+            ->havingRaw('COUNT(*) > 1')
             ->get();
 
         $this->assertCount(0, $doublons, 'Doublon de modèle pour une année connue, ou de génération lorsque cette année est inconnue.');
