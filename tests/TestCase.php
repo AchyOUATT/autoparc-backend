@@ -10,6 +10,17 @@ use Tests\Support\FakeFirebaseAuthService;
 
 abstract class TestCase extends BaseTestCase
 {
+    /**
+     * Preuve documentée minimale d'une compatibilité de test (voir
+     * App\Support\FitmentEvidence) : sans elle, une ligne déclarée reste
+     * « candidate ». Les tests qui portent sur d'autres critères l'ajoutent
+     * pour isoler ces critères.
+     */
+    protected const PREUVE_DOCUMENTEE = [
+        'evidence_level' => 'manufacturer_official',
+        'evidence_sources' => ['https://exemple.test/catalogue-constructeur'],
+    ];
+
     protected function setUp(): void
     {
         parent::setUp();

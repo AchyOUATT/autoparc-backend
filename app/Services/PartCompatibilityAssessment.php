@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
  * Qualifies a match against the catalogue; it does not certify a manufacturer.
  *
  * Verdicts :
- *  - confirmed : une ligne déclarée, à preuve suffisante, dont tous les
+ *  - confirmed : une ligne déclarée ET documentée, dont tous les
  *                critères exigés sont connus et satisfaits ;
  *  - candidate : au moins une ligne non exclue, mais un critère exigé est
  *                inconnu, ou la preuve est insuffisante, ou la ligne est
@@ -84,9 +84,8 @@ class PartCompatibilityAssessment
                     ->orWhereRaw('UPPER(TRIM(engine_code)) = ?', [$engineCode]));
             }
 
-            // Preuve suffisante (voir FitmentEvidence).
-            $fitment->where(fn ($q) => $q->whereNull('evidence_level')
-                ->orWhereIn('evidence_level', FitmentEvidence::SUFFICIENT));
+            // Ligne documentée (voir FitmentEvidence).
+            FitmentEvidence::constrainDocumented($fitment);
         };
 
         return $parts->where(function (Builder $query) use ($apply, $dropPart, $dropOem) {
@@ -157,7 +156,7 @@ class PartCompatibilityAssessment
             }
 
             $missing = $verdict['missing'];
-            $preuve = FitmentEvidence::isSufficient($fitment->evidence_level, $declared ? FitmentSource::Declared : FitmentSource::Generated);
+            $preuve = FitmentEvidence::isDocumented($fitment, $declared);
 
             if ($missing === [] && $preuve) {
                 return $this->result('confirmed', [], $reasonIfConfirmed);

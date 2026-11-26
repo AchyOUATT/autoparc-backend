@@ -84,11 +84,9 @@ class FitmentRestrictions
                 $missing[] = self::MISSING_MARKET;
             } else {
                 $resultat = Market::compare($marches, $vehicule);
-                if ($resultat === Market::MISMATCH) {
+                // Correspondance strictement explicite, sans hiérarchie.
+                if ($resultat !== Market::MATCH) {
                     return ['excluded' => self::MISSING_MARKET, 'missing' => []];
-                }
-                if ($resultat === Market::AMBIGUOUS) {
-                    $missing[] = self::MISSING_MARKET;
                 }
             }
         }

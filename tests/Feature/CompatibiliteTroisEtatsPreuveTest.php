@@ -8,6 +8,7 @@ use App\Models\OemNumber;
 use App\Models\OemNumberRelation;
 use App\Models\OwnedVehicle;
 use App\Models\Part;
+use App\Models\PartFitment;
 use App\Models\PartCategory;
 use App\Models\User;
 use App\Models\VehicleModel;
@@ -49,6 +50,7 @@ class CompatibiliteTroisEtatsPreuveTest extends TestCase
             $part->fitments()->create([
                 'vehicle_model_id' => ($model ?? $this->model)->id,
                 'source' => FitmentSource::Declared,
+                ...self::PREUVE_DOCUMENTEE,
                 ...$fitment,
             ]);
         }
@@ -102,7 +104,7 @@ class CompatibiliteTroisEtatsPreuveTest extends TestCase
     public function test_une_ligne_compatible_l_emporte_sur_une_ligne_exclue(): void
     {
         $part = $this->part(['engine_code' => '5S-FE']);
-        $part->fitments()->create(['vehicle_model_id' => $this->model->id, 'engine_code' => '1MZ-FE', 'source' => FitmentSource::Declared]);
+        $part->fitments()->create(['vehicle_model_id' => $this->model->id, 'engine_code' => '1MZ-FE', 'source' => FitmentSource::Declared, ...self::PREUVE_DOCUMENTEE]);
 
         $this->assertSame('confirmed', $this->assess($part->fresh(), ['engine_code' => '1MZ-FE'])['status']);
     }
@@ -110,7 +112,7 @@ class CompatibiliteTroisEtatsPreuveTest extends TestCase
     public function test_une_candidate_l_emporte_sur_une_exclusion(): void
     {
         $part = $this->part(['engine_code' => '5S-FE']);
-        $part->fitments()->create(['vehicle_model_id' => $this->model->id, 'drivetrain_id' => null, 'year_from' => 1996, 'source' => FitmentSource::Declared]);
+        $part->fitments()->create(['vehicle_model_id' => $this->model->id, 'drivetrain_id' => null, 'year_from' => 1996, 'source' => FitmentSource::Declared, ...self::PREUVE_DOCUMENTEE]);
 
         $resultat = $this->assess($part->fresh(), ['engine_code' => '1MZ-FE', 'year' => null]);
         $this->assertSame('candidate', $resultat['status']);
@@ -121,20 +123,82 @@ class CompatibiliteTroisEtatsPreuveTest extends TestCase
 
     public function test_preuve_suffisante_ou_non(): void
     {
-        foreach (['manufacturer_official', 'manufacturer_epc', 'dealer_catalog', null] as $niveau) {
-            $this->assertSame('confirmed', $this->assess($this->part(['evidence_level' => $niveau]))['status'], (string) $niveau);
+        $url = ['https://exemple.test/source'];
+        foreach (['manufacturer_official', 'manufacturer_epc', 'dealer_catalog'] as $niveau) {
+            $this->assertSame('confirmed', $this->assess($this->part(['evidence_level' => $niveau, 'evidence_sources' => $url]))['status'], $niveau);
         }
 
-        foreach (['aftermarket_crossref', 'unverified'] as $niveau) {
-            $resultat = $this->assess($this->part(['evidence_level' => $niveau]));
-            $this->assertSame('candidate', $resultat['status'], $niveau);
-            $this->assertSame(['evidence'], $resultat['missing_criteria']);
-            $this->assertSame('insufficient_evidence', $resultat['reason']);
+        // Insuffisant : niveau faible, déclaration nue (niveau vide, lignes
+        // historiques comprises), niveau fort SANS source, ou source qui n'est
+        // pas une URL. Le texte des notes ne compte jamais, même avec une URL.
+        $insuffisants = [
+            'aftermarket_crossref' => ['evidence_level' => 'aftermarket_crossref', 'evidence_sources' => $url],
+            'unverified' => ['evidence_level' => 'unverified', 'evidence_sources' => $url],
+            'declaration nue' => ['evidence_level' => null, 'evidence_sources' => null],
+            'declaration nue avec URL en note' => ['evidence_level' => null, 'evidence_sources' => null, 'notes' => 'Source : https://exemple.test/epc'],
+            'officiel sans source' => ['evidence_level' => 'manufacturer_official', 'evidence_sources' => null],
+            'officiel liste vide' => ['evidence_level' => 'manufacturer_official', 'evidence_sources' => []],
+            'source non URL' => ['evidence_level' => 'manufacturer_epc', 'evidence_sources' => ['catalogue papier']],
+        ];
+        foreach ($insuffisants as $cas => $preuve) {
+            $resultat = $this->assess($this->part($preuve));
+            $this->assertSame('candidate', $resultat['status'], $cas);
+            $this->assertFalse($resultat['compatible'], $cas);
+            $this->assertSame(['evidence'], $resultat['missing_criteria'], $cas);
+            $this->assertSame('insufficient_evidence', $resultat['reason'], $cas);
         }
 
         $fabriquee = $this->assess($this->part(['source' => FitmentSource::Generated]));
         $this->assertSame('candidate', $fabriquee['status']);
         $this->assertSame('generated_fitment', $fabriquee['reason']);
+    }
+
+    public function test_validation_humaine_documentee(): void
+    {
+        $agent = \App\Models\User::factory()->create(['role' => 'admin']);
+        $url = ['https://exemple.test/photo-etiquette'];
+        $complete = ['evidence_level' => 'human_verified', 'evidence_sources' => $url, 'verified_by_id' => $agent->id, 'verified_on' => '2026-11-26'];
+
+        $this->assertSame('confirmed', $this->assess($this->part($complete))['status']);
+        foreach (['evidence_sources' => null, 'verified_by_id' => null, 'verified_on' => null] as $champ => $vide) {
+            $resultat = $this->assess($this->part([$champ => $vide] + $complete));
+            $this->assertSame('candidate', $resultat['status'], $champ);
+            $this->assertSame('insufficient_evidence', $resultat['reason'], $champ);
+        }
+
+        // Le SQL des listes confirmées applique la même règle.
+        $this->getJson($this->url())->assertOk()->assertJsonCount(1, 'data');
+    }
+
+    public function test_api_ecrit_une_validation_humaine_et_pose_le_valideur(): void
+    {
+        $admin = \App\Models\User::factory()->create(['role' => 'admin']);
+        \Laravel\Sanctum\Sanctum::actingAs($admin);
+        $categorie = \App\Models\PartCategory::firstOrCreate(['slug' => 'filtre-huile'], ['name' => 'Filtre à huile']);
+        $corps = fn (array $ligne) => [
+            'name' => 'Filtre validé', 'part_category_id' => $categorie->id, 'type' => 'aftermarket',
+            'condition' => 'new', 'selling_price' => 1000,
+            'fitments' => [['vehicle_model_id' => $this->model->id] + $ligne],
+        ];
+
+        // human_verified sans source ni date : refusé.
+        $this->postJson('/api/parts', $corps(['evidence_level' => 'human_verified']))
+            ->assertUnprocessable()->assertJsonValidationErrors(['fitments.0.evidence_sources', 'fitments.0.verified_on']);
+        // Niveau fort sans source : refusé.
+        $this->postJson('/api/parts', $corps(['evidence_level' => 'manufacturer_epc']))
+            ->assertUnprocessable()->assertJsonValidationErrors('fitments.0.evidence_sources');
+        // Le valideur ne se déclare pas : le serveur le pose.
+        $this->postJson('/api/parts', $corps(['evidence_level' => 'human_verified', 'evidence_sources' => ['https://exemple.test/p'], 'verified_on' => '2026-11-26', 'verified_by_id' => 999]))
+            ->assertUnprocessable()->assertJsonValidationErrors('fitments.0.verified_by_id');
+
+        $id = $this->postJson('/api/parts', $corps([
+            'evidence_level' => 'human_verified', 'evidence_sources' => ['https://exemple.test/photo'], 'verified_on' => '2026-11-26',
+        ]))->assertCreated()->json('data.id');
+
+        $ligne = PartFitment::where('part_id', $id)->sole();
+        $this->assertSame($admin->id, (int) $ligne->verified_by_id);
+        $this->assertSame('2026-11-26', $ligne->verified_on->toDateString());
+        $this->assertTrue(\App\Support\FitmentEvidence::isDocumented($ligne));
     }
 
     public function test_api_ne_confirme_pas_une_preuve_insuffisante(): void
@@ -170,8 +234,8 @@ class CompatibiliteTroisEtatsPreuveTest extends TestCase
         }
         $part->oemNumbers()->attach($actuel->id, ['is_primary' => ! $ancienPrincipal]);
         $part->oemNumbers()->attach($ancien->id, ['is_primary' => $ancienPrincipal]);
-        // Seul l'ancien numéro porte une compatibilité.
-        $ancien->fitments()->create(['vehicle_model_id' => $this->model->id]);
+        // Seul l'ancien numéro porte une compatibilité (documentée).
+        $ancien->fitments()->create(['vehicle_model_id' => $this->model->id, ...self::PREUVE_DOCUMENTEE]);
 
         return $part->fresh();
     }
@@ -257,7 +321,29 @@ class CompatibiliteTroisEtatsPreuveTest extends TestCase
 
     // ── Lignes du type de la production ────────────────────────────────
 
-    public function test_lignes_de_production_gardent_leur_verdict(): void
+    public function test_lignes_de_production_sans_preuve_structuree_deviennent_candidates(): void
+    {
+        // Les 143 lignes en production n'ont ni evidence_level ni
+        // evidence_sources : même avec une note qui cite une source, et même
+        // quand tous les critères concordent, elles ne sont plus confirmées.
+        $nue = ['evidence_level' => null, 'evidence_sources' => null];
+        $diesel = $this->part(['engine_code' => '1KD-FTV', 'year_from' => 2005, 'year_to' => 2015, ...$nue,
+            'notes' => 'Premier document fournisseur, ligne retenue par l\'audit du commercant sur source constructeur.']);
+        $cusco = $this->part(['engine_code' => '4A-FE', 'year_from' => 1991, 'year_to' => 1995, ...$nue,
+            'notes' => 'Source : https://www.cusco.co.jp/products/pdf/oilfilter_toyota.pdf']);
+
+        $resultat = $this->assess($diesel, ['year' => 2010, 'engine_code' => '1KD-FTV']);
+        $this->assertSame('candidate', $resultat['status']);
+        $this->assertSame(['evidence'], $resultat['missing_criteria']);
+        $this->assertSame('insufficient_evidence', $resultat['reason']);
+        $this->assertSame('candidate', $this->assess($cusco, ['year' => 1993, 'engine_code' => '4A-FE'])['status']);
+        // Un critère contredit exclut toujours, preuve ou non.
+        $this->assertSame('excluded', $this->assess($diesel, ['year' => 2010, 'engine_code' => '2KD-FTV'])['status']);
+        // Rien n'apparaît dans les listes « confirmées ».
+        $this->getJson($this->url(['year' => 2010, 'engine_code' => '1KD-FTV']))->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_lignes_de_production_documentees_gardent_leur_verdict(): void
     {
         // 90915-YZZD2 sur Hilux AN10 : code moteur, bornes, note fournisseur.
         $diesel = $this->part(['engine_code' => '1KD-FTV', 'year_from' => 2005, 'year_to' => 2015,

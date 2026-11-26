@@ -132,9 +132,16 @@ class StorePartRequest extends FormRequest
             'fitments.*.month_from'         => ['nullable', 'integer', 'between:1,12'],
             'fitments.*.month_to'           => ['nullable', 'integer', 'between:1,12'],
             // Preuve de la compatibilite (voir FitmentEvidence).
+            // Un niveau qui peut confirmer exige au moins une URL source ;
+            // human_verified exige aussi la date de validation, et le compte
+            // qui valide est posé par le serveur (jamais par le client).
             'fitments.*.evidence_level'     => ['nullable', Rule::in(\App\Support\FitmentEvidence::LEVELS)],
-            'fitments.*.evidence_sources'   => ['nullable', 'array', 'max:20'],
-            'fitments.*.evidence_sources.*' => ['string', 'url', 'max:500'],
+            'fitments.*.evidence_sources'   => ['nullable', 'array', 'max:20',
+                'required_if:fitments.*.evidence_level,'.implode(',', \App\Support\FitmentEvidence::SUFFICIENT)],
+            'fitments.*.evidence_sources.*' => ['string', 'url:http,https', 'max:500'],
+            'fitments.*.verified_on'        => ['nullable', 'date', 'before_or_equal:today',
+                'required_if:fitments.*.evidence_level,'.\App\Support\FitmentEvidence::HUMAN_VERIFIED],
+            'fitments.*.verified_by_id'     => ['prohibited'],
         ];
     }
 }

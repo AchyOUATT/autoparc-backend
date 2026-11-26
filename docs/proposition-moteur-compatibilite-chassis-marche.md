@@ -58,29 +58,28 @@ Règle historique : une colonne vide d'une ligne ne restreint rien ; une colonne
 
 ### Marchés (`markets` + `App\Support\Market`)
 
-Table `markets` (code, nom, `epc_region`, `parent_code`). Les quatre catalogues de l'EPC Toyota sont Japon, Europe, Général et USA/Canada. Les destinations du catalogue Général sont rattachées à `GEN` :
+Table `markets` (code, nom, `epc_region`, ordre). **Aucune hiérarchie** (revue du 26/11/2026, voir section 11) : faute de documentation constructeur, aucun marché n'en couvre un autre.
 
-| Code | Nom | Région EPC | Parent |
-|---|---|---|---|
-| JPN | Japon | JPN | — |
-| EUR | Europe | EUR | — |
-| GEN | Général | GEN | — |
-| USA | États-Unis | USA | — |
-| CAN | Canada | USA | — |
-| MDE | Moyen-Orient / Golfe | GEN | GEN |
-| AFR | Afrique | GEN | GEN |
-| AUS | Australie | GEN | GEN |
+| Code | Nom | `epc_region` (informatif) |
+|---|---|---|
+| JPN | Japon | JPN |
+| EUR | Europe | EUR |
+| GEN | Général | GEN |
+| USA | États-Unis | USA |
+| CAN | Canada | — |
+| MDE | Moyen-Orient / Golfe | — |
+| AFR | Afrique | — |
+| AUS | Australie | — |
 
 Alias acceptés en lecture : `US`, `CA`, `EU`, `JP`, `JDM`, `GCC`, `ME`, `AF`, `AU`, `GR`… `owned_vehicles.specification_market` n'est **pas réécrit** (les consommations l'utilisent avec `US`, `CA`, `EU`) : la normalisation se fait au moment de comparer.
 
-Comparaison (`part_fitments.market_codes`, liste JSON) :
+Comparaison (`part_fitments.market_codes`, liste JSON), strictement explicite :
 
-- marché du véhicule ou l'un de ses parents dans la liste → satisfait (`GEN` couvre `AFR`) ;
-- véhicule connu par un parent d'un marché de la liste (`GEN` contre `AFR`) → candidate ;
+- marché du véhicule littéralement présent dans la liste → satisfait ;
 - marché absent, ou code inconnu du référentiel → candidate ;
-- sinon → exclue.
+- sinon → exclue. `GEN` ne couvre ni `AFR`, ni `MDE`, ni `AUS` ; `USA` ne couvre pas `CAN`. Une ligne valable pour plusieurs marchés les énumère (`["USA","CAN"]`), chacun sur preuve.
 
-Convention de saisie : une ligne documentée dans le catalogue Général sans restriction de destination se saisit `GEN` ; si l'EPC précise une destination, on saisit le code fin (`MDE`, `AFR`…).
+`specification_market` = marché de destination **commerciale d'origine** (spécification constructeur), le seul comparé. Le pays où le véhicule circule aujourd'hui est un champ distinct, `circulation_country` (ISO 3166-1 alpha-2, ex. `BF`), sur `owned_vehicles` et `vehicles`, **affiché seulement, jamais comparé** : une Camry américaine importée au Burkina reste `USA` / `BF`.
 
 ### Mois de fabrication
 
@@ -230,8 +229,7 @@ Changement visible : une ligne contredite (autre code moteur, autre motricité, 
 ### 10.3 Preuve suffisante (`App\Support\FitmentEvidence`)
 
 - ligne `generated` : jamais suffisante → candidate ;
-- ligne `declared` sans `evidence_level` (les 143 lignes en production, preuve dans `notes`) : suffisante, pour ne rien changer aux données existantes ;
-- ligne `declared` avec `evidence_level` : suffisante si `manufacturer_official`, `manufacturer_epc` ou `dealer_catalog` ; insuffisante si `aftermarket_crossref` ou `unverified`.
+- **remplacé par la section 11** (règle stricte : une déclaration nue n'est plus suffisante).
 
 Le même filtre est appliqué en SQL (`constrainConfirmed`) et en PHP (`assess`).
 
@@ -264,3 +262,34 @@ Une génération inactive (`vehicle_models.is_active = false`) sort des recherch
 2. **#40** (base : #42 ; écrit dans `oem_number_relations`) ;
 3. **#41** (indépendante du code de #40/#42 ; sa documentation renvoie à `oem_number_relations`) ;
 4. **#43** (Sienna, dépend de #41).
+
+## 11. Règles strictes (revue du 26/11/2026, seconde passe)
+
+Principe du propriétaire : **aucune compatibilité n'est confirmée par une extrapolation non documentée.**
+
+### 11.1 Ligne « documentée » (`App\Support\FitmentEvidence::isDocumented`)
+
+Une compatibilité (`part_fitments` ou `oem_number_fitments`) peut confirmer si et seulement si :
+
+1. son origine est `declared` (jamais `generated`) ;
+2. `evidence_level` ∈ `manufacturer_official`, `manufacturer_epc`, `dealer_catalog`, `human_verified` ;
+3. `evidence_sources` contient **au moins une URL http(s)** ;
+4. pour `human_verified` seulement : `verified_by_id` (compte du personnel, posé par le serveur, jamais par le client) **et** `verified_on` (date) sont renseignés.
+
+Ne suffisent jamais : `evidence_level` vide (déclaration nue, lignes historiques comprises), `aftermarket_crossref`, `unverified`, un niveau fort sans URL, et **le texte de `notes`**, même s'il cite une source ou contient une URL. La même règle est appliquée en SQL (`constrainDocumented`, listes confirmées) et en PHP (`assess`). L'API refuse à l'écriture un niveau qui peut confirmer sans `evidence_sources`, un `human_verified` sans `verified_on`, et tout `verified_by_id` envoyé par le client. La fiche pièce expose `evidence_documented` par ligne.
+
+### 11.2 Impact sur la production (lecture seule, 26/11/2026)
+
+- 143 compatibilités, toutes `declared`, aucune avec preuve structurée : **0 documentée, 143 non documentées**. 15 ont une URL dans `notes`, 126 une note sans URL, 2 aucune note. 0 ligne `oem_number_fitments`.
+- Paires réelles véhicule × compatibilité (garage 7 véhicules + parc, même modèle) : 37. Avant : 5 confirmées, 16 candidates, 16 exclues. Après : **0 confirmée**, 21 candidates, 16 exclues. Les **5 paires qui passent de confirmée à candidate sont toutes au parc** (véhicules 86, 111, 113 ; capteurs Mazda PE01-18-221 et PE02-18-211, dont les notes citent « MazdaPartsNow / Mazda USA » sans URL). Garage : 0 confirmée avant comme après.
+- Conséquence : sans preuve ajoutée, plus aucune pièce n'est « Compatible » dans l'app ; elles restent visibles en « à vérifier » (`include_candidates=1`).
+
+### 11.3 Rétro-remplissage proposé (migration séparée, NON incluse)
+
+Branche `feat/preuves-retro-remplissage-notes` : pour les seules lignes sans preuve dont `notes` contient des URL, recopie ces URL dans `evidence_sources` et pose un niveau **uniquement par domaine listé** (`parts.cat.com`, `deere.com` → `manufacturer_official` ; `cusco.co.jp`, `hks-power.co.jp` → `aftermarket_crossref`) ; tout autre domaine laisse la ligne intacte. Résultat sur la production : 15 lignes, dont 3 deviennent confirmables (Caterpillar 435-6493, John Deere RE504836 et RE59754) et 12 restent candidates (CUSCO/HKS sur 90915-10001/10003, catalogues aftermarket). Aucune de ces 15 lignes ne concerne un véhicule réel : 0 paire ne change. Les 128 autres lignes ne peuvent pas être qualifiées sans nouvelle recherche.
+
+### 11.4 Restrictions
+
+- Les 12 châssis des 90915-10001/10003 restent **informatifs** (`chassis_restricted` vide) : leurs sources (CUSCO, HKS) sont des catalogues aftermarket qui ne prouvent pas l'exhaustivité des châssis. Aucun marché `JPN` n'est posé.
+- Marchés : correspondance explicite seulement (section 2). Mois : facultatif ; seul un véhicule d'**année-borne** sans mois devient candidat (`manufacturing_month` manquant), jamais exclu ni confirmé.
+

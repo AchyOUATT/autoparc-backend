@@ -226,6 +226,8 @@ class PartController extends Controller
      */
     private function declaree(array $fitment): array
     {
+        $fitment = \App\Support\FitmentEvidence::stampValidator($fitment, request()->user()?->id);
+
         return array_merge($fitment, ['source' => FitmentSource::Declared]);
     }
 
