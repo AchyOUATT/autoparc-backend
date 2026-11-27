@@ -103,8 +103,15 @@ class Toyota90915Yzzd2PreuvesBoshokuTest extends TestCase
         $this->assertSame([], $rapport['modeles_absents']);
         $this->assertSame(Yzzd2::DESCRIPTION_APRES, $this->piece->fresh()->description);
         $this->assertStringNotContainsString('moteurs diesel', $this->piece->fresh()->description);
-        $this->assertStringContainsString('Hilux, Fortuner et Prado hors Etats-Unis, surtout diesel', $this->piece->fresh()->description);
-        $this->assertStringContainsString('2TR-FE', $this->piece->fresh()->description);
+        $description = $this->piece->fresh()->description;
+        $this->assertStringContainsString('2TR-FE', $description);
+        // Pas de généralisation à « tous les marchés hors États-Unis » : seuls
+        // les marchés cités par les sources apparaissent.
+        $this->assertStringNotContainsString('hors Etats-Unis', $description);
+        foreach (['Pakistan', 'Australie', 'Royaume-Uni', 'ne precise pas de marche', 'verifier par VIN et par moteur'] as $attendu) {
+            $this->assertStringContainsString($attendu, $description);
+        }
+        $this->assertStringNotContainsString('Asie', $description);
         $this->assertSame(14, $this->piece->fitments()->count());
 
         $evaluation = app(PartCompatibilityAssessment::class);
@@ -157,7 +164,8 @@ class Toyota90915Yzzd2PreuvesBoshokuTest extends TestCase
             $this->assertContains(Yzzd2::REVENDEUR_AU, $ligne->evidence_sources);
             $this->assertNotContains(Yzzd2::BOSHOKU_URL, $ligne->evidence_sources, 'Boshoku ne cite aucun Prado');
             $this->assertFalse(FitmentEvidence::isDocumented($ligne));
-            // Bornes inchangées ; ni marché, ni mois, ni châssis.
+            // Ni marché, ni mois, ni châssis ; début inchangé (la fin du J150 est
+            // levée : voir test_la_fin_2015_du_prado_j150_est_levee...).
             $this->assertSame($cible['year_from'], $ligne->year_from);
             $this->assertSame($cible['year_to'], $ligne->year_to);
             $this->assertNull($ligne->market_codes);
@@ -169,6 +177,9 @@ class Toyota90915Yzzd2PreuvesBoshokuTest extends TestCase
             $this->assertStringNotContainsStringIgnoringCase('contredit', $ligne->notes);
         }
         $j150 = $this->ligne(Yzzd2::prado()[1])->notes;
+        $this->assertStringContainsString('aftermarket_crossref pour la ligne, jamais confirme', $j150);
+        $this->assertStringContainsString('fournisseur independant, sans lien avec Toyota', $j150);
+        $this->assertStringContainsString('concessionnaire Toyota', $j150);
         $this->assertStringContainsString('Toyota Indus', $j150);
         $this->assertStringContainsString('probable confusion de moteur', $j150);
         $this->assertStringContainsString('04152-YZZA5', $j150);
@@ -186,6 +197,65 @@ class Toyota90915Yzzd2PreuvesBoshokuTest extends TestCase
                 $verdict = $evaluation->assess($this->piece->fresh(), $evaluation->withModelState($criteres));
                 $this->assertSame('candidate', $verdict['status'], $cible['model_slug'].' '.($marche ?? '-'));
             }
+        }
+    }
+
+    public function test_la_fin_2015_du_prado_j150_est_levee_et_ne_recree_pas_d_exclusion(): void
+    {
+        $modele = VehicleModel::where('slug', 'land-cruiser-prado-j150')->value('id');
+        $evaluation = app(PartCompatibilityAssessment::class);
+        $verdict = fn (int $annee, ?string $moteur) => $evaluation->assess($this->piece->fresh(), $evaluation->withModelState(
+            ['vehicle_model_id' => $modele, 'year' => $annee, 'engine_code' => $moteur]
+        ));
+
+        // Avant : une année après 2015 est exclue par la fin 2015 du premier document.
+        $this->assertSame('excluded', $verdict(2017, '1KD-FTV')['status']);
+
+        Yzzd2::run();
+
+        $ligne = $this->ligne(Yzzd2::prado()[1]);
+        $this->assertNull($ligne->year_to);
+        $this->assertSame(2009, $ligne->year_from);
+        foreach ([2016, 2017, 2023] as $annee) {
+            $this->assertSame('candidate', $verdict($annee, '1KD-FTV')['status'], (string) $annee);
+            $this->assertSame('candidate', $verdict($annee, null)['status'], (string) $annee);
+        }
+        // Le moteur différent reste exclu par le moteur, pas par l'année.
+        $this->assertSame('excluded', $verdict(2017, '1GD-FTV')['status']);
+        $this->assertSame(['engine_code'], $verdict(2017, '1GD-FTV')['excluded_criteria']);
+        // Le début 2009 exclut 2008 (hors génération J150).
+        $this->assertSame('excluded', $verdict(2008, '1KD-FTV')['status']);
+    }
+
+    public function test_une_fin_du_prado_j150_deja_modifiee_n_est_pas_ecrasee_et_le_down_la_laisse(): void
+    {
+        $id = $this->piece->fitments()
+            ->where('vehicle_model_id', VehicleModel::where('slug', 'land-cruiser-prado-j150')->value('id'))
+            ->where('engine_code', '1KD-FTV')->firstOrFail()->id;
+        PartFitment::whereKey($id)->update(['year_to' => 2018]);
+
+        $rapport = Yzzd2::run();
+
+        $this->assertSame(1, $rapport['notes_prado']); // seule la J120
+        $this->assertSame(2018, PartFitment::findOrFail($id)->year_to);
+        $this->assertNull(PartFitment::findOrFail($id)->evidence_level);
+        Yzzd2::rollback();
+        $this->assertSame(2018, PartFitment::findOrFail($id)->year_to);
+    }
+
+    public function test_les_annees_avant_2005_du_fortuner_an50_sont_hors_generation_du_referentiel(): void
+    {
+        $modele = VehicleModel::where('slug', 'fortuner-an50')->value('id');
+        $this->assertSame(2005, (int) VehicleModel::where('slug', 'fortuner-an50')->value('production_start'));
+        Yzzd2::run();
+        $evaluation = app(PartCompatibilityAssessment::class);
+
+        foreach (['2KD-FTV', '1KD-FTV', '2TR-FE', null] as $moteur) {
+            $avant = $evaluation->assess($this->piece->fresh(), $evaluation->withModelState(['vehicle_model_id' => $modele, 'year' => 2004, 'engine_code' => $moteur]));
+            $this->assertSame('excluded', $avant['status'], (string) $moteur);
+            $this->assertContains('year', $avant['excluded_criteria']);
+            $apres = $evaluation->assess($this->piece->fresh(), $evaluation->withModelState(['vehicle_model_id' => $modele, 'year' => 2005, 'engine_code' => $moteur]));
+            $this->assertSame('candidate', $apres['status'], (string) $moteur);
         }
     }
 
@@ -316,6 +386,11 @@ class Toyota90915Yzzd2PreuvesBoshokuTest extends TestCase
             'prado : note reprise' => ['prado', 1, ['notes' => 'Prado verifie au VIN.']],
             'prado : source ajoutée' => ['prado', 0, ['evidence_sources' => [Yzzd2::REVENDEUR_AU, 'https://exemple.test/vin']]],
             'AN50 : début corrigé à la main' => ['existantes', 2, ['year_from' => 2008]],
+            'prado J150 : fin reposée à la main' => ['prado', 1, ['year_to' => 2018]],
+            'existante : marché posé après coup' => ['existantes', 0, ['market_codes' => ['AFR']]],
+            'existante : mois posés après coup' => ['existantes', 1, ['month_from' => 3, 'month_to' => 9]],
+            'existante : châssis posé après coup' => ['existantes', 3, ['chassis_code' => 'GUN156']],
+            'prado : marché posé après coup' => ['prado', 0, ['market_codes' => ['AU']]],
         ];
     }
 

@@ -19,9 +19,12 @@ use RuntimeException;
  *   l'EPC (miroir) sont ajoutés, au même niveau, donc candidats.
  * - Les deux lignes Prado reçoivent des revendeurs de pièces d'origine
  *   (Australie, Royaume-Uni) au même niveau, et une note « à vérifier par
- *   moteur » : elles restent candidates. Boshoku ne cite aucun Prado.
- * - La ligne Fortuner AN50 sans année reçoit l'année de début 2005 (Boshoku,
- *   Toyota Indus, EPC) ; sa fin reste ouverte.
+ *   moteur » : elles restent candidates. Boshoku ne cite aucun Prado. La fin
+ *   2015 de la ligne J150 est levée (deux sources australiennes donnent le
+ *   KDJ150 jusqu'à 12/2023 ; aucune source Toyota ne date la fin).
+ * - La ligne Fortuner AN50 sans année reçoit l'année de début 2005 : début de
+ *   la génération (Toyota, référentiel) et début de la compatibilité
+ *   documentée (Boshoku, Toyota Indus, EPC) coïncident ; sa fin reste ouverte.
  * - La description est corrigée (elle limitait la YZZD2 aux diesels).
  *
  * Jamais posés ici : marché, mois, châssis (critères éliminatoires de
@@ -52,7 +55,7 @@ final class Toyota90915Yzzd2PreuvesBoshoku
     /** Description lue en production le 26/11/2026. */
     public const DESCRIPTION_AVANT = 'Visse, moteurs diesel 2KD-FTV 2.5, 1KD-FTV 3.0, 2GD-FTV 2.4, 1GD-FTV 2.8 et certains 2TR-FE 2.7.';
 
-    public const DESCRIPTION_APRES = 'Visse. Hilux, Fortuner et Prado hors Etats-Unis, surtout diesel (1KD-FTV, 2KD-FTV, 1GD-FTV, 2GD-FTV), aussi essence 2TR-FE. Toyota Boshoku (filtre OS-004) le donne equivalent du 90915-TB001 sur Hilux, Fortuner, Hiace, Innova et Alphard ; des revendeurs le citent aussi pour le Prado et pour d\'anciens moteurs essence (3RZ-FE). Absent du catalogue Toyota US et des EPC consultes, qui donnent 90915-20003, 90915-TB001 ou 90915-20005 selon le marche et la periode : verifier par VIN et par moteur.';
+    public const DESCRIPTION_APRES = 'Visse. Hilux et Fortuner selon Toyota Boshoku (filtre OS-004, equivalent du 90915-TB001 ; le catalogue ne precise pas de marche, sa table Vietnam cite le Hilux) et Toyota Indus (Pakistan) ; Prado selon des revendeurs (Australie, Royaume-Uni). Surtout diesel (1KD-FTV, 2KD-FTV, 1GD-FTV, 2GD-FTV), aussi essence 2TR-FE ; le 3RZ-FE est cite par des revendeurs australiens, sans ligne posee. Absent du catalogue Toyota US et des EPC consultes, qui donnent 90915-20003, 90915-TB001 ou 90915-20005 selon le marche et la periode : verifier par VIN et par moteur.';
 
     public const INDUS_YZZD2 = 'https://direct.toyota-indus.com/oil-filter-90915-yzzd2.html';
 
@@ -66,6 +69,9 @@ final class Toyota90915Yzzd2PreuvesBoshoku
     public const REVENDEUR_UK = 'https://www.milneroffroad.com/product/engine-oil-filter-genuine/';
 
     private const SUFFIXE_EPC = '/g/15601';
+
+    /** Bornes d'années que la qualification peut changer (valeur « avant » → valeur actuelle de la cible). */
+    private const BORNES = ['year_from', 'year_to'];
 
     /**
      * Lignes existantes à qualifier.
@@ -88,7 +94,7 @@ final class Toyota90915Yzzd2PreuvesBoshoku
             [
                 'model_slug' => 'fortuner-an50', 'engine_code' => '2KD-FTV', 'year_from' => 2005, 'year_from_avant' => null, 'year_to' => null,
                 'sources' => [self::BOSHOKU_URL, self::epc('GR', '671380'), self::epc('GR', '6713A0'), self::INDUS_YZZD2],
-                'note' => 'Toyota Boshoku (lineup 12/2023) : Fortuner 2005~2015 (annees d\'immatriculation), 2KD-FTV, 90915-TB001 / 90915-YZZD2, filtre OS-004. Toyota Indus (Pakistan) : « Fortuner & Hilux (2005 Onwards) ». EPC, miroir non officiel, marche general : 90915-20003 / 90915-TB001 de 2005-01 a 2012-02 (671380), puis jusqu\'a 2016-11 (6713A0). Annee de debut 2005 posee (trois sources concordantes) ; fin laissee ouverte, car Boshoku (2015) et l\'EPC (2016-11) different. Niveau aftermarket_crossref : ligne candidate, a verifier par VIN.',
+                'note' => 'Toyota Boshoku (lineup 12/2023) : Fortuner 2005~2015 (annees d\'immatriculation), 2KD-FTV, 90915-TB001 / 90915-YZZD2, filtre OS-004. Toyota Indus (Pakistan) : « Fortuner & Hilux (2005 Onwards) ». EPC, miroir non officiel, marche general : 90915-20003 / 90915-TB001 de 2005-01 a 2012-02 (671380), puis jusqu\'a 2016-11 (6713A0). DEUX DATES DISTINCTES. (1) Existence de la generation AN50 : production et vente a partir de 2005 selon Toyota (Toyota Global, « 75 Years of Toyota », production du Fortuner par Toyota Motor Thailand en 2005 ; Toyota Motor Thailand, premiere generation « en 2005 ») ; le referentiel porte deja 2005 (production_start de la generation) ; un lancement presse de decembre 2004 (salon de Bangkok) n\'est pas une production ni une immatriculation documentee. (2) Compatibilite documentee de la YZZD2 : aucune source ne la date avant 2005 (Boshoku 2005~, Toyota Indus 2005 onwards, EPC 2005-01) ; elle coincide donc avec le debut de la generation, sans le preceder ni le suivre. year_from 2005 est pose pour cette seule raison ; il exclut seulement les annees anterieures a la generation du referentiel. Fin laissee ouverte : Boshoku 2015, EPC 2016-11. Niveau aftermarket_crossref : ligne candidate, a verifier par VIN.',
             ],
             [
                 'model_slug' => 'fortuner-an160', 'engine_code' => '2GD-FTV', 'year_from' => 2015, 'year_to' => 2020,
@@ -162,16 +168,18 @@ final class Toyota90915Yzzd2PreuvesBoshoku
      */
     public static function prado(): array
     {
+        $nature = ' Nature des sources (pas le meme poids) : All Four x 4 Spares est un fournisseur independant, sans lien avec Toyota ni ses concessionnaires (mention sur sa page) ; sa liste couvre aussi Ford, Suzuki et Holden. Nunawading Toyota Parts est la boutique en ligne a l\'enseigne de Nunawading Toyota (concessionnaire Toyota, Victoria, Australie : nunawadingtoyota.com.au/about-us), mais le lien entre les deux sites n\'est pas etabli sur une page officielle, sa liste de vehicules recoupe presque mot pour mot celle de All Four x 4 Spares, et elle precise que le fitment du site peut differer et qu\'il faut verifier par VIN. Aucune des deux n\'est un catalogue constructeur : niveau aftermarket_crossref pour la ligne, jamais confirme.';
+
         return [
             [
                 'model_slug' => 'land-cruiser-prado-j120', 'engine_code' => '1KD-FTV', 'year_from' => 2003, 'year_to' => 2009,
                 'sources' => [self::REVENDEUR_AU, self::CONCESSIONNAIRE_AU, self::REVENDEUR_UK],
-                'note' => 'Ligne candidate, a verifier par moteur et par date de fabrication. Revendeurs de pieces d\'origine (pas Toyota) : All Four x 4 Spares et Nunawading Toyota (Australie) donnent le KDJ120 1KD-FTV de 09/2002 a 07/2006 seulement ; Milner Off Road (Royaume-Uni) de 08/2006 en avant. Periodes opposees selon les sources. EPC, miroir non officiel : 90915-30002 jusqu\'a 2006-08 (Europe, 781550) ou 2007-07 (Japon, 781150), puis 90915-20003 (Europe) ; la YZZD2 n\'y figure pas. Toyota Boshoku ne cite aucun Prado. Les revendeurs australiens citent aussi le 3RZ-FE (RZJ120) : non repris. Bornes, marche, mois et chassis non modifies.',
+                'note' => 'Ligne candidate, a verifier par moteur et par date de fabrication. Les deux sources australiennes donnent le KDJ120 1KD-FTV de 09/2002 a 07/2006 seulement ; Milner Off Road (Royaume-Uni, extrait de recherche, page non ouverte) de 08/2006 en avant. Periodes opposees selon les sources. EPC, miroir non officiel : 90915-30002 jusqu\'a 2006-08 (Europe, 781550) ou 2007-07 (Japon, 781150), puis 90915-20003 (Europe) ; la YZZD2 n\'y figure pas. Toyota Boshoku ne cite aucun Prado. Les sources australiennes citent aussi le 3RZ-FE (RZJ120, RZJ95) : non repris. Bornes inchangees ; marche, mois et chassis non poses.'.$nature,
             ],
             [
-                'model_slug' => 'land-cruiser-prado-j150', 'engine_code' => '1KD-FTV', 'year_from' => 2009, 'year_to' => 2015,
+                'model_slug' => 'land-cruiser-prado-j150', 'engine_code' => '1KD-FTV', 'year_from' => 2009, 'year_to' => null, 'year_to_avant' => 2015,
                 'sources' => [self::REVENDEUR_AU, self::REVENDEUR_AU_KIT, self::CONCESSIONNAIRE_AU, self::REVENDEUR_UK],
-                'note' => 'Ligne candidate, a verifier par moteur. Revendeurs de pieces d\'origine (pas Toyota) : All Four x 4 Spares et Nunawading Toyota (Australie) donnent le KDJ150/155 1KD-FTV de 08/2009 a 12/2023 (fiche du filtre) ou a 08/2015 (kit d\'entretien) ; Milner Off Road (Royaume-Uni) : tous les KDJ150. Fins divergentes : bornes 2009-2015 non modifiees. EPC, miroir non officiel : 90915-20003 sur le KDJ15# 1KD-FTV de 2009-08 a 2016 (781560, coupure de variante en 2013-08 sans changement de filtre) ; la YZZD2 n\'y figure pas. Toyota Boshoku ne cite aucun Prado. Toyota Indus (Pakistan) range « Prado 2009 onwards » sous la cartouche 04152-YZZA5 pour des variantes 2.7 et 3.4, jamais 3.0 : probable confusion de moteur (cette cartouche equipe des moteurs essence aux Etats-Unis), a verifier par moteur. Marche, mois et chassis non poses.',
+                'note' => 'Ligne candidate, a verifier par moteur. Fin de periode laissee ouverte (elle etait 2015 dans le premier document fournisseur) : les deux sources australiennes donnent le KDJ150/155 1KD-FTV de 08/2009 a 12/2023, et le kit d\'entretien de All Four x 4 Spares jusqu\'a 08/2015 ; Milner Off Road (Royaume-Uni, extrait de recherche) : tous les KDJ150. L\'EPC (miroir non officiel) montre le KDJ15# 1KD-FTV en 90915-20003 jusqu\'a 2016 (Europe, 781560 ; coupure de variante en 2013-08 sans changement de filtre) ; la YZZD2 n\'y figure pas. Aucune source Toyota ne date la fin : une exclusion par annee apres 2015 n\'est donc pas justifiee. Les sources australiennes donnent aussi le GDJ150 1GD-FTV de 06/2015 en avant : ligne non posee (question ouverte). Toyota Boshoku ne cite aucun Prado. Toyota Indus (Pakistan) range « Prado 2009 onwards » sous la cartouche 04152-YZZA5 pour des variantes 2.7 et 3.4, jamais 3.0 : probable confusion de moteur (cette cartouche equipe des moteurs essence aux Etats-Unis), a verifier par moteur. Debut 2009 inchange ; marche, mois et chassis non poses.'.$nature,
             ],
         ];
     }
@@ -221,9 +229,13 @@ final class Toyota90915Yzzd2PreuvesBoshoku
                             'notes' => self::noteComplete($cible['note']),
                             'updated_at' => now(),
                         ];
-                        // Année de début : posée seulement si elle est encore vide.
-                        if (array_key_exists('year_from_avant', $cible) && $ligne->year_from === null) {
-                            $patch['year_from'] = $cible['year_from'];
+                        // Bornes d'années : changées seulement si la ligne porte encore
+                        // exactement la valeur d'avant (année de début vide, ou fin 2015
+                        // du Prado J150).
+                        foreach (self::BORNES as $champ) {
+                            if (array_key_exists($champ.'_avant', $cible) && self::memeValeur($ligne->{$champ}, $cible[$champ.'_avant'])) {
+                                $patch[$champ] = $cible[$champ];
+                            }
                         }
                         DB::table('part_fitments')->where('id', $ligne->id)->update($patch);
                         $rapport[$compteur]++;
@@ -293,7 +305,10 @@ final class Toyota90915Yzzd2PreuvesBoshoku
                         $intacte = $ligne->evidence_level === FitmentEvidence::AFTERMARKET_CROSSREF
                             && self::liste($ligne->evidence_sources) === $cible['sources']
                             && $ligne->notes === self::noteComplete($cible['note'])
-                            && (! array_key_exists('year_from_avant', $cible) || (int) $ligne->year_from === $cible['year_from']);
+                            && self::champsNonTouches($ligne);
+                        foreach (self::BORNES as $champ) {
+                            $intacte = $intacte && self::memeValeur($ligne->{$champ}, $cible[$champ]);
+                        }
                         if (! $intacte) {
                             continue;
                         }
@@ -303,8 +318,10 @@ final class Toyota90915Yzzd2PreuvesBoshoku
                             'notes' => self::NOTE_ORIGINE,
                             'updated_at' => now(),
                         ];
-                        if (array_key_exists('year_from_avant', $cible)) {
-                            $patch['year_from'] = $cible['year_from_avant'];
+                        foreach (self::BORNES as $champ) {
+                            if (array_key_exists($champ.'_avant', $cible)) {
+                                $patch[$champ] = $cible[$champ.'_avant'];
+                            }
                         }
                         DB::table('part_fitments')->where('id', $ligne->id)->update($patch);
                         $rapport[$compteur]++;
@@ -383,7 +400,7 @@ final class Toyota90915Yzzd2PreuvesBoshoku
     }
 
     /**
-     * @param  array{engine_code: string, year_from: ?int, year_to: ?int, year_from_avant?: ?int}  $cible
+     * @param  array{engine_code: string, year_from: ?int, year_to: ?int, year_from_avant?: ?int, year_to_avant?: ?int}  $cible
      * @return list<object>
      */
     private static function lignes(int $partId, int $modele, array $cible): array
@@ -392,16 +409,33 @@ final class Toyota90915Yzzd2PreuvesBoshoku
             ->where('vehicle_model_id', $modele)
             ->where('engine_code', $cible['engine_code'])
             ->where('source', FitmentSource::Declared->value);
-        // Année de début : valeur actuelle de la cible, ou celle d'avant la qualification.
-        $debuts = array_unique([$cible['year_from'], array_key_exists('year_from_avant', $cible) ? $cible['year_from_avant'] : $cible['year_from']], SORT_REGULAR);
-        $requete->where(function ($q) use ($debuts) {
-            foreach ($debuts as $debut) {
-                $debut === null ? $q->orWhereNull('year_from') : $q->orWhere('year_from', $debut);
-            }
-        });
-        $cible['year_to'] === null ? $requete->whereNull('year_to') : $requete->where('year_to', $cible['year_to']);
+        // Chaque borne : valeur actuelle de la cible, ou celle d'avant la qualification.
+        foreach (self::BORNES as $champ) {
+            $valeurs = array_unique([$cible[$champ], array_key_exists($champ.'_avant', $cible) ? $cible[$champ.'_avant'] : $cible[$champ]], SORT_REGULAR);
+            $requete->where(function ($q) use ($champ, $valeurs) {
+                foreach ($valeurs as $valeur) {
+                    $valeur === null ? $q->orWhereNull($champ) : $q->orWhere($champ, $valeur);
+                }
+            });
+        }
 
         return $requete->orderBy('id')->lockForUpdate()->get()->all();
+    }
+
+    private static function memeValeur(mixed $a, mixed $b): bool
+    {
+        return ($a === null ? null : (int) $a) === ($b === null ? null : (int) $b);
+    }
+
+    /** Aucun enrichissement posé après coup (finition, motorisation, marché, mois, châssis, vérification). */
+    private static function champsNonTouches(object $ligne): bool
+    {
+        return $ligne->trim_id === null && $ligne->engine_type_id === null && $ligne->drivetrain_id === null
+            && self::estVide($ligne->position)
+            && self::estVide($ligne->chassis_code) && $ligne->chassis_restricted === null
+            && self::liste($ligne->market_codes) === []
+            && $ligne->month_from === null && $ligne->month_to === null
+            && $ligne->verified_by_id === null && $ligne->verified_on === null;
     }
 
     /** @param  array{sources: list<string>, note: string}  $cible */
@@ -410,12 +444,7 @@ final class Toyota90915Yzzd2PreuvesBoshoku
         return $ligne->evidence_level === FitmentEvidence::AFTERMARKET_CROSSREF
             && self::liste($ligne->evidence_sources) === $cible['sources']
             && $ligne->notes === $cible['note']
-            && $ligne->trim_id === null && $ligne->engine_type_id === null && $ligne->drivetrain_id === null
-            && self::estVide($ligne->position)
-            && self::estVide($ligne->chassis_code) && $ligne->chassis_restricted === null
-            && self::liste($ligne->market_codes) === []
-            && $ligne->month_from === null && $ligne->month_to === null
-            && $ligne->verified_by_id === null && $ligne->verified_on === null;
+            && self::champsNonTouches($ligne);
     }
 
     /** @param  list<string>  $valeurs */

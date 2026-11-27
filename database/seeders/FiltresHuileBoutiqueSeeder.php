@@ -214,8 +214,11 @@ class FiltresHuileBoutiqueSeeder extends Seeder
             // Texte repris de `Toyota90915Yzzd2PreuvesBoshoku::DESCRIPTION_APRES`
             // (26/11/2026) : l'ancien limitait la YZZD2 aux diesels, alors que
             // Toyota Boshoku la donne aussi en essence 2TR-FE / 1TR-FE / 1MZ-FE.
-            // Fortuner AN50 : l'annee de debut 2005 (Boshoku, Toyota Indus, EPC)
-            // est posee ici ; la fin reste ouverte.
+            // Fortuner AN50 : l'annee de debut 2005 (debut de la generation selon
+            // Toyota et le referentiel ; debut de la compatibilite documentee par
+            // Boshoku, Toyota Indus et l'EPC) est posee ici ; la fin reste ouverte.
+            // Prado J150 : la fin 2015 du premier document est levee (deux sources
+            // australiennes donnent le KDJ150 jusqu'a 12/2023).
             // Les preuves de ces lignes, et huit couples generation x moteur
             // de plus, sont reposes a la fin de `run()`.
             "description"   => \App\Support\Toyota90915Yzzd2PreuvesBoshoku::DESCRIPTION_APRES,
@@ -223,7 +226,7 @@ class FiltresHuileBoutiqueSeeder extends Seeder
                 ["hilux-an10", 2005, 2015, "1KD-FTV", "Premier document fournisseur, ligne retenue par l'audit du commercant sur source constructeur."],
                 ["hilux-an120", 2015, 2020, "2GD-FTV", "Premier document fournisseur, ligne retenue par l'audit du commercant sur source constructeur."],
                 ["land-cruiser-prado-j120", 2003, 2009, "1KD-FTV", "Premier document fournisseur, ligne retenue par l'audit du commercant sur source constructeur."],
-                ["land-cruiser-prado-j150", 2009, 2015, "1KD-FTV", "Premier document fournisseur, ligne retenue par l'audit du commercant sur source constructeur."],
+                ["land-cruiser-prado-j150", 2009, null, "1KD-FTV", "Premier document fournisseur, ligne retenue par l'audit du commercant sur source constructeur."],
                 ["fortuner-an50", 2005, null, "2KD-FTV", "Premier document fournisseur, ligne retenue par l'audit du commercant sur source constructeur."],
                 ["fortuner-an160", 2015, 2020, "2GD-FTV", "Premier document fournisseur, ligne retenue par l'audit du commercant sur source constructeur."],
             ],
