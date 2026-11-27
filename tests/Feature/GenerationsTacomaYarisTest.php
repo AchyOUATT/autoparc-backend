@@ -380,6 +380,16 @@ class GenerationsTacomaYarisTest extends TestCase
             }
         }
 
+        // Plus les couples generation x moteur de la 90915-YZZD2 documentes par
+        // Toyota Boshoku, que le seeder repose aussi en fin de passage
+        // (`Toyota90915Yzzd2PreuvesBoshoku`, 26/11/2026), quand leur
+        // generation existe.
+        foreach (\App\Support\Toyota90915Yzzd2PreuvesBoshoku::nouvelles() as $application) {
+            if (VehicleModel::where('slug', $application['model_slug'])->exists()) {
+                $attendues++;
+            }
+        }
+
         $this->assertSame([], $introuvables, 'Des compatibilites designent un modele qui n\'existe pas.');
         $this->assertSame($attendues, PartFitment::count(), 'Le compte en base ne correspond pas au fichier.');
     }
