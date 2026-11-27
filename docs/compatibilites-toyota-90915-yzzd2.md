@@ -72,7 +72,7 @@ déclare le modèle, l'année et le moteur.
 | 11 | Fortuner | fortuner-an160 | GUN155/156/165/166 | 1GD-FTV | idem | 2015–ouverte | S1 2015~ ; EPC 2015-07 → ouvert | S1, S3 | aftermarket_crossref | candidate | **ajoutée** |
 | 12 | Fortuner | fortuner-an160 | TGN156/166 | 2TR-FE (essence) | idem | 2015–ouverte | S1 2015~2019 ; EPC 2015-07 → ouvert | S1, S3 | aftermarket_crossref | candidate | **ajoutée** |
 | 13 | — (absent de Boshoku) | land-cruiser-prado-j120 | KDJ12# | 1KD-FTV | — | 2003–2009 (inchangée ; voir § 4.1) | S6a et S6b : KDJ120 de 09/2002 à 07/2006 (AU) ; S6c : dès 08/2006 (UK) ; EPC : 90915-30002 puis 90915-20003, jamais la YZZD2 | S6 | aftermarket_crossref | candidate | existante 321, sources de revendeurs, à vérifier par moteur (note) |
-| 14 | — (absent de Boshoku) | land-cruiser-prado-j150 | KDJ15# | 1KD-FTV | — | 2009–**ouverte** (fin 2015 levée ; début inchangé) | S6a et S6b : KDJ150/155 de 08/2009 à 12/2023 ; kit S6a : à 08/2015 ; EPC : 90915-20003 | S6a, S6b, S6c | aftermarket_crossref | candidate | existante 322, sources de revendeurs, à vérifier par moteur (note) |
+| 14 | — (absent de Boshoku) | land-cruiser-prado-j150 | KDJ15# | 1KD-FTV | — | 2009–**ouverte** (fin 2015 levée ; ouverte = aucune borne documentée, pas une compatibilité illimitée ; début inchangé) | S6a et S6b : KDJ150/155 de 08/2009 à 12/2023 ; kit S6a : à 08/2015 ; EPC : 90915-20003 | S6a, S6b, S6c | aftermarket_crossref | candidate | existante 322, sources de revendeurs, à vérifier par moteur (note) |
 
 Remarques :
 
@@ -208,7 +208,11 @@ les champs éliminatoires.
     les deux fiches du filtre) ou à 08/2015 (kit d'entretien de S6a) ;
     Milner Off Road (S6c) : tous les KDJ150. Seule la **fin** diverge. Elle ne
     peut pas être 2015 : la **fin 2015 est levée** (aucune source Toyota ne la
-    date) ; le début 2009 reste.
+    date) ; le début 2009 reste. **Une fin ouverte veut dire « absence de borne
+    documentée », pas « compatible sans limite de date »** : la ligne reste
+    candidate (`aftermarket_crossref`, jamais confirmée), à vérifier par moteur
+    et par date de fabrication ; l'évaluation l'affiche comme « preuve
+    insuffisante » (`insufficient_evidence`, critère manquant `evidence`).
   - S6a et S6b donnent aussi le GDJ150 1GD-FTV de 06/2015 en avant : ligne non
     posée (question ouverte).
   - EPC, miroir non officiel : 90915-20003 sur le KDJ15# 1KD-FTV de 2009-08 à

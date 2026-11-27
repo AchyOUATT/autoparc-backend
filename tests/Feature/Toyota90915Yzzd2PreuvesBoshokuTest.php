@@ -178,6 +178,7 @@ class Toyota90915Yzzd2PreuvesBoshokuTest extends TestCase
         }
         $j150 = $this->ligne(Yzzd2::prado()[1])->notes;
         $this->assertStringContainsString('aftermarket_crossref pour la ligne, jamais confirme', $j150);
+        $this->assertStringContainsString('FIN OUVERTE = ABSENCE DE BORNE DOCUMENTEE, et non une affirmation que la YZZD2 convient sans limite de date', $j150);
         $this->assertStringContainsString('fournisseur independant, sans lien avec Toyota', $j150);
         $this->assertStringContainsString('concessionnaire Toyota', $j150);
         $this->assertStringContainsString('Toyota Indus', $j150);
